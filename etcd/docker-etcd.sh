@@ -7,6 +7,7 @@ ARCH=(amd64 arm64)
 
 type=etcd
 ver=trixie
+nsname=simplekvm
 
 for fn in make_docker_image.sh tpl_overlay.sh; do
     file_exists "${fn}" || { log "${fn} no found"; exit 1; }
@@ -64,18 +65,18 @@ done
 log '=================================================='
 for arch in ${ARCH[@]}; do
     log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-    log docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+    log docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
 done
-log ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+log ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 
 trap "exit -1" SIGINT SIGTERM
 read -n 1 -t 10 -p "Continue build(Y/n)? 10s timeout, default n" value || true
 if [ "${value}" = "y" ]; then
     for arch in ${ARCH[@]}; do
         docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-        docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+        docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
     done
-    ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+    ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 fi

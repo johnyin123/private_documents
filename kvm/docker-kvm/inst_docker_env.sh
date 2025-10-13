@@ -46,7 +46,7 @@ docker create --name libvirtd --restart always \\
     -v ${target}/secrets:/etc/libvirt/secrets \\
     -v ${target}/storage:/etc/libvirt/storage \\
     -v /storage:/storage \\
-    registry.local/libvirtd/kvm:trixie
+    registry.local/simplekvm/libvirtd:trixie
 
     # -v ${target}/run/libvirt:/var/run/libvirt \\
     # -v ${target}/log:/var/log/libvirt \\
@@ -60,7 +60,7 @@ docker create --name ${ETCD_SRV} --restart always \\
  --env ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379    \\
  --env ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 \\
  --env ETCD_LOG_LEVEL='warn'                          \\
- registry.local/libvirtd/etcd:trixie
+ registry.local/simplekvm/etcd:trixie
 EOF
 
 cat <<EOF
@@ -70,7 +70,7 @@ docker create --name ${LDAP_SRV} --restart always \\
  --network br-int \\
  --env LDAP_DOMAIN="neusoft.internal" \\
  --env LDAP_PASSWORD=${LDAP_PASSWORD} \\
- registry.local/libvirtd/slapd:trixie
+ registry.local/simplekvm/slapd:trixie
 EOF
 
 
@@ -100,7 +100,7 @@ docker create --name simplekvm --restart always \\
  -v ${target}/clientcert.pem:/etc/pki/libvirt/clientcert.pem \\
  -v ${target}/clientkey.pem:/etc/nginx/ssl/simplekvm.key \\
  -v ${target}/clientcert.pem:/etc/nginx/ssl/simplekvm.pem \\
- registry.local/libvirtd/simplekvm:trixie
+ registry.local/simplekvm/simplekvm:trixie
 EOF
 
 cat <<'EO_DOC'

@@ -5,8 +5,9 @@ log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 file_exists() { [ -e "$1" ]; }
 ARCH=(amd64 arm64)
 
-type=kvm
+type=libvirtd
 ver=trixie
+nsname=simplekvm
 
 for fn in make_docker_image.sh tpl_overlay.sh; do
     file_exists "${fn}" || { log "${fn} no found"; exit 1; }
@@ -134,75 +135,26 @@ done
 log '=================================================='
 for arch in ${ARCH[@]}; do
     log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
-    log docker push registry.local/libvirtd/${type}:${ver}-${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+    log docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
 done
-log ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
+log ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 
 trap "exit -1" SIGINT SIGTERM
 read -n 1 -t 10 -p "Continue build(Y/n)? 10s timeout, default n" value || true
 if [ "${value}" = "y" ]; then
     for arch in ${ARCH[@]}; do
         docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-        ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
-        docker push registry.local/libvirtd/${type}:${ver}-${arch}
+        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+        docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
     done
-    ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
+    ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 fi
 cat <<'EOF'
-###################################################
-# test run
-###################################################
-# # ceph rbd/local storage/net bridge all ok, arm64 ok
-# # default pool /lib/libvirt/images
-# # host machine need socat, for vnc/spice !!
-# # #######################################
-yum / apt install socat docker
-libvirtd_env=/libvirtd_env
-# run/libvirt lib/libvirt log; do
-for dir in domains-xml secrets-xml storage-xml; do
-    mkdir -p "${libvirtd_env}/${dir}"
-done
-mkdir -p /storage
-META_SRV=vmm.registry.local
-meta_srv_addr=192.168.167.1
-hostname=${NAME:-$(hostname)}
-docker create --name libvirtd --restart always --network host \\
-    --privileged \\
-    --device /dev/kvm \\
-    --hostname ${hostname} \\
-    --add-host ${hostname}:127.0.0.1 \\
-    --add-host ${META_SRV}:${meta_srv_addr} \\
-    -v ${libvirtd_env}/ca.pem:/etc/libvirt/pki/ca-cert.pem:ro \\
-    -v ${libvirtd_env}/kvmsrvs.key:/etc/libvirt/pki/server-key.pem:ro \\
-    -v ${libvirtd_env}/kvmsrvs.pem:/etc/libvirt/pki/server-cert.pem:ro \\
-    -v ${libvirtd_env}/domains-xml:/etc/libvirt/qemu:rw \\
-    -v ${libvirtd_env}/secrets-xml:/etc/libvirt/secrets:rw \\
-    -v ${libvirtd_env}/storage-xml:/etc/libvirt/storage:rw \\
-    -v /storage:/storage:rw \\
-    registry.local/libvirtd/kvm:trixie
-
-    # # runtime
-    # -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
-    # -v ${libvirtd_env}/log:/var/log/libvirt \\
-    # -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
 # # virsh pool-create-as default dir --target /storage --print-xml | virsh pool-define /dev/stdin
 # # virsh pool-start default
 # # virsh pool-autostart default
-# # #######################################
-YEAR=15 ./newssl.sh -i johnyinca
-YEAR=15 ./newssl.sh -c vmm.registry.local # # meta-iso web service use
-YEAR=15 ./newssl.sh -c cli                # # virsh client
-# # kvm servers
-YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
-# # #######################################
-# # init server
-# cp ca/kvm1.local.pem /${libvirtd_env}/pki/server-cert.pem
-# cp ca/kvm1.local.key /${libvirtd_env}/pki/server-key.pem
-# cp ca/ca.pem         /${libvirtd_env}/pki/ca-cert.pem
-# # # server-key.pem, MUST CAN READ BY QEQMU PROCESS(chown)
-# chmod 440 /etc/libvirt/pki/*
-# chown root.qemu /etc/libvirt/pki/*
+
 # # #######################################
 # # init client
 |----------------------------------------|--------|
@@ -222,14 +174,4 @@ virsh -c qemu+unix:///system?socket=/vmmgr/run/libvirt/libvirt-sock
 virsh -c qemu+tls://192.168.168.1/system list --all
 virsh -c qemu+tls://kvm1.local/system list --all
 virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/vmmgr/run/libvirt/libvirt-sock
-# <graphics type='spice' tlsPort='-1' autoport='yes' listen='0.0.0.0' defaultMode='secure'/>
-# <graphics type='vnc' autoport='yes' listen='0.0.0.0'/>
-remote-viewer --spice-ca-file=~/.pki/libvirt/cacert.pem spice://127.0.0.1?tls-port=5906
-EOF
-
-: <<EOF
-# # change (kvm) gid to HOST kvm gid
-# # /etc/libvirt/qemu.conf maybe no need user=root
-groupmod -n NEW_GROUP_NAME OLD_GROUP_NAME).
-groupmod -g NEWGID GROUPNAME
 EOF

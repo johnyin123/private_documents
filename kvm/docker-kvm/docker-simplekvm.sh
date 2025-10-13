@@ -7,6 +7,8 @@ ARCH=(amd64 arm64)
 
 type=simplekvm
 ver=trixie
+nsname=simplekvm
+
 username=simplekvm
 VENV=/home/${username}/venv
 
@@ -481,20 +483,20 @@ done
 log '=================================================='
 for arch in ${ARCH[@]}; do
     log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-    log docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+    log docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
 done
-log ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+log ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 
 trap "exit -1" SIGINT SIGTERM
 read -n 1 -t 10 -p "Continue build(Y/n)? 10s timeout, default n" value || true
 if [ "${value}" = "y" ]; then
     for arch in ${ARCH[@]}; do
         docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-        docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
+        docker push ${REGISTRY}/${nsname}/${type}:${ver}-${arch}
     done
-    ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+    ./make_docker_image.sh -c combine --tag ${REGISTRY}/${nsname}/${type}:${ver}
 fi
 cat <<'EOF'
 ###################################################
@@ -548,9 +550,6 @@ docker create \
 # -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
 # -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
 # -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
-EOF
-cat <<EOF
- ${REGISTRY}/libvirtd/${type}:${ver}
 EOF
 
 cat <<'EOF'
