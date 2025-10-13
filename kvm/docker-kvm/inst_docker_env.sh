@@ -11,8 +11,8 @@ meta_srv_addr=192.168.167.1
 GOLD_SRV=simplekvm.registry.local
 gold_srv_ipaddr=192.168.167.1
 
-# tanent access CTRL_PANEL_SRV, public access
-CTRL_PANEL_SRV=user.registry.local
+# tanent access CTRL_SRV, public access
+CTRL_SRV=user.registry.local
 
 LDAP_SRV=ldap
 LDAP_PORT=10389
@@ -89,7 +89,7 @@ docker create --name simplekvm --restart always \\
  --network br-int --ip 192.168.169.123 \\
  --env LDAP_SRV_URL=ldap://${LDAP_SRV}:${LDAP_PORT} \\
  --env META_SRV=${META_SRV} \\
- --env CTRL_PANEL_SRV=${CTRL_PANEL_SRV} \\
+ --env CTRL_SRV=${CTRL_SRV} \\
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \\
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=${ETCD_SRV} --env ETCD_PORT=${ETCD_PORT} \\
  -v ${target}/config:/home/simplekvm/.ssh/config \\

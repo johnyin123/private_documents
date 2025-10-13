@@ -23,7 +23,7 @@ KVMGuest  = SHM_KVMGuest()
 def reload_all() -> None:
     cfg_class={
         config.FILE_HOSTS  :KVMHost,
-        config.FILE_DEVICES:KVMDevice,
+        config.FILE_DEVS:KVMDevice,
         config.FILE_GOLDS  :KVMGold,
         config.FILE_ISO    :KVMIso,
         config.FILE_VARS   :KVMVar,

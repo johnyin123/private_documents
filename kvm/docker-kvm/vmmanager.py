@@ -167,7 +167,7 @@ class VMManager:
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
-        access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_PANEL_KEY, expire)
+        access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_KEY, expire)
         if disp == 'console':
             return utils.return_ok(disp, uuid=uuid, display=f'{uri_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
@@ -327,8 +327,8 @@ class VMManager:
     @staticmethod
     def ui(method:str, host:utils.AttrDict, uuid:str, epoch:str)->str:
         tmout = int((int(epoch) - datetime.datetime.now().timestamp()) // 60)
-        access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_PANEL_KEY, tmout)
-        return utils.return_ok('console ui', uuid=uuid, url=config.URL_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
+        access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_KEY, tmout)
+        return utils.return_ok('console ui', uuid=uuid, url=config.URL_CTRL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
     @staticmethod
     def blksize(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:

@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cf7908e8[2025-10-11T08:53:21+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("e1302c73[2025-10-11T08:55:04+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -117,7 +117,7 @@ systemd-run --user --unit jwt-srv \
 
 # -E META_SRV=vmm.registry.local \ KVMHOST use.
 # -E GOLD_SRV=vmm.registry.local \ ACTIONS use(this srv).
-# -E CTRL_PANEL_SRV=guest.registry.local \
+# -E CTRL_SRV=guest.registry.local \
 # -E LEVELS='{"utils":"DEBUG","database":"INFO"}' \
 # -E ETCD_PREFIX=/simple-kvm/work \
 # -E ETCD_SRV=etcd-server \

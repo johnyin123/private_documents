@@ -240,7 +240,7 @@ def conf_backup_tgz()->io.BytesIO:
             if os.path.isfile(fn):
                 content = file_load(fn)
                 member = tarfile.TarInfo(os.path.relpath(fn, config.DATA_DIR))
-                if member.name.startswith(config.BACKUP_PREFIX):
+                if member.name.startswith(config.BAK_PREFIX):
                     member.size = len(content)
                     logger.debug(f'File backup {member.name}')
                     tar.addfile(member, io.BytesIO(content))
@@ -251,7 +251,7 @@ def conf_restore_tgz(file_obj:io.BytesIO)->None:
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
-                if member.isreg() and member.name.startswith(config.BACKUP_PREFIX):
+                if member.isreg() and member.name.startswith(config.BAK_PREFIX):
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
                         conf_save(os.path.join(config.DATA_DIR, member.name), f.read())

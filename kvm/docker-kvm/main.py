@@ -13,18 +13,18 @@ class MyApp(object):
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.warn(f'''
-            DATA_DIR         = {config.DATA_DIR}
-            ETCD_PREFIX      = {config.ETCD_PREFIX}
-            ETCD_SRV         = {config.ETCD_SRV}
-            ETCD_PORT        = {config.ETCD_PORT}
-            ETCD_CA          = {config.ETCD_CA}
-            ETCD_KEY         = {config.ETCD_KEY}
-            ETCD_CERT        = {config.ETCD_CERT}
-            TOKEN_DIR        = {config.TOKEN_DIR}
-            META_SRV         = {config.META_SRV}
-            GOLD_SRV         = {config.GOLD_SRV}
-            CTRL_PANEL_SRV   = {config.CTRL_PANEL_SRV}
-            CTRL_PANEL_KEY   = {config.CTRL_PANEL_KEY}''')
+            DATA_DIR    = {config.DATA_DIR}
+            ETCD_PREFIX = {config.ETCD_PREFIX}
+            ETCD_SRV    = {config.ETCD_SRV}
+            ETCD_PORT   = {config.ETCD_PORT}
+            ETCD_CA     = {config.ETCD_CA}
+            ETCD_KEY    = {config.ETCD_KEY}
+            ETCD_CERT   = {config.ETCD_CERT}
+            TOKEN_DIR   = {config.TOKEN_DIR}
+            META_SRV    = {config.META_SRV}
+            GOLD_SRV    = {config.GOLD_SRV}
+            CTRL_SRV    = {config.CTRL_SRV}
+            CTRL_KEY    = {config.CTRL_KEY}''')
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
@@ -145,7 +145,7 @@ class MyApp(object):
             hosts = database.KVMHost.list_all()
             devs = database.KVMDevice.list_all()
             utils.conf_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
-            utils.conf_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
+            utils.conf_save(config.FILE_DEVS, json.dumps(devs, default=str).encode('utf-8'))
             return utils.return_ok(f'conf host ok', name=name)
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
