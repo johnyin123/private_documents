@@ -228,9 +228,7 @@ EOF
 echo "add new gold  " && CURL POST /conf/gold/ << EOF
 {"name":"${gold}","arch":"${arch}","uri":"/gold/bookworm.amd64.qcow2","size":"2","desc":"test gold"}
 EOF
-echo "delete host   " && CURL DELETE /conf/host/?name=${host}
-echo "delete iso    " && CURL DELETE /conf/iso/?name=${iso}
-echo "delete gold   " && CURL DELETE /conf/gold/?name=${gold}&arch=${arch}
+
 echo "lst cached vms" && CURL GET /vm/list/
 echo "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{ "vm_desc" : "测试VM" }' | jq -r .uuid)
 echo "list vm info  " && CURL GET /vm/list/${host}/${uuid}
@@ -260,6 +258,9 @@ CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
 CURL POST /vm/cdrom/${host}/${uuid}?dev=sda <<< '{"isoname":""}'
 CURL POST /vm/detach_device/${host}/${uuid}?dev=sda <<< ''
 CURL GET /vm/delete/${host}/${uuid}
+echo "delete iso    " && CURL DELETE /conf/iso/?name=${iso}
+echo "delete gold   " && CURL DELETE /conf/gold/?name=${gold}&arch=${arch}
+echo "delete host   " && CURL DELETE /conf/host/?name=${host}
 ---------------------------------------------------------
 ---------------------------------------------------------
 ---------------------------------------------------------
