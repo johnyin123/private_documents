@@ -98,7 +98,7 @@ admin_api() {
             proxy_request_buffering            off;
             proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
         }
-        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui|revert_snapshot|delete_snapshot))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ctrl_url|revert_snapshot|delete_snapshot))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;

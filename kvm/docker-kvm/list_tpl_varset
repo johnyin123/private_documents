@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -B
+#!/usr/bin/env -S python3 -B
 # -*- coding: utf-8 -*-
 
 import logging, os, config
@@ -7,18 +7,19 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='[%(funcName)s@
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-from template import get_variables, cfg_templates
+from template import get_variables, tpl_list
+logger.info(f'DATA_DIR: {config.DATA_DIR}')
 varset = set()
-for file in cfg_templates(config.DIR_DOMAIN):
+for file in tpl_list(config.DIR_DOMAIN):
     varset.update(get_variables(config.DIR_DOMAIN, file))
 meta_varset=set()
-for file in cfg_templates(config.DIR_META):
+for file in tpl_list(config.DIR_META):
     meta_varset.update(get_variables(config.DIR_META, file))
 varset.update(meta_varset)
 logger.info(f'create vm {varset}')
 logger.info(f'meta {meta_varset}')
 
-for file in cfg_templates(config.DIR_DEVICE):
+for file in tpl_list(config.DIR_DEVICE):
     dev_varset = get_variables(config.DIR_DEVICE, file)
     varset.update(dev_varset)
     logger.info(f'{file} {dev_varset}')

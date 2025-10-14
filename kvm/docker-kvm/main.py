@@ -42,15 +42,15 @@ class MyApp(object):
         ## db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         ## etcd config backup/restore ##
-        app.add_url_rule('/conf/domains/', view_func=self.cfg_domains, methods=['GET'])
-        app.add_url_rule('/conf/devices/', view_func=self.cfg_devices, methods=['GET'])
+        app.add_url_rule('/conf/domains/', view_func=self.conf_domains, methods=['GET'])
+        app.add_url_rule('/conf/devices/', view_func=self.conf_devices, methods=['GET'])
         app.add_url_rule('/conf/backup/', view_func=self.conf_backup, methods=['GET'])
         app.add_url_rule('/conf/restore/', view_func=self.conf_restore, methods=['POST'])
-        app.add_url_rule('/conf/host/', view_func=self.cfg_host, methods=['POST', 'DELETE'])
-        app.add_url_rule('/conf/iso/', view_func=self.cfg_iso, methods=['POST', 'DELETE'])
-        app.add_url_rule('/conf/gold/', view_func=self.cfg_gold, methods=['POST', 'DELETE'])
+        app.add_url_rule('/conf/host/', view_func=self.conf_host, methods=['POST', 'DELETE'])
+        app.add_url_rule('/conf/iso/', view_func=self.conf_iso, methods=['POST', 'DELETE'])
+        app.add_url_rule('/conf/gold/', view_func=self.conf_gold, methods=['POST', 'DELETE'])
 
-    def cfg_iso(self):
+    def conf_iso(self):
         name = None
         try:
             if flask.request.method == "DELETE":
@@ -78,7 +78,7 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(f'conf iso', e), 400
 
-    def cfg_gold(self):
+    def conf_gold(self):
         try:
             name = None
             arch = None
@@ -112,7 +112,7 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(f'conf gold', e), 400
 
-    def cfg_host(self):
+    def conf_host(self):
         name = None
         try:
             if flask.request.method == "DELETE":
@@ -134,7 +134,7 @@ class MyApp(object):
                 logger.debug(f'add host {entry}')
                 database.KVMHost.delete(name=entry['name'])
                 database.KVMHost.insert(**entry)
-                keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
+                keys_to_extract = template.tpl_list(config.DIR_DEVICE)
                 entry = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'} # no need check blank
                 database.KVMDevice.delete(kvmhost=req_json['name'])
                 logger.debug(f'add host device {entry.keys()}')
@@ -150,15 +150,15 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
-    def cfg_domains(self):
+    def conf_domains(self):
         try:
-            return utils.return_ok(f'domains ok', domains=template.cfg_templates(config.DIR_DOMAIN))
+            return utils.return_ok(f'domains ok', domains=template.tpl_list(config.DIR_DOMAIN))
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
-    def cfg_devices(self):
+    def conf_devices(self):
         try:
-            return utils.return_ok(f'devices ok', devices=template.cfg_templates(config.DIR_DEVICE))
+            return utils.return_ok(f'devices ok', devices=template.tpl_list(config.DIR_DEVICE))
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
@@ -187,10 +187,10 @@ class MyApp(object):
         try:
             hosts = database.KVMHost.list_all()
             meta_varset = set()
-            for name in template.cfg_templates(config.DIR_META):
+            for name in template.tpl_list(config.DIR_META):
                 meta_varset.update(template.get_variables(config.DIR_META, name))
             domtpl_varset = dict()
-            for name in template.cfg_templates(config.DIR_DOMAIN):
+            for name in template.tpl_list(config.DIR_DOMAIN):
                 varset = template.get_variables(config.DIR_DOMAIN, name)
                 varset.update(meta_varset)
                 domtpl_varset[name] = database.KVMVar.get_desc(varset)
@@ -232,7 +232,7 @@ class MyApp(object):
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
-            'GET': ['ui','xml','ipaddr','start','reset','stop','delete','display','list','blksize','desc','setmem','setcpu','netstat','websockify','snapshot','revert_snapshot','delete_snapshot'],
+            'GET': ['ctrl_url','xml','ipaddr','start','reset','stop','delete','display','list','blksize','desc','setmem','setcpu','netstat','websockify','snapshot','revert_snapshot','delete_snapshot'],
             'POST': ['attach_device','detach_device','cdrom','create','snapshot','metadata'],
         }
         try:

@@ -176,131 +176,94 @@ echo 'vm1: 127.0.0.1:5900' > ./token/uuid.txt
 vnc_lite.html?host=192.168.168.1&port=6800&password=abc&path=websockify/?token=vm1
 https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?token=vm1
 ---------------------------------------------------------
-srv=http://127.0.0.1:5009 #https://vmm.registry.local
-
-curl -s -k -X POST ${srv}/api/login -d '{"username":"simplekvm", "password":"newpass2"}' | jq -r .token
-token=
-CURL="curl -k --header \"Authorization: Bearer ${token}\""
-echo 'list host' && curl -k ${srv}/tpl/host/ | jq '.[]|{name: .name, arch: .arch}'
-echo 'list iso' && curl -k ${srv}/tpl/iso/
-host=host01
-arch=x86_64
-uefi=/usr/share/OVMF/OVMF_CODE.fd
-# arch=aarch64
-# uefi=/usr/share/AAVMF/AAVMF_CODE.fd
-# vm_ram_mb_max=8192, vm_vcpus_max=8
-# # -d '{}' # -d '@file.json'
-echo 'create vm' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/create/${host}
-{
- "vm_arch":"${arch}",
- ${uefi:+\"vm_uefi\": \"${uefi}\",}
- "vm_vcpus" : 2,
- "vm_ram_mb" : 2048,
- "vm_desc" : "测试VM",
- "vm_ip":"192.168.168.2/32",
- "vm_gw":"192.168.168.1"
-}
-EOF
-echo 'update metadata' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/metadata/${host}/${uuid}
-{
- "key1":1,
- "key2":"val"
-}
-EOF
-# uuid=xxxx
-echo 'list device allhost' && curl -k ${srv}/tpl/device/ | jq '.[]|{name: .name}'
-echo 'list device on host' && curl -k ${srv}/tpl/device/${host} | jq '.[]|{name: .name}'
-echo 'list gold image' && curl -k ${srv}/tpl/gold/${arch} | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
-echo 'list gold image' && curl -k ${srv}/tpl/gold/ | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
-device=local-disk
-# gold=debian12
-# gold="" is datadisk
-# size => G
-echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
-{
- ${gold:+\"gold\": \"${gold}\",}
- "size":2
-}
-EOF
-dev=vda
-echo 'del disk'        && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/detach_device/${host}/${uuid}/${dev}
-echo 'change cd media' && curl -k -H 'Content-Type:application/json' -X POST -d '{"dev":"sda", "isoname":"centos7-x86_64"}' ${srv}/vm/cdrom/${host}/${uuid}/${dev}
-device=net-br-ext
-device=debian_installcd
-echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
-echo 'list host vms'   && curl -k ${srv}/vm/list/${host}            # from host
-echo 'list a vm'       && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
-echo 'start vm'        && curl -k ${srv}/vm/start/${host}/${uuid}
-echo 'display'         && curl -k ${srv}/vm/display/${host}/${uuid} #disp=console #?timeout_mins=10 #default config.TMOUT_MINS, prefix default None else add '/user' prefix
-echo 'commn stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}
-echo 'commn reset vm'  && curl -k ${srv}/vm/reset/${host}/${uuid}
-echo 'force stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
-echo 'vm ipaddr'       && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
-echo 'undefine domain' && curl -k ${srv}/vm/delete/${host}/${uuid}
-# # test qemu-hook auto upload
-curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
-curl --cacert /etc/libvirt/pki/ca-cert.pem \
-    --key /etc/libvirt/pki/server-key.pem \
-    --cert /etc/libvirt/pki/server-cert.pem \
-    -X POST https://kvm.registry.local/domain/prepare/begin/vm1 \
-    -F file=@/etc/libvirt/qemu/vm1.xml
-
-echo 'update all guests dbtable' && {
-    for host in $(curl -k ${srv}/tpl/host/ 2>/dev/null | jq -r '.[]|.name'); do
-        curl -k ${srv}/vm/list/${host} 2>/dev/null | jq -r '.'
-    done
-}
-echo 'list all guests in database' && curl -k ${srv}/vm/list/
-echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
-epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
-echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}?epoch=${epoch}
-echo 'get vmip' && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
-echo 'get blk size' && curl -k ${srv}/vm/blksize/${host}/${uuid}?dev=vda
-echo 'modify desc' && curl -k ${srv}/vm/desc/${host}/${uuid}?vm_desc=message
-echo 'modify mem' && curl -k '${srv}/vm/setmem/${host}/${uuid}?vm_ram_mb=2000'
-echo 'modify cpu' && curl -k '${srv}/vm/setcpu/${host}/${uuid}?vm_vcpus=2'
-echo 'netstat' && curl -k '${srv}/vm/netstat/${host}/${uuid}?dev=52:54:00:a9:1f:16'
 ---------------------------------------------------------
-# token='aG9zdDAxLzZmNWQ4YmY2LWQ1ODAtNDk0Ni05NTQxLTEzZmE5OGI0YWNmND9rPWc2S0h1T1A4R0lmVTVfZFlBN0lQX1EmZT0xNzQzNDM2Nzk5'
-str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&e=1743436799'
-echo 'get vminfo by token' && curl -k "${srv}/user/vm/list/${str_token}"
-echo 'start vm by token'   && curl -k "${srv}/user/vm/start/${str_token}"
-echo 'reset vm by token'   && curl -k "${srv}/user/vm/reset/${str_token}"
-echo 'vm vnc by token'     && curl -k "${srv}/user/vm/display/${str_token}" #disp=console
-echo 'stop vm by token'    && curl -k "${srv}/user/vm/stop/${str_token}"
-echo 'force stop by token' && curl -k "${srv}/user/vm/stop/${str_token}?force=true"
-
-srv=https://vmm.registry.local
-host=host01
-uuid=dc115783-b0bb-4a74-86df-063f25f51a1b
-echo 'create snapshot'     && curl -k -X POST -d '{}' "${srv}/vm/snapshot/${host}/${uuid}?name=snap01" # -d '{name:"xxx"}'
-echo 'list snapshot'       && curl -k "${srv}/vm/snapshot/${host}/${uuid}"
-echo 'delete snapshot'     && curl -k "${srv}/vm/delete_snapshot/${host}/${uuid}?name=snap01"
-echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}?name=<name>"
-echo 'backup' && curl -k ${srv}/conf/backup/ -o backup.tgz
-# restore on overwrite files exists in backup.tgz, others keep
-# # tar c devices/ domains/ meta/ vars.json hosts.json devices.json golds.json iso.json | gzip > backup.tgz
-echo 'restore' && curl -k -X POST -F 'file=@backup.tgz' ${srv}/conf/restore/
-echo 'list domain tpl' && curl -k  ${srv}/conf/domains/
-echo 'list device tpl' && curl -k  ${srv}/conf/devices/
-echo 'add host' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/conf/addhost/
-{
-  "name":"hostxx",
-  "tpl":"domain",
-  "url":"qemu+tls://192.168.168.1/system",
-  "arch":"x86_64",
-  "ipaddr":"192.168.168.1",
-  "sshport":60022,
-  "sshuser":"root",
-  "cdrom.null":"on",
-  "disk.file":"on",
-  "disk.rbd":"n/a",
-  "net.br-ext":"on"
-}
+---------------------------------------------------------
+srv=http://127.0.0.1:5009 #https://vmm.registry.local
+uid=admin
+pass=adminpass
+token=$(cat <<EOF | curl -sk -X POST ${srv}/api/login -d '@-' | jq -r '"Authorization: Bearer \(.token)"'
+{"username":"${uid}", "password":"${pass}"}
 EOF
-POST,DELETE /conf/host/
-POST,DELETE /conf/iso/
-POST,DELETE /conf/gold/
+)
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+function CURL() {
+    local method="${1}"; shift 1
+    local opts="-sk --header '${token}'"
+    local uri="${1}"; shift 1
+    case "${method}" in
+        UPLOAD)
+            log "curl ${opts} -X POST -F $* '${srv}${uri}'"
+            eval -- curl ${opts} -X POST -F $* "'${srv}${uri}'"
+            ;;
+        POST)
+            log "curl ${opts} -X POST -d '@-' $* '${srv}${uri}'"
+            eval -- curl ${opts} -X POST -d '@-' "'${srv}${uri}'"
+            ;;
+        *)
+            log "curl ${opts} $* '${srv}${uri}'"
+            eval -- curl ${opts} -X ${method} $* "'${srv}${uri}'"
+            ;;
+    esac
+}
+arch=x86_64
+host=testhost
+iso=testiso
+gold=testgold
+#GET     /vm/websockify/${host}/${uuid}?disp=&expire=<mins>&token=
+echo "backup config " && CURL GET /conf/backup/ -o backup.tgz
+echo "restore config" && CURL UPLOAD /conf/restore/ 'file=@backup.tgz'
+echo "list all hosts" && CURL GET /tpl/host/
+echo "list all iso  " && CURL GET /tpl/iso/
+echo "list all golds" && CURL GET /tpl/gold/
+echo "list all devs " && CURL GET /tpl/device/
+echo "list arch gold" && CURL GET /tpl/gold/${arch}
+echo "list host devs" && CURL GET /tpl/device/${host}
+echo "list dom tpls " && CURL GET /conf/domains/
+echo "list dev tpls " && CURL GET /conf/devices/
+echo "add new host  " && CURL POST /conf/host/ << EOF
+{ "name":"${host}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root",
+"disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
+EOF
+echo "add new iso   " && CURL POST /conf/iso/ << EOF
+{"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
+EOF
+echo "add new gold  " && CURL POST /conf/gold/ << EOF
+{"name":"${gold}","arch":"${arch}","uri":"/gold/bookworm.amd64.qcow2","size":"2","desc":"test gold"}
+EOF
+echo "delete host   " && CURL DELETE /conf/host/?name=${host}
+echo "delete iso    " && CURL DELETE /conf/iso/?name=${iso}
+echo "delete gold   " && CURL DELETE /conf/gold/?name=${gold}&arch=${arch}
+echo "lst cached vms" && CURL GET /vm/list/
+echo "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{ "vm_desc" : "测试VM" }' | jq -r .uuid)
+echo "list vm info  " && CURL GET /vm/list/${host}/${uuid}
+echo "get vm xml    " && CURL GET /vm/xml/${host}/${uuid}
+echo "vm attach dev " && CURL POST /vm/attach_device/${host}/${uuid}?dev=disk.file <<EOF
+{"size":2,"gold":"debian12"}
+EOF
+CURL GET /vm/blksize/${host}/${uuid}?dev=vda
+CURL GET /vm/netstat/${host}/${uuid}?dev=52:54:00:97:bc:5a
+CURL GET /vm/ctrl_url/${host}/${uuid}?epoch=$(date -d "+3600 second" +%s)
+CURL GET "/vm/display/${host}/${uuid}?disp=&prefix=&timeout_mins=15"
+CURL GET "/vm/display/${host}/${uuid}?disp=console&prefix=&timeout_mins=15"
+CURL GET /vm/start/${host}/${uuid}
+CURL GET /vm/ipaddr/${host}/${uuid}
+CURL GET /vm/reset/${host}/${uuid}
+CURL GET /vm/stop/${host}/${uuid}
+CURL GET /vm/stop/${host}/${uuid}?force=true
+CURL GET /vm/desc/${host}/${uuid}?vm_desc=new%20desc
+CURL GET /vm/setmem/${host}/${uuid}?vm_ram_mb=1024
+CURL GET /vm/setcpu/${host}/${uuid}?vm_vcpus=1
+CURL GET /vm/snapshot/${host}/${uuid}
+CURL POST /vm/snapshot/${host}/${uuid} <<< ''
+CURL POST /vm/snapshot/${host}/${uuid}?name=
+CURL GET /vm/revert_snapshot/${host}/${uuid}?name=
+CURL GET /vm/delete_snapshot/${host}/${uuid}?name=
+CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
+CURL POST /vm/cdrom/${host}/${uuid}?dev=sda <<< '{"isoname":""}'
+CURL POST /vm/detach_device/${host}/${uuid}?dev=sda <<< ''
+CURL GET /vm/delete/${host}/${uuid}
+---------------------------------------------------------
+---------------------------------------------------------
 ---------------------------------------------------------
 1. create CA
     ${ca_root}/ca.key

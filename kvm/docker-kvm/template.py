@@ -10,7 +10,7 @@ def get_variables(dirname:str, tpl_name:str)->Set[str]:
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname))
     return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, f'{tpl_name}.tpl')[0])))
 
-def cfg_templates(dirname:str)->List:
+def tpl_list(dirname:str)->List:
     return [os.path.relpath(fn, dirname).removesuffix(".tpl") for fn in glob.glob(f'{dirname}/*.tpl')]
 
 class KVMTemplate:

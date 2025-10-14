@@ -12,7 +12,7 @@ def gen_metafiles(**kwargs)->None:
     iso = pycdlib.PyCdlib()
     iso.new(interchange_level=4, vol_ident='cidata')
     output = os.path.join(config.DIR_CIDATA, kwargs["vm_uuid"])
-    for file in template.cfg_templates(config.DIR_META):
+    for file in template.tpl_list(config.DIR_META):
         meta_str = template.MetaDataTemplate(file).render(**kwargs)
         meta_add(os.path.join(output, file), meta_str.encode('utf-8'))
         iso.add_fp(io.BytesIO(bytes(meta_str,'ascii')), len(meta_str), f'/{file}')

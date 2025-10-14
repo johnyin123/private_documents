@@ -325,10 +325,10 @@ class VMManager:
         return utils.return_ok(f'start ok', uuid=uuid)
 
     @staticmethod
-    def ui(method:str, host:utils.AttrDict, uuid:str, epoch:str)->str:
+    def ctrl_url(method:str, host:utils.AttrDict, uuid:str, epoch:str)->str:
         tmout = int((int(epoch) - datetime.datetime.now().timestamp()) // 60)
         access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_KEY, tmout)
-        return utils.return_ok('console ui', uuid=uuid, url=config.URL_CTRL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
+        return utils.return_ok('ctrl ui', uuid=uuid, url=config.URL_CTRL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
     @staticmethod
     def blksize(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:
@@ -377,7 +377,7 @@ class VMManager:
             for net in (n for n in LibvirtDomain(dom).nets if n.get('mac') == dev):
                 stats = dom.interfaceStats(net['dev'])
                 return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
-        raise utils.APIException(f'vm {uuid} {dev} nofound')
+        raise utils.APIException(f'vm {uuid} dev="{dev}" nofound')
 
     @staticmethod
     def revert_snapshot(method:str, host:utils.AttrDict, uuid:str, name:str)->str:
