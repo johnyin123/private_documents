@@ -218,10 +218,12 @@ echo "list arch gold" && CURL GET /tpl/gold/${arch}
 echo "list host devs" && CURL GET /tpl/device/${host}
 echo "list dom tpls " && CURL GET /conf/domains/
 echo "list dev tpls " && CURL GET /conf/devices/
-echo "add new host  " && CURL POST /conf/host/ << EOF
-{ "name":"${host}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root",
-"disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
+gen_host() {
+    cat <<EOF
+{ "name":"${1}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
 EOF
+}
+echo "add new host  " && gen_host "${host}" | CURL POST /conf/host/
 echo "add new iso   " && CURL POST /conf/iso/ << EOF
 {"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
 EOF
