@@ -188,22 +188,20 @@ EOF
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 function CURL() {
     local method="${1}"; shift 1
-    local opts="-sk --header '${token}'"
     local uri="${1}"; shift 1
+    local curl=(curl -sk --header "${token}")
+    local args=("$@")
     case "${method}" in
         UPLOAD)
-            log "curl ${opts} -X POST -F $* '${srv}${uri}'"
-            eval -- curl ${opts} -X POST -F $* "'${srv}${uri}'"
-            ;;
+            curl+=(--request POST --form "${args[@]}") ;;
         POST)
-            log "curl ${opts} -X POST -d '@-' $* '${srv}${uri}'"
-            eval -- curl ${opts} -X POST -d '@-' "'${srv}${uri}'"
-            ;;
+            curl+=(--request POST --data @-) ;;
         *)
-            log "curl ${opts} $* '${srv}${uri}'"
-            eval -- curl ${opts} -X ${method} $* "'${srv}${uri}'"
-            ;;
+            curl+=(--request "$method" "${args[@]}") ;;
     esac
+    curl+=("${srv}${uri}")
+    log "${curl[@]}"
+    "${curl[@]}"
 }
 arch=x86_64
 host=testhost
