@@ -79,7 +79,7 @@ def before_request():
 
 # @app.after_request
 def after_request_log(response):
-    logger.warn(f"""
+    logger.warning(f"""
 {flask.request.method} {flask.request.url}
 {flask.request.headers}
 JSON Data: {flask.request.get_json(silent=True, force=True)}

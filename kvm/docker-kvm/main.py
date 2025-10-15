@@ -12,7 +12,7 @@ class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        logger.warn(f'''
+        logger.warning(f'''
             DATA_DIR    = {config.DATA_DIR}
             ETCD_PREFIX = {config.ETCD_PREFIX}
             ETCD_SRV    = {config.ETCD_SRV}

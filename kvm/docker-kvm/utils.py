@@ -13,7 +13,7 @@ def time_use(func):
         start_time = time.perf_counter()
         result = func(*args, **kwargs)
         runtime = time.perf_counter() - start_time
-        logger.warn(f"Execution of '{func.__name__}' took {runtime:.4f} seconds.")
+        logger.warning(f"Execution of '{func.__name__}' took {runtime:.4f} seconds.")
         return result
     return wrapper
 
@@ -260,7 +260,7 @@ class EtcdConfig:
     @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:
         while True:
-            logger.warn(f'ETCD WATCH PREFIX PID={os.getpid()} START')
+            logger.warning(f'ETCD WATCH PREFIX PID={os.getpid()} START')
             try:
                 with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
                     _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
@@ -272,21 +272,21 @@ class EtcdConfig:
                             logger.info(f'ETCD WATCH PREFIX DELETE {event.key.decode("utf-8")}')
                             update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX DELETE'), None)
                         else:
-                            logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
+                            logger.warning(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except Exception as e:
                 logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__} {str(e)}]')
-            logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
+            logger.warning(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
             time.sleep(60) # Wait before retrying
 
     @classmethod
     def cfg_initupdate(cls, update_callback) -> None:
         with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-            logger.warn(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
+            logger.warning(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
             for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
                 fname = cls.key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
                 value, _ = etcd.get(meta.key)
                 file_save(fname, value)
-            logger.warn(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
+            logger.warning(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
 
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
