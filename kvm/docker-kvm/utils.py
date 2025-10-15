@@ -3,7 +3,6 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator,
 import libvirt, json, io, os, logging, base64, hashlib, datetime
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 logger = logging.getLogger(__name__)
-my_manager = multiprocessing.Manager()
 KiB = 1024
 MiB = 1024 * KiB
 GiB = 1024 * MiB
@@ -28,9 +27,16 @@ class AttrDict(dict):
         except KeyError:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
+my_manager = multiprocessing.Manager()
 class ShmListStore:
-    def __init__(self):
+    def __init__(self, name: Optional[str] = None, size: int = 10*KiB):
         self.cache = my_manager.list()
+
+    def __len__(self):
+        return len(self.cache)
+
+    def __iter__(self):
+        return iter(self.list_all())
 
     @classmethod
     def search(cls, arr, **kwargs) -> List:
@@ -55,7 +61,7 @@ class ShmListStore:
         return self.search(self.cache, **criteria)
 
 class ProcList:
-    pids = ShmListStore()
+    pids = ShmListStore(name='pids', size=10*KiB)
 
     @staticmethod
     def wait_proc(uuid:str, cmd:List, tmout:int=0, redirect:bool=True, req_json:dict={}, **kwargs)-> Generator:
