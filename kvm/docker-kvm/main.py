@@ -1,30 +1,26 @@
 # -*- coding: utf-8 -*-
-import flask_app, flask, io, os, json, logging, datetime, requests
+import flask_app, flask, io, os, json, logging, datetime
 import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
-
-def http_file_exists(url:str)->tuple[bool, int]:
-    response = requests.head(url, allow_redirects=True, timeout=5)
-    content_length = response.headers.get('Content-Length', '0')
-    return response.status_code == requests.codes.ok, int(content_length)
-
+conf_msg = f'''
+    DATA_DIR    = {config.DATA_DIR}
+    TOKEN_DIR   = {config.TOKEN_DIR}
+    ETCD_PREFIX = {config.ETCD_PREFIX}
+    ETCD_SRV    = {config.ETCD_SRV}
+    ETCD_PORT   = {config.ETCD_PORT}
+    ETCD_CA     = {config.ETCD_CA}
+    ETCD_KEY    = {config.ETCD_KEY}
+    ETCD_CERT   = {config.ETCD_CERT}
+    META_SRV    = {config.META_SRV}
+    GOLD_SRV    = {config.GOLD_SRV}
+    CTRL_SRV    = {config.CTRL_SRV}
+    CTRL_KEY    = {config.CTRL_KEY}
+'''
 class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        logger.warning(f'''
-            DATA_DIR    = {config.DATA_DIR}
-            TOKEN_DIR   = {config.TOKEN_DIR}
-            ETCD_PREFIX = {config.ETCD_PREFIX}
-            ETCD_SRV    = {config.ETCD_SRV}
-            ETCD_PORT   = {config.ETCD_PORT}
-            ETCD_CA     = {config.ETCD_CA}
-            ETCD_KEY    = {config.ETCD_KEY}
-            ETCD_CERT   = {config.ETCD_CERT}
-            META_SRV    = {config.META_SRV}
-            GOLD_SRV    = {config.GOLD_SRV}
-            CTRL_SRV    = {config.CTRL_SRV}
-            CTRL_KEY    = {config.CTRL_KEY}''')
+        logger.warning(conf_msg)
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
@@ -66,7 +62,7 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_iso', f'blank str!')
                 logger.debug(f'add iso {entry}')
-                exists, file_size = http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                exists, file_size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
                 if not exists:
                     return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 database.KVMIso.delete(name=entry['name'])
@@ -96,7 +92,7 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_gold', f'blank str!')
                 entry['size'] = int(entry['size'])*vmmanager.GiB
-                exists, file_size = http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                exists, file_size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
                 if not exists:
                     return utils.return_err(404, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 if entry['size'] < file_size:
@@ -256,4 +252,3 @@ class MyApp(object):
             return utils.deal_except(cmd, e), 400
 
 app = MyApp.create()
-# gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
-import libvirt, json, io, os, logging, base64, hashlib, datetime
+import libvirt, json, io, os, logging, base64, hashlib, datetime, requests
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 logger = logging.getLogger(__name__)
 KiB = 1024
@@ -172,6 +172,11 @@ def login_name(authorization:str)-> str:
     if authorization.startswith('Bearer '):
         authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
+
+def http_file_exists(url:str)->tuple[bool, int]:
+    response = requests.head(url, allow_redirects=True, timeout=5)
+    content_length = response.headers.get('Content-Length', '0')
+    return response.status_code == requests.codes.ok, int(content_length)
 
 def file_load(fname:str)-> bytes:
     with open(fname, 'rb') as file:
