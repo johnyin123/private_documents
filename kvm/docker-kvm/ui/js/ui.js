@@ -471,8 +471,8 @@ function disk_size(host, uuid, dev, btn) {
 }
 function change_iso(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
-  showView('changecdrom');
   document.getElementById('isoname_list').innerHTML = genOption(get_iso());
+  showView('changecdrom');
 }
 function on_createvm(form) {
   getjson('POST', `${uri_pre}/vm/create/${curr_host()}`, function(resp){
@@ -493,11 +493,11 @@ function cpWithoutKeys(orig, keys) {
 }
 function create_vm(host) {
   set_curr(host, '');
-  showView('createvm');
   const form = document.getElementById("createvm_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(getHost(host).vars, objs));
+  showView('createvm');
 }
 function on_add(form) {
   function getLastLine(str) {
@@ -524,7 +524,6 @@ function gold_change(e) {
 }
 function add_disk(host, uuid) {
   set_curr(host, uuid);
-  showView('adddisk');
   const form = document.getElementById("adddisk_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const disks = filterByKey(getDevice(host), 'devtype', 'disk');
@@ -540,26 +539,27 @@ function add_disk(host, uuid) {
   const input = document.getElementById("gold_size");
   input.value = Math.ceil(gold_list.options[gold_list.selectedIndex].getAttribute("data-ext1")/1024/1024/1024);
   input.setAttribute('min', input.value);
+  showView('adddisk');
 }
 function add_net(host, uuid) {
   set_curr(host, uuid);
-  showView('addnet');
   const form = document.getElementById("addnet_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const nets = filterByKey(getDevice(host), 'devtype', 'net');
   const objs = Object.keys(getFormJSON(form, false));
   if(nets.length > 0) { set_help(form, cpWithoutKeys(nets[0]['vars'], objs)); }
   document.getElementById('net_list').innerHTML = genOption(nets);
+  showView('addnet');
 }
 function add_cdrom(host, uuid) {
   set_curr(host, uuid);
-  showView('addcdrom');
   const form = document.getElementById("addcdrom_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const cdroms = filterByKey(getDevice(host), 'devtype', 'cdrom');
   const objs = Object.keys(getFormJSON(form, false));
   if(cdroms.length > 0) { set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs)); }
   document.getElementById('cdrom_list').innerHTML = genOption(cdroms);
+  showView('addcdrom');
 }
 function on_modifydesc(form) {
   const res = getFormJSON(form);
