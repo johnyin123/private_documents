@@ -213,10 +213,7 @@ def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
     shash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     return base64.urlsafe_b64encode(f'{kvmhost}/{uuid}?k={shash}&e={epoch}'.encode('utf-8')).decode('utf-8').rstrip('=')
 
-try:
-    import etcd3, config
-except ImportError:
-    pass
+import etcd3, config
 class EtcdConfig:
     grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 

@@ -130,7 +130,6 @@ function manage_vm(kvmhost, uuid) {
   set_curr(kvmhost, uuid);
   flush_sidebar(kvmhost);
   document.getElementById("snap_info").innerHTML = '';
-  showView("manage_vm");
   getjson('GET', `${uri_pre}/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
     var btn = genActBtn(true, 'Show XML', 'fa-commenting', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
@@ -154,6 +153,7 @@ function manage_vm(kvmhost, uuid) {
     const title = result.guest.state == "RUN" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
     const tbl = genWrapper("vms-wrapper", title, btn, table);
     document.getElementById("vm_info").innerHTML = tbl;
+    showView("manage_vm");
   });
 }
 function show_vms(kvmhost, vms) {
@@ -700,9 +700,9 @@ function show_conf_host_view() {
       const div = document.getElementById('conf_devices_tpl');
       div.innerHTML = '';
       result.devices.forEach(tpl => { div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${tpl}</label>`; });
+      showView('conf_host');
      });
   });
-  showView('conf_host');
 }
 function on_conf_addgold(form) {
   if (confirm(`Are you sure add gold?`)) {
