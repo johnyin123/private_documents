@@ -253,16 +253,16 @@ CURL GET /vm/setmem/${host}/${uuid}?vm_ram_mb=1024
 CURL GET /vm/setcpu/${host}/${uuid}?vm_vcpus=1
 CURL GET /vm/snapshot/${host}/${uuid}
 CURL POST /vm/snapshot/${host}/${uuid} <<< ''
-CURL POST /vm/snapshot/${host}/${uuid}?name=
+CURL POST /vm/snapshot/${host}/${uuid}?name= <<< ''
 CURL GET /vm/revert_snapshot/${host}/${uuid}?name=
 CURL GET /vm/delete_snapshot/${host}/${uuid}?name=
 CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
 CURL POST /vm/cdrom/${host}/${uuid}?dev=sda <<< '{"isoname":""}'
 CURL POST /vm/detach_device/${host}/${uuid}?dev=sda <<< ''
 CURL GET /vm/delete/${host}/${uuid}
-echo "delete iso    " && CURL DELETE /conf/iso/?name=${iso}
-echo "delete gold   " && CURL DELETE /conf/gold/?name=${gold}&arch=${arch}
-echo "delete host   " && CURL DELETE /conf/host/?name=${host}
+echo "delete iso    " && CURL DELETE "/conf/iso/?name=${iso}"
+echo "delete gold   " && CURL DELETE "/conf/gold/?name=${gold}&arch=${arch}"
+echo "delete host   " && CURL DELETE "/conf/host/?name=${host}"
 ---------------------------------------------------------
 ---------------------------------------------------------
 ---------------------------------------------------------

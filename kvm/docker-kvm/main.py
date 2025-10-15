@@ -14,13 +14,13 @@ class MyApp(object):
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.warning(f'''
             DATA_DIR    = {config.DATA_DIR}
+            TOKEN_DIR   = {config.TOKEN_DIR}
             ETCD_PREFIX = {config.ETCD_PREFIX}
             ETCD_SRV    = {config.ETCD_SRV}
             ETCD_PORT   = {config.ETCD_PORT}
             ETCD_CA     = {config.ETCD_CA}
             ETCD_KEY    = {config.ETCD_KEY}
             ETCD_CERT   = {config.ETCD_CERT}
-            TOKEN_DIR   = {config.TOKEN_DIR}
             META_SRV    = {config.META_SRV}
             GOLD_SRV    = {config.GOLD_SRV}
             CTRL_SRV    = {config.CTRL_SRV}
