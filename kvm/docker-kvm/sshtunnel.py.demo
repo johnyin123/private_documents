@@ -931,3 +931,42 @@ def run_command():
     command = ["ping", "192.168.1.11"]  # Example command
     uuid = '76212db1-d0e1-4ba3-a7b6-b71316fe1486'
     return Response(wait_proc(uuid, command, tmout=5), mimetype='text/plain')
+
+######################################################################
+### orig version shmstore
+######################################################################
+from multiprocessing import Manager
+my_manager = Manager()
+class ShmListStore:
+    def __init__(self, name: Optional[str] = None, size: int = 10*KiB):
+        self.cache = my_manager.list()
+
+    def __len__(self):
+        return len(self.cache)
+
+    def __iter__(self):
+        return iter(self.list_all())
+
+    @classmethod
+    def search(cls, arr, **kwargs) -> List:
+        return [AttrDict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
+
+    def insert(self, **kwargs) -> None:
+        self.cache.append(my_manager.dict(**kwargs))
+
+    def delete(self, **kwargs) -> None:
+        self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
+
+    def reload(self, arr) -> None:
+        self.cache[:] = [my_manager.dict(item) for item in arr]
+
+    def get_one(self, **criteria) -> AttrDict:
+        data = self.search(self.cache, **criteria)
+        if len(data) == 1:
+            return data[0]
+        raise APIException(f'entry not found or not unique: {criteria} len={len(data)}')
+
+    def list_all(self, **criteria) ->List:
+        return self.search(self.cache, **criteria)
+######################################################################
+######################################################################

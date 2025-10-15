@@ -27,39 +27,88 @@ class AttrDict(dict):
         except KeyError:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
-my_manager = multiprocessing.Manager()
+######################################################################
+import pickle, atexit
+from multiprocessing import shared_memory, Lock
 class ShmListStore:
     def __init__(self, name: Optional[str] = None, size: int = 10*KiB):
-        self.cache = my_manager.list()
+        self._name = name
+        self._size = size
+        self._lock = Lock()
+        try:
+            self._shm = shared_memory.SharedMemory(name=name, create=True, size=size)
+            logger.debug(f'{self._shm} INIT')
+            self._atomic_op(self._dump_data, [])
+            atexit.register(self.cleanup)
+        except FileExistsError:
+            self._shm = shared_memory.SharedMemory(name=name)
+            logger.warning(f'{self._shm} exists')
+
+    def cleanup(self):
+        if hasattr(self, '_shm'):
+            try:
+                self._shm.close()
+                # The unlink() must only be called once
+                self._shm.unlink()
+                logger.warning(f'PID={os.getpid()} cleanup {self._shm}')
+            except FileNotFoundError:
+                pass
 
     def __len__(self):
-        return len(self.cache)
+        return len(self._atomic_op(self._load_data))
 
     def __iter__(self):
-        return iter(self.list_all())
+        return iter(self._atomic_op(self._load_data))
 
-    @classmethod
-    def search(cls, arr, **kwargs) -> List:
-        return [AttrDict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
+    def _dump_data(self, data: List[Dict]) -> None:
+        pickled_data = pickle.dumps(data)
+        logger.debug(f'{self._shm} dump_data {len(pickled_data)}')
+        if len(pickled_data) > self._size:
+            raise ValueError(f"Data size ({len(pickled_data)} bytes) exceeds shared memory buffer size ({self._shm}).")
+        self._shm.buf[:len(pickled_data)] = pickled_data
+
+    def _load_data(self) -> List[Dict]:
+        return pickle.loads(self._shm.buf)
+
+    def _atomic_op(self, func, *args, **kwargs):
+        with self._lock:
+            return func(*args, **kwargs)
+
+    def _insert_impl(self, new_item: Dict[str, Any]) -> None:
+        data = self._load_data()
+        data.append(new_item)
+        self._dump_data(data)
+
+    def _delete_impl(self, criteria: Dict[str, Any]) -> None:
+        data = self._load_data()
+        data = [item for item in data if not all(item.get(key) == value for key, value in criteria.items())]
+        self._dump_data(data)
+
+    def _search_impl(self, criteria: Dict[str, Any]) -> List[AttrDict]:
+        data = self._load_data()
+        return [AttrDict(item) for item in data if all(item.get(key) == value for key, value in criteria.items())]
 
     def insert(self, **kwargs) -> None:
-        self.cache.append(my_manager.dict(**kwargs))
+        self._atomic_op(self._insert_impl, kwargs)
 
     def delete(self, **kwargs) -> None:
-        self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
+        self._atomic_op(self._delete_impl, kwargs)
 
-    def reload(self, arr) -> None:
-        self.cache[:] = [my_manager.dict(item) for item in arr]
+    def search(self, **kwargs) -> List[AttrDict]:
+        return self._atomic_op(self._search_impl, kwargs)
 
     def get_one(self, **criteria) -> AttrDict:
-        data = self.search(self.cache, **criteria)
+        data = self.search(**criteria)
         if len(data) == 1:
             return data[0]
-        raise APIException(f'entry not found or not unique: {criteria} len={len(data)}')
+        raise APIException(f'{self._name} entry not found or not unique: {criteria} len={len(data)}')
 
-    def list_all(self, **criteria) ->List:
-        return self.search(self.cache, **criteria)
+    def list_all(self, **criteria) -> List[AttrDict]:
+        return self.search(**criteria)
 
+    def reload(self, arr: List[Dict]) -> None:
+        self._atomic_op(self._dump_data, arr)
+######################################################################
 class ProcList:
     pids = ShmListStore(name='pids', size=10*KiB)
 
