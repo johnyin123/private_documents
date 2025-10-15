@@ -3,9 +3,6 @@ import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, 
 import template, config, meta, database, utils
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
-KiB = 1024
-MiB = 1024 * KiB
-GiB = 1024 * MiB
 class LibvirtDomain:
     def __init__(self, dom):
         self.XMLDesc = dom.XMLDesc()
@@ -238,10 +235,10 @@ class VMManager:
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
             if uuid:
                 guest = LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict()
-                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz}
+                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//utils.MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz}
             else:
                 guest = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
-                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz, 'totalvm':len(guest),'active':conn.numOfDomains()}
+                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//utils.MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz, 'totalvm':len(guest),'active':conn.numOfDomains()}
                 database.KVMGuest.Upsert(host.get('name'), host.get('arch'), guest)
             return utils.return_ok(f'list ok', host=info, guest=guest)
 
@@ -334,7 +331,7 @@ class VMManager:
     def blksize(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:
          with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            return utils.return_ok(f'blksize', uuid=uuid, dev=dev, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
+            return utils.return_ok(f'blksize', uuid=uuid, dev=dev, size=f'{dom.blockInfo(dev)[0]//utils.MiB}MiB')
 
     @staticmethod
     def desc(method:str, host:utils.AttrDict, uuid:str, vm_desc:str)->str:
@@ -347,7 +344,7 @@ class VMManager:
     def setmem(method:str, host:utils.AttrDict, uuid:str, vm_ram_mb:str)->str:
         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            dom.setMemoryFlags(int(vm_ram_mb)*KiB, dom_flags(LibvirtDomain(dom).state))
+            dom.setMemoryFlags(int(vm_ram_mb)*utils.KiB, dom_flags(LibvirtDomain(dom).state))
             return utils.return_ok(f'setMemory', uuid=uuid)
 
     @staticmethod

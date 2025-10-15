@@ -4,7 +4,9 @@ import libvirt, json, io, os, logging, base64, hashlib, datetime
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
-
+KiB = 1024
+MiB = 1024 * KiB
+GiB = 1024 * MiB
 import time, functools
 def time_use(func):
     @functools.wraps(func)
@@ -119,6 +121,9 @@ def login_name(authorization:str)-> str:
 def file_load(fname:str)-> bytes:
     with open(fname, 'rb') as file:
         return file.read()
+
+def file_size(fname:str)->int:
+    return os.path.getsize(fname)
 
 def file_save(filename:str, content:bytes)->None:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
