@@ -437,6 +437,9 @@ chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
 openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
 export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
+[ -z "\${CTRL_KEY:-}" ] || {
+    sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
+}
 env || true
 exec "\$@"
 EODOC
