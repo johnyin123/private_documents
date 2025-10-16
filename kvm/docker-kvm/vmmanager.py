@@ -404,17 +404,12 @@ class VMManager:
             return utils.return_ok(f'snapshot', uuid=uuid, num=dom.snapshotNum(), names=dom.snapshotListNames(), current=curr)
 
     @staticmethod
-    def ipaddr(method:str, host:utils.AttrDict, uuid:str)->Generator:
-    # Generator func call by flask.Response(...)
-    # need catch exception and yield it
+    def ipaddr(method:str, host:utils.AttrDict, uuid:str)->str:
         def convert_data(data):
             return {value['hwaddr']: {'name': name, 'addrs': [{'addr':addr['addr'],'type':{0:'ipv4',1:'ipv6'}.get(addr['type'],'?')}for addr in value['addrs']]} for name, value in data.items() if name != 'lo' and value['addrs'] is not None}
-        try:
-            with libvirt_connect(host.get('url')) as conn:
-                dom = conn.lookupByUUIDString(uuid)
-                leases = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
-                arp = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
-                agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
-                yield utils.return_ok('get_ipaddr ok', uuid=uuid, **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
-        except Exception as e:
-            yield utils.deal_except(f'ipaddr', e)
+        with libvirt_connect(host.get('url')) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            leases = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
+            arp = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
+            agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
+            return utils.return_ok('get_ipaddr ok', uuid=uuid, **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
