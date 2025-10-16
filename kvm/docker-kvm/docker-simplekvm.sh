@@ -38,7 +38,7 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
-\${APT} install jq openssh-client socat httpdirfs qemu-utils qemu-block-extra supervisor python3 python3-venv
+\${APT} install jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
 \${APT} install libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libsqlite3-0 libldap2 libjwt2
 # libjwt0 libldap-2.5-0
 \${APT} install python3-libvirt python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-requests python3-urllib3
