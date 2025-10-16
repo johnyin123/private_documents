@@ -1,8 +1,10 @@
 action convert gold disk:
-    midir gold && httpdirfs --cache --dl-seg-size 32 --no-range-check --single-file-mode http://vmm.registry.local/gold/bookworm.amd64.qcow2 ./gold
-    [ -f gold/bookworm.amd64.qcow2 ] && qemu-img convert -p -f ./gold/qcow2 -O raw tmp/bookworm.amd64.qcow2 disk.raw
-    umount gold && httpdirfs --cache-clear
-
+    GOLD=http://vmm.registry.local/gold/bookworm.amd64.qcow2
+    fname=$(basename ${GOLD})
+    dir=$(mktemp -d)
+    httpdirfs --cache --dl-seg-size 32 --no-range-check --single-file-mode ${GOLD} ${dir}
+    [ -f "${dir}/${fname}" ] && qemu-img convert -p -f qcow2 -O raw "${dir}/${fname}" out.raw
+    umount ${dir} && httpdirfs --cache-clear
 
 vm backup: ../vm_backup.sh
 docker libvirtd  : docker-libvirtd.sh
