@@ -1,9 +1,10 @@
 action convert gold disk:
+    # # device not found, try 'modprobe fuse' first
     GOLD=http://vmm.registry.local/gold/bookworm.amd64.qcow2
     fname=$(basename ${GOLD})
     dir=$(mktemp -d)
     httpdirfs --cache --dl-seg-size 32 --no-range-check --single-file-mode ${GOLD} ${dir}
-    [ -f "${dir}/${fname}" ] && qemu-img convert -p -f qcow2 -O raw "${dir}/${fname}" out.raw
+    [ -f "${dir}/${fname}" ] && qemu-img convert -p -f qcow2 -O raw "${dir}/${fname}" ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
     umount ${dir} && httpdirfs --cache-clear
 
 vm backup: ../vm_backup.sh
