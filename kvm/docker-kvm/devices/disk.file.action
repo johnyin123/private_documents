@@ -7,9 +7,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 DIR='/storage'
 # # reqire: jq qemu-img cat
 log() { echo "qemu-disk.action $*"; }
-str_equal() {
-    [ "${1:-x}" == "${2:-y}" ]
-}
+str_equal() { [ "${1:-x}" == "${2:-y}" ]; }
 json_config_default() {
     local key=${1}
     local default=${2}

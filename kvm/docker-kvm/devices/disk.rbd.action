@@ -8,9 +8,7 @@ RBD_SECRET="id=admin:conf=${DIRNAME}/x86site.conf:keyring=${DIRNAME}/x86site.cli
 DIR='libvirt-pool'
 # # reqire: jq qemu-img cat
 log() { echo "qemu-rbd.action $*"; }
-str_equal() {
-    [ "${1:-x}" == "${2:-y}" ]
-}
+str_equal() { [ "${1:-x}" == "${2:-y}" ]; }
 json_config_default() {
     local key=${1}
     local default=${2}

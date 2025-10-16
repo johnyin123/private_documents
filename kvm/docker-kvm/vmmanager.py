@@ -259,9 +259,11 @@ class VMManager:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if tpl.action:
                 cmd = ['bash', '-eu', tpl.action]
+                redirect = False
                 if logger.isEnabledFor(logging.DEBUG):
                     cmd = ['bash', '-eux', tpl.action]
-                for line in utils.ProcList.wait_proc(uuid, cmd, 0, False, req_json, **env):
+                    redirect = True
+                for line in utils.ProcList.wait_proc(uuid, cmd, 0, redirect, req_json, **env):
                     logger.debug(line.strip())
                     yield line
             with libvirt_connect(host.get('url')) as conn:
