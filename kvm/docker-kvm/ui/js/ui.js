@@ -176,6 +176,9 @@ function show_vms(kvmhost, vms) {
 function show_host(kvmhost, more_info) {
   var host = getHost(kvmhost);
   delete host.vars;
+  delete host.sshport;
+  delete host.sshuser;
+  delete host.url;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-plus-circle', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
