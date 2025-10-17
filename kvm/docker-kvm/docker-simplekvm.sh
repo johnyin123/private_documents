@@ -257,7 +257,7 @@ server {
     listen 80;
     server_name _;
     location / { return 301 https://$host$request_uri; }
-    location ~* (\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
 }
 server {
     listen 1443 ssl;
@@ -419,7 +419,7 @@ stderr_logfile_maxbytes=0
 
 [program:simplekvm]
 umask=0022
-environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
+environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",DATA_DIR="/dev/shm/simplekvm/work"
 directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
 autostart=true
