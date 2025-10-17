@@ -178,6 +178,20 @@ def http_file_exists(url:str)->tuple[bool, int]:
     content_length = response.headers.get('Content-Length', '0')
     return response.status_code == requests.codes.ok, int(content_length)
 
+def download_if_modified(url:str, local:str) -> None:
+    headers = {}
+    if os.path.exists(local): # Format for If-Modified-Since header (RFC 1123)
+        headers['If-Modified-Since'] = datetime.datetime.fromtimestamp(os.path.getmtime(local), datetime.UTC).strftime('%a, %d %b %Y %H:%M:%S GMT')
+    response = requests.get(url, headers=headers, stream=True)
+    logger.debug(f'{url} {headers} status: {response.status_code}')
+    if response.status_code == 200: # file modified or new
+        with open(local, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=16*KiB):
+                f.write(chunk)
+    if response.status_code == 304: # Not Modified
+        return
+    raise Exception(f'{url} status: {response.status_code}')
+
 def file_load(fname:str)-> bytes:
     with open(fname, 'rb') as file:
         return file.read()
