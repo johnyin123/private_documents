@@ -3,9 +3,9 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator,
 import libvirt, json, io, os, logging, base64, hashlib, datetime, requests
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 logger = logging.getLogger(__name__)
-KiB = 1024
-MiB = 1024 * KiB
-GiB = 1024 * MiB
+KiB = 1024 ** 1
+MiB = 1024 ** 2
+GiB = 1024 ** 3
 import time, functools
 def time_use(func):
     @functools.wraps(func)

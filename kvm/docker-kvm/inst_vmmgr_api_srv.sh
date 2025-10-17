@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("95f90a1b[2025-10-13T10:45:50+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("eaa8c55b[2025-10-13T13:39:48+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -144,6 +144,7 @@ for f in cacert.pem clientcert.pem clientkey.pem config id_rsa id_rsa.pub; do
     file_exists "${DIRNAME}/deps/${f}" || { echo "deps/${f} === NO FOUND"; exit 1; }
 done
 
+ETCD_SRV=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' etcd)
 systemd-run --user --unit simple-kvm-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
@@ -155,7 +156,7 @@ systemd-run --user --unit simple-kvm-srv \
     --property=BindReadOnlyPaths=${DIRNAME}/clientkey.pem:$HOME/.pki/libvirt/clientkey.pem \
     --property=BindReadOnlyPaths=${DIRNAME}/clientcert.pem:$HOME/.pki/libvirt/clientcert.pem \
     -E ETCD_PREFIX=/simple-kvm/work \
-    -E ETCD_SRV=127.0.0.1 \
+    -E ETCD_SRV=${ETCD_SRV} \
     -E ETCD_PORT=2379 \
     -E DATA_DIR=${outdir} \
     -E TOKEN_DIR=${tokdir} \
