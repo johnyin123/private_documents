@@ -162,7 +162,7 @@ class MyApp(object):
         def generate_tar():
             file_obj = utils.conf_backup_tgz()
             while True:
-                chunk = file_obj.read(1024*64)
+                chunk = file_obj.read(64*utils.KiB)
                 if not chunk:
                     break
                 yield chunk

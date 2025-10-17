@@ -187,7 +187,7 @@ def download_if_modified(url:str, local:str)-> Generator:
     if response.status_code == 200:
         downloaded_size = 0
         with open(local, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=16*KiB):
+            for chunk in response.iter_content(chunk_size=64*KiB):
                 f.write(chunk)
                 downloaded_size += len(chunk)
                 yield f"{downloaded_size}"
