@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c9c3ae29[2025-07-01T07:05:14+08:00]:s905_debootstrap.sh")
+VERSION+=("37b09563[2025-07-18T10:47:58+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
-DEBIAN_VERSION=trixie ./s905_debootstrap.sh wireguard-tools v4l-utils triggerhappy sshfs python3-pip python3-venv nmon iptables dbus-x11 cec-utils build-essential bluez bluez-tools ldap-utils gnupg apt-transport-https rng-tools-debian mesa-utils unzip xxd qemu-utils mame bind9-dnsutils polkitd-pkla python3-dev usbutils
+DEBIAN_VERSION=trixie ./s905_debootstrap.sh wireguard-tools v4l-utils triggerhappy sshfs python3-pip python3-venv nmon iptables dbus-x11 cec-utils build-essential bluez bluez-tools ldap-utils gnupg apt-transport-https rng-tools-debian mesa-utils unzip xxd qemu-utils bind9-dnsutils polkitd-pkla python3-dev usbutils mame yabause
 EOF
 log() { echo "$(tput setaf 141)######$*$(tput sgr0)" >&2; }
 export -f log
