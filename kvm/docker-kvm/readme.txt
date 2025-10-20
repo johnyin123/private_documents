@@ -10,7 +10,7 @@ action convert gold disk:
 
 vm backup: ../vm_backup.sh
 docker libvirtd  : docker-libvirtd.sh
-docker simplekvm : docker-simplekvm.sh
+docker simplekvm : docker-simplekvm.sh # docker pull johnyinnews/simplekvm:trixie
 docker openldap  : docker-slapd.sh
 docker etcd      : docker-etcd.sh
 init cert key    : inst_cert_keys.sh
