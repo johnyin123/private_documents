@@ -250,6 +250,7 @@ class VMManager:
             tpl = template.DeviceTemplate(device.get('tpl'))
             # all env must string
             env = {'URL':host.get('url'), 'TYPE':tpl.devtype, 'HOSTIP':host.get('ipaddr'), 'SSHPORT':str(host.get('sshport')), 'SSHUSER':host.get('sshuser')}
+            env.update({k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')})
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.get("arch")).get("uri")}'

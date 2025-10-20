@@ -1,3 +1,4 @@
+action script, can accept env startwith ACT_, set env ACT_XX when start app
 action convert gold disk:
     # # device not found, try 'modprobe fuse' first
     GOLD=http://vmm.registry.local/gold/bookworm.amd64.qcow2
