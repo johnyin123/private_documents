@@ -15,6 +15,7 @@ conf_msg = f'''
     GOLD_SRV    = {config.GOLD_SRV}
     CTRL_SRV    = {config.CTRL_SRV}
     CTRL_KEY    = {config.CTRL_KEY}
+    Mail:johnyin.news@163.com
 '''
 class MyApp(object):
     @staticmethod
