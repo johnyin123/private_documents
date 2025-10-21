@@ -13,6 +13,7 @@ conf_msg = f'''
     ETCD_CERT   = {config.ETCD_CERT}
     META_SRV    = {config.META_SRV}
     GOLD_SRV    = {config.GOLD_SRV}
+    GOLD_DIR    = {config.GOLD_DIR}
     CTRL_SRV    = {config.CTRL_SRV}
     CTRL_KEY    = {config.CTRL_KEY}
     Mail:johnyin.news@163.com
