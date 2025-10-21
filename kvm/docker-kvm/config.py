@@ -18,6 +18,8 @@ ETCD_CERT   = os.environ.get('ETCD_CERT', None)
 META_SRV    = os.environ.get('META_SRV', 'vmm.registry.local')
 # # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 GOLD_SRV    = os.environ.get('GOLD_SRV', META_SRV)
+# # temp dir for download golds from GOLD_SRV, default direct use http gold srv, not download local
+GOLD_DIR    = os.environ.get('GOLD_DIR', None)
 # # CTRL_SRV: https srv for user control panel, default https://META_SRV
 CTRL_SRV    = os.environ.get('CTRL_SRV', META_SRV)
 # # user control panel access mykey

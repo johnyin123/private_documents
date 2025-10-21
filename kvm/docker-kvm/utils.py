@@ -179,6 +179,7 @@ def http_file_exists(url:str)->tuple[bool, int]:
     return response.status_code == requests.codes.ok, int(content_length)
 
 def download_if_modified(url:str, local:str)-> Generator:
+    logger.debug(f'download {url} -> {local}')
     headers = { 'User-Agent': 'simplekvm gold'}
     if os.path.exists(local): # Format for If-Modified-Since header (RFC 1123)
         headers['If-Modified-Since'] = datetime.datetime.fromtimestamp(os.path.getmtime(local), datetime.UTC).strftime('%a, %d %b %Y %H:%M:%S GMT')
@@ -191,7 +192,7 @@ def download_if_modified(url:str, local:str)-> Generator:
             for chunk in response.iter_content(chunk_size=64*KiB):
                 f.write(chunk)
                 downloaded_size += len(chunk)
-                yield f"{downloaded_size}"
+                yield f"{downloaded_size}\n"
     if response.status_code == 304 or response.status_code == 200:
         yield "Download complete."
     else:

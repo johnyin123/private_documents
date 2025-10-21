@@ -253,7 +253,12 @@ class VMManager:
             env.update({k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')})
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
-                req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.get("arch")).get("uri")}'
+                uri = database.KVMGold.get_one(name=gold_name, arch=host.get("arch")).get("uri")
+                if config.GOLD_DIR:
+                    req_json['gold'] = os.path.join(config.GOLD_DIR, uri.removeprefix('/'))
+                    yield from utils.download_if_modified(f'http://{config.GOLD_SRV}{uri}', req_json['gold'])
+                else:
+                    req_json['gold'] = f'http://{config.GOLD_SRV}{uri}'
             bus_type = tpl.bus_type(**req_json)
             if bus_type is not None:
                 with libvirt_connect(host.get('url')) as conn:
