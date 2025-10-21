@@ -174,16 +174,20 @@ def login_name(authorization:str)-> str:
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
 def http_file_exists(url:str)->tuple[bool, int]:
-    response = requests.head(url, allow_redirects=True, timeout=5)
+    headers = { 'User-Agent': 'simplekvm gold'}
+    response = requests.head(url, allow_redirects=True, headers=headers, verify=False, timeout=5)
     content_length = response.headers.get('Content-Length', '0')
     return response.status_code == requests.codes.ok, int(content_length)
 
 def download_if_modified(url:str, local:str)-> Generator:
     logger.debug(f'download {url} -> {local}')
     headers = { 'User-Agent': 'simplekvm gold'}
-    if os.path.exists(local): # Format for If-Modified-Since header (RFC 1123)
+    exists, size = http_file_exists(url)
+    if not exists:
+        raise APIException(f'{url} file not found')
+    if os.path.exists(local) and file_size(local) == size:
         headers['If-Modified-Since'] = datetime.datetime.fromtimestamp(os.path.getmtime(local), datetime.UTC).strftime('%a, %d %b %Y %H:%M:%S GMT')
-    response = requests.get(url, headers=headers, stream=True)
+    response = requests.get(url, headers=headers, stream=True, verify=False)
     logger.debug(f'{url} {headers} status: {response.status_code}')
     if response.status_code == 200:
         downloaded_size = 0
@@ -196,7 +200,7 @@ def download_if_modified(url:str, local:str)-> Generator:
     if response.status_code == 304 or response.status_code == 200:
         yield "Download complete."
     else:
-        raise Exception(f'{url} status: {response.status_code}')
+        raise APIException(f'{url} status: {response.status_code}')
 
 def file_load(fname:str)-> bytes:
     with open(fname, 'rb') as file:

@@ -64,7 +64,7 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_iso', f'blank str!')
                 logger.debug(f'add iso {entry}')
-                exists, file_size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                exists, size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
                 if not exists:
                     return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 database.KVMIso.delete(name=entry['name'])
@@ -93,12 +93,12 @@ class MyApp(object):
                 entry = {key: req_json[key] for key in keys_to_extract}
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_gold', f'blank str!')
-                entry['size'] = int(entry['size'])*vmmanager.GiB
-                exists, file_size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                entry['size'] = int(entry['size'])*utils.GiB
+                exists, size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
                 if not exists:
                     return utils.return_err(404, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
-                if entry['size'] < file_size:
-                    return utils.return_err(403, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} filesize={file_size}')
+                if entry['size'] < size:
+                    return utils.return_err(403, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} filesize={size}')
                 logger.debug(f'add gold {entry}')
                 database.KVMGold.delete(name=entry['name'], arch=entry['arch'])
                 database.KVMGold.insert(**entry)
