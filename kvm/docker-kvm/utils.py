@@ -186,6 +186,7 @@ def download_if_modified(url:str, local:str)-> Generator:
     logger.debug(f'{url} {headers} status: {response.status_code}')
     if response.status_code == 200:
         downloaded_size = 0
+        os.makedirs(os.path.dirname(local), exist_ok=True)
         with open(local, 'wb') as f:
             for chunk in response.iter_content(chunk_size=64*KiB):
                 f.write(chunk)
