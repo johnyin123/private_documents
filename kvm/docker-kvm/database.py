@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging, datetime, os, utils, multiprocessing, json, random, config
+import logging, datetime, os, utils, multiprocessing, json, random, config, template
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
