@@ -175,6 +175,9 @@ class MyApp(object):
             utils.conf_restore_tgz(io.BytesIO(flask.request.files['file'].read()))
             if not config.ETCD_PREFIX: # no etc need manual reload
                 database.reload_all()
+                # clear lru cache
+                template.get_variables.cache_clear()
+                template.tpl_list.cache_clear()
             return utils.return_ok(f'restore config ok')
         except Exception as e:
             return utils.deal_except(f'restore config', e), 400

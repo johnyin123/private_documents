@@ -9,7 +9,7 @@ class LibvirtDomain:
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _asdict(self):
         state = {
             libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
@@ -26,7 +26,7 @@ class LibvirtDomain:
         }
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def next_disk(self):
         vlst = {'vd':ord('a'),'sd':ord('a'),'hd':ord('a')}
         for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
@@ -37,7 +37,7 @@ class LibvirtDomain:
         return {'virtio':chr(vlst['vd']), 'scsi':chr(vlst['sd']), 'sata':chr(vlst['sd']), 'ide':chr(vlst['hd'])}
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def mdconfig(self)->Dict:
         data_dict = {}
         for metadata in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('metadata'):
@@ -51,7 +51,7 @@ class LibvirtDomain:
         return data_dict
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def desc(self):
         try:
             return xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('description')[0].firstChild.data
@@ -59,7 +59,7 @@ class LibvirtDomain:
             return ''
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def disks(self):
         disk_lst = []
         for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
@@ -89,7 +89,7 @@ class LibvirtDomain:
         return disk_lst
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def nets(self):
         net_lst = []
         for net in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('interface'):
@@ -104,7 +104,7 @@ class LibvirtDomain:
         return net_lst
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def maxcpu(self):
         return int(xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('vcpu')[0].firstChild.data)
 

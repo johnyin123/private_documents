@@ -39,6 +39,7 @@ FILE_GOLDS  = os.path.join(DATA_DIR, 'golds.json')
 FILE_ISO    = os.path.join(DATA_DIR, 'iso.json')
 FILE_VARS   = os.path.join(DATA_DIR, 'vars.json')
 BAK_PREFIX  = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
+TPL_DIRS    = tuple([DIR_DEVICE, DIR_DOMAIN, DIR_META,])
 # # # # # # # # # # # # # # # # # # # # # # #
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):

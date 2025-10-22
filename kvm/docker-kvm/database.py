@@ -35,6 +35,10 @@ def reload_all() -> None:
             utils.file_save(fname, content)
             if cfg_class.get(fname):
                 cfg_class.get(fname).reload(json.loads(content.decode('utf-8')))
+            elif fname.startswith(config.TPL_DIRS):
+                # clear lru cache
+                template.get_variables.cache_clear()
+                template.tpl_list.cache_clear()
         else:
             logger.info(f'Delete {fname} from etcd')
             os.remove(fname)
