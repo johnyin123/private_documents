@@ -203,7 +203,7 @@ class VMManager:
                 else:
                     raise utils.APIException(f'vm {uuid} graphic listen "{listen}" unknown')
         logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
-        utils.ProcList.Run(uuid, socat_cmd, int(expire)*60)
+        utils.ProcList().Run(uuid, socat_cmd, int(expire)*60)
         utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
         return utils.return_ok('websockify', uuid=uuid)
 
@@ -269,7 +269,7 @@ class VMManager:
             if tpl.action:
                 redirect = True if logger.isEnabledFor(logging.DEBUG) else False
                 cmd = ['bash', '-eux', tpl.action] if logger.isEnabledFor(logging.DEBUG) else ['bash', '-eu', tpl.action]
-                for line in utils.ProcList.wait_proc(uuid, cmd, 0, redirect, req_json, **env):
+                for line in utils.ProcList().wait_proc(uuid, cmd, 0, redirect, req_json, **env):
                     logger.debug(line.strip())
                     yield line
             with libvirt_connect(host.get('url')) as conn:

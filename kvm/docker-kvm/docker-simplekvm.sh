@@ -406,7 +406,7 @@ stderr_logfile_maxbytes=0
 [program:api_auth]
 umask=0022
 environment=JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem,JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key
-directory=/app/
+directory=/auth/
 command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:app'
 autostart=true
 autorestart=true
@@ -473,9 +473,12 @@ EODOC
         # done
         chown -R 10001:10001 ${type}-${arch}/docker/app
     }
+    mkdir -p ${type}-${arch}/docker/auth && {
+        chown -R 10001:10001 ${type}-${arch}/docker/auth
+    }
     log "Pre chroot exit"
     ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
-    log "chroot ${type}-${arch}.rootfs,(copy app) exit continue build"
+    log "chroot ${type}-${arch}.rootfs,(copy app/auth) exit continue build"
     chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER-${arch}:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
@@ -575,3 +578,22 @@ gen_file "${CERT_KEY:-}" "/etc/pki/libvirt/private/clientkey.pem"  root root 060
 gen_file "${CERT_PEM:-}" "/etc/pki/libvirt/clientcert.pem"         root root 0644
 gen_file "${CERT_CA:-}"  "/etc/pki/CA/cacert.pem"                  root root 0644
 EOF
+    cat <<'EO_DOC'
+sudo cp \
+    config.so \
+    database.so \
+    flask_app.so \
+    main.so \
+    meta.so \
+    template.so \
+    utils.so \
+    vmmanager.so \
+    console \
+    docker/app/
+sudo cp \
+    api_auth.so \
+    utils.so \
+    config.so \
+    flask_app.so \
+    docker/auth
+EO_DOC
