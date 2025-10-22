@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("13b011d1[2025-06-26T10:14:24+08:00]:init-pc.sh")
+VERSION+=("51bc876f[2025-06-26T10:33:32+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -272,6 +272,7 @@ echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
 echo "ssh -p22 root@ip 'ffmpeg -f x11grab -r 25 -i :0.0 -f mpeg -' | mpv -"
 echo 'ffmpeg -f alsa -i pulse -f x11grab -draw_mouse 1 -i ip:0.0 -f mpeg - | mpv -'
+echo 'ffmpeg -f x11grab -draw_mouse 1 -video_size 1600x700 -grab_x 0 -grab_y 200 -i :0.0 output.mp4'
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf 2>/dev/null || true
 
 XFCE_TERM=
