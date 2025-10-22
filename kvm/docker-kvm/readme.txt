@@ -19,7 +19,10 @@ cat <<EOF
 # pip install ${PROXY:+--proxy ${PROXY} } cython
 # apt -y install python3-dev / libpython3-dev
 # # dbi.py/database.py/database.py.sh all ok
-for fn in config database flask_app main meta template utils vmmanager api_auth; do
+auth_app=(api_auth config utils flask_app)
+simplekvm_app=(config database flask_app main meta template utils vmmanager)
+combined=($(for ip in "${simplekvm_app[@]}" "${auth_app[@]}"; do echo "${ip}"; done | sort -u))
+for fn in ${combined[@]}; do
     cython ${fn}.py -o ${fn}.c
     gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
     strip ${fn}.so
@@ -29,6 +32,14 @@ done
 cython --embed console.py -o console.c
 gcc $(python3-config --includes) console.c $(python3-config --embed --libs) -o console
 chmod 755 console
+target=..
+cp console ${target}/docker/app/
+for fn in ${simplekvm_app[@]}; do
+    cp $fn.so ${target}/docker/app/
+done
+for fn in ${auth_app[@]}; do
+    cp $fn.so ${target}/docker/auth/
+done
 # # or
 cat <<EO_SETUP
 from setuptools import setup
