@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+LC_ALL=C
+LANG=C
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+# # kvm host local storage dir
+DIR='/storage'
+# # reqire: jq qemu-img cat
+log() { echo "qemu-disk.action $*"; }
+str_equal() { [ "${1:-x}" == "${2:-y}" ]; }
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
+}
+
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
+HOSTIP=${HOSTIP:-}
+SSHPORT=${SSHPORT:-}
+SSHUSER=${SSHUSER:-}
+log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
+UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
+SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
+GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
+char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+BUS=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_disk_bus" "")
+DISK_TYPE=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_disk_type" "raw")
+# # when use docker libvirtd, storage path!!!
+DISK="${DIR}/vd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "ide"  && DISK="${DIR}/hd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "scsi" && DISK="${DIR}/sd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.${DISK_TYPE}"
+[ -z "${GOLD}" ] && {
+    qemu-img create -f ${DISK_TYPE} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
+} || {
+    wget --no-check-certificate -cN ${GOLD} -P download
+    GOLD="download/$(basename ${GOLD})"
+    timeout ${ACT_TMOUT:-5}m qemu-img convert -p -f ${ACT_GOLD_FMT:-qcow2} -W -O ${DISK_TYPE} ${GOLD} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
+    # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
+    qemu-img resize -f ${DISK_TYPE} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
+}
+# # just for strem out test!
+# ping -c 5 127.0.0.1
+exit 0
