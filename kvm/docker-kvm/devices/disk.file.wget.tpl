@@ -1,4 +1,4 @@
-{#本地文件DISK(wget)#}
+{#-本地文件DISK(wget)-#}
 {%- macro getdev() %}{%- if vm_disk_bus == 'ide' %}hd{{ vm_last_disk }}{%- elif vm_disk_bus in ['sata', 'scsi'] %}sd{{ vm_last_disk }}{%- else %}vd{{ vm_last_disk }}{%- endif %}{%- endmacro %}
 <disk type='file' device='disk'>
    <driver name='qemu' type='{{vm_disk_type | default("raw", true)}}' cache='none' io='native'/>

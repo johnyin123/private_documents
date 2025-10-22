@@ -1,4 +1,4 @@
-{#user-data file#}
+{#-user-data file-#}
 #cloud-config
 hostname: {{ vm_name | default('vmsrv', true) }}
 locale: {{ vm_locale | default('zh_CN.UTF-8', true) }}

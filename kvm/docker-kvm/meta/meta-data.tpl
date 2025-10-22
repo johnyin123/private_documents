@@ -1,4 +1,4 @@
-{#meta-data file#}
+{#-meta-data file-#}
 instance-id: {{ vm_uuid }}
 network-interfaces: |
   auto {{ vm_interface | default('eth0', true) }}

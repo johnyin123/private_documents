@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import jinja2, jinja2.meta, xml.dom.minidom, config, utils, logging, os, glob, functools
+import jinja2, jinja2.meta, xml.dom.minidom, logging, os, glob, functools, re, config
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, List
 logger = logging.getLogger(__name__)
 
@@ -13,12 +13,17 @@ def get_variables(dirname:str, tpl_name:str)->Set[str]:
 def tpl_list(dirname:str)->List:
     return [os.path.relpath(fn, dirname).removesuffix(".tpl") for fn in glob.glob(f'{dirname}/*.tpl')]
 
+@functools.cache
+def tpl_desc(dirname:str, tpl_name:str)->str:
+    with open(os.path.join(dirname, f'{tpl_name}.tpl'), 'r') as file:
+        return re.sub('{#-?|-?#}|\r?\n|\r', '', file.readline())
+
 class KVMTemplate:
     def __init__(self, dirname:str, tpl_name:str):
         self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(f'{tpl_name}.tpl')
         autoescape=jinja2.select_autoescape(['html', 'htm', 'xml'])
         self.action = os.path.join(dirname, f'{tpl_name}.action') if os.path.exists(os.path.join(dirname, f'{tpl_name}.action')) else None
-        self.desc = utils.file_load(os.path.join(dirname, f'{tpl_name}.tpl')).decode('utf-8').splitlines()[0].removeprefix('{#').strip('#}')
+        self.desc = tpl_desc(dirname, tpl_name)
 
     def render(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV

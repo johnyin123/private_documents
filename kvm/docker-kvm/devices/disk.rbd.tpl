@@ -1,4 +1,4 @@
-{#RBD DISK#}
+{#-RBD DISK-#}
 {%- macro getdev() %}{%- if vm_disk_bus == 'ide' %}hd{{ vm_last_disk }}{%- elif vm_disk_bus in ['sata', 'scsi'] %}sd{{ vm_last_disk }}{%- else %}vd{{ vm_last_disk }}{%- endif %}{%- endmacro %}
 <disk type='network' device='disk'>
   <driver name='qemu' type='raw'/>

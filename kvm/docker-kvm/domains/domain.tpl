@@ -1,4 +1,4 @@
-{#domain template#}
+{#-domain template-#}
 {%- macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f","A","B","C","D","E","F"]|random }}{% endfor %}{%- endmacro -%}
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc", true)}}{%- else %}{{vm_machine | default("virt", true)}}{%- endif %}{%- endmacro %}
 {%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("host-model", true)}}{%- else %}{{vm_cpu | default("host-passthrough", true)}}{%- endif %}{%- endmacro %}
