@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging, datetime, os, utils, multiprocessing, json, random, config, template
+import logging, os, utils, json, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,13 @@ def reload_all() -> None:
     }
     def updater_cb(fname:str, content) -> None:
         if content:
-            logger.info(f'PID={os.getpid()} Update {fname} from etcd')
+            logger.info(f'Update {fname} from etcd')
             utils.file_save(fname, content)
             if cfg_class.get(fname) is not None:
-                logger.warning(f'PID={os.getpid()} Reload {fname}')
+                logger.warning(f'Reload {fname}')
                 cfg_class.get(fname).reload(json.loads(content.decode('utf-8')))
         else:
-            logger.info(f'PID={os.getpid()} Delete {fname} from etcd')
+            logger.info(f'PID=Delete {fname} from etcd')
             os.remove(fname)
 
     if config.ETCD_PREFIX:

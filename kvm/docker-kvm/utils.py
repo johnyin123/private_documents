@@ -50,7 +50,7 @@ class ShmListStore:
                 self._shm.close()
                 # The unlink() must only be called once
                 self._shm.unlink()
-                logger.warning(f'PID={os.getpid()} cleanup {self._shm}')
+                logger.warning(f'Cleanup {self._shm}')
             except FileNotFoundError:
                 pass
 
@@ -289,7 +289,7 @@ class EtcdConfig:
     @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:
         while True:
-            logger.warning(f'ETCD WATCH PREFIX PID={os.getpid()} START')
+            logger.warning(f'ETCD WATCH PREFIX START')
             try:
                 with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
                     _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
@@ -304,7 +304,7 @@ class EtcdConfig:
                             logger.warning(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except Exception as e:
                 logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__} {str(e)}]')
-            logger.warning(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
+            logger.warning(f'ETCD WATCH PREFIX QUIT, 60s RESTART')
             time.sleep(60) # Wait before retrying
 
     @classmethod
