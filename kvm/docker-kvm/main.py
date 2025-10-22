@@ -175,11 +175,6 @@ class MyApp(object):
             utils.conf_restore_tgz(io.BytesIO(flask.request.files['file'].read()))
             if not config.ETCD_PREFIX: # no etc need manual reload
                 database.reload_all()
-                # clear lru cache
-                logger.info(f'get_variables :{template.get_variables.cache_info()}')
-                logger.info(f'tpl_list      :{template.tpl_list.cache_info()}')
-                template.get_variables.cache_clear()
-                template.tpl_list.cache_clear()
             return utils.return_ok(f'restore config ok')
         except Exception as e:
             return utils.deal_except(f'restore config', e), 400
@@ -197,7 +192,7 @@ class MyApp(object):
                 varset.update(meta_varset)
                 domtpl_varset[name] = database.KVMVar.get_desc(varset)
             for host in hosts:
-                host['vars'] = domtpl_varset[host['tpl']]
+                host['vars'] = domtpl_varset.get(host['tpl'], {})
             return utils.return_ok(f'tpl_host ok', host=hosts)
         except Exception as e:
             return utils.deal_except(f'tpl_host', e), 400

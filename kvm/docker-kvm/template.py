@@ -3,7 +3,6 @@ import jinja2, jinja2.meta, xml.dom.minidom, config, utils, logging, os, glob, f
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, List
 logger = logging.getLogger(__name__)
 
-@functools.lru_cache(maxsize=16)
 def get_variables(dirname:str, tpl_name:str)->Set[str]:
     def remove_reserved(varset)->Set[str]:
         return varset.difference(['vm_uuid','vm_arch','vm_create','vm_creater','META_SRV','vm_last_disk'])
@@ -11,7 +10,6 @@ def get_variables(dirname:str, tpl_name:str)->Set[str]:
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname))
     return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, f'{tpl_name}.tpl')[0])))
 
-@functools.lru_cache(maxsize=4)
 def tpl_list(dirname:str)->List:
     return [os.path.relpath(fn, dirname).removesuffix(".tpl") for fn in glob.glob(f'{dirname}/*.tpl')]
 

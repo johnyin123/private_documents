@@ -23,26 +23,19 @@ KVMGuest  = SHM_KVMGuest(      name='guest',size=10*utils.MiB)  #recsize ~512b
 
 def reload_all() -> None:
     cfg_class={
-        config.FILE_HOSTS  :KVMHost,
-        config.FILE_DEVS   :KVMDevice,
-        config.FILE_GOLDS  :KVMGold,
-        config.FILE_ISO    :KVMIso,
-        config.FILE_VARS   :KVMVar,
+        config.FILE_HOSTS:KVMHost, config.FILE_DEVS :KVMDevice,
+        config.FILE_GOLDS:KVMGold, config.FILE_ISO  :KVMIso,
+        config.FILE_VARS :KVMVar,
     }
     def updater_cb(fname:str, content) -> None:
         if content:
-            logger.info(f'Update {fname} from etcd')
+            logger.info(f'PID={os.getpid()} Update {fname} from etcd')
             utils.file_save(fname, content)
-            if cfg_class.get(fname):
+            if cfg_class.get(fname) is not None:
+                logger.warning(f'PID={os.getpid()} Reload {fname}')
                 cfg_class.get(fname).reload(json.loads(content.decode('utf-8')))
-            elif fname.startswith(config.TPL_DIRS):
-                # clear lru cache
-                logger.info(f'get_variables :{template.get_variables.cache_info()}')
-                logger.info(f'tpl_list      :{template.tpl_list.cache_info()}')
-                template.get_variables.cache_clear()
-                template.tpl_list.cache_clear()
         else:
-            logger.info(f'Delete {fname} from etcd')
+            logger.info(f'PID={os.getpid()} Delete {fname} from etcd')
             os.remove(fname)
 
     if config.ETCD_PREFIX:
