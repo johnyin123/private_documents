@@ -176,6 +176,8 @@ class MyApp(object):
             if not config.ETCD_PREFIX: # no etc need manual reload
                 database.reload_all()
                 # clear lru cache
+                logger.info(f'get_variables :{template.get_variables.cache_info()}')
+                logger.info(f'tpl_list      :{template.tpl_list.cache_info()}')
                 template.get_variables.cache_clear()
                 template.tpl_list.cache_clear()
             return utils.return_ok(f'restore config ok')

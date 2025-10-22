@@ -37,6 +37,8 @@ def reload_all() -> None:
                 cfg_class.get(fname).reload(json.loads(content.decode('utf-8')))
             elif fname.startswith(config.TPL_DIRS):
                 # clear lru cache
+                logger.info(f'get_variables :{template.get_variables.cache_info()}')
+                logger.info(f'tpl_list      :{template.tpl_list.cache_info()}')
                 template.get_variables.cache_clear()
                 template.tpl_list.cache_clear()
         else:
