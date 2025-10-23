@@ -51,7 +51,7 @@ def setLogLevel(**kwargs):
         try:
             target = getattr(importlib.import_module(module_name), 'logger')
         except Exception as e:
-            logger.error(f'setLogLevel: {e}')
+            logger.warning(f'setLogLevel: {e}')
         else:
             target.setLevel(level)
 '''
