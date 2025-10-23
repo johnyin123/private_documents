@@ -42,7 +42,7 @@ class ShmListStore:
             atexit.register(self.cleanup)
         except FileExistsError:
             self._shm = shared_memory.SharedMemory(name=name)
-            logger.warning(f'{self._shm} exists')
+            logger.debug(f'{self._shm} exists')
 
     def cleanup(self):
         if hasattr(self, '_shm'):
