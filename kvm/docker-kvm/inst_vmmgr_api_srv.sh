@@ -2,12 +2,11 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("eaa8c55b[2025-10-13T13:39:48+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("579c8034[2025-10-17T10:52:34+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py database.py config.py meta.py utils.py main.py template.py vmmanager.py console.py)
-APPDBS=(devices.json golds.json hosts.json iso.json vars.json devices/ domains/ meta/)
 export PYTHONDONTWRITEBYTECODE=1
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
@@ -34,8 +33,8 @@ check_depends() {
         files+=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
     }
     local cmds=(socat ssh jq qemu-img cat)
-    log "file(${files[@]} ${APPFILES[@]} ${APPDBS[@]})"
-    for fn in ${files[@]} ${APPFILES[@]} ${APPDBS[@]}; do
+    log "file(${files[@]} ${APPFILES[@]})"
+    for fn in ${files[@]} ${APPFILES[@]}; do
         [ -e "${fn}" ] || { log "${fn} file, nofound"; exit 1;}
     done
     [ "${docker}" == "1" ] || {
@@ -114,7 +113,7 @@ systemd-run --user --unit jwt-srv \
     -E JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem \
     -E JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key \
     -E LDAP_SRV_URL=ldap://192.168.169.192:10389 \
-    gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'api_auth:app'
+    gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'api_auth:create_app()'
 
 # -E META_SRV=vmm.registry.local \ KVMHOST use.
 # -E GOLD_SRV=vmm.registry.local \ ACTIONS use(this srv).
@@ -160,7 +159,7 @@ systemd-run --user --unit simple-kvm-srv \
     -E ETCD_PORT=2379 \
     -E DATA_DIR=${outdir} \
     -E TOKEN_DIR=${tokdir} \
-    gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
+    gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:create_app()'
 EODOC
 }
 copy_app() {
@@ -178,6 +177,7 @@ copy_app() {
     done
 }
 gen_restore_tgz() {
+    APPDBS=$(python3 -B -c 'import config; print(config.BAK_PREFIX)')
     tar c ${APPDBS[@]} | gzip > restore.tgz
     log "gen restore.tgz........."
     return 0

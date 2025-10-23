@@ -45,6 +45,5 @@ for key in $(etcdctl get --prefix "${ETCD_PREFIX}" --keys-only); do
 done
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # ETCDCTL_CACERT= ETCDCTL_CERT= ETCDCTL_KEY= ETCD_PREFIX=/simple-kvm/work ./gen_test.sh /home/johnyin/disk/mygit/github_private/kvm/docker-kvm
-# DATA_DIR=/dev/shm/simple-kvm/work TOKEN_DIR=/dev/shm/simple-kvm/token gunicorn 'main:app'
 EOF
 
