@@ -702,7 +702,9 @@ function show_conf_host_view() {
       const result = JSON.parse(resp);
       const div = document.getElementById('conf_devices_tpl');
       div.innerHTML = '';
-      result.devices.forEach(tpl => { div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${tpl}</label>`; });
+      for(const tpl in result.devices) {
+        div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${result.devices[tpl]}</label>`;
+      }
       showView('conf_host');
      });
   });

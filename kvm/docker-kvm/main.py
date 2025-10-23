@@ -155,7 +155,8 @@ class MyApp(object):
 
     def conf_devices(self):
         try:
-            return utils.return_ok(f'devices ok', devices=template.tpl_list(config.DIR_DEVICE))
+            infos = dict((item, template.tpl_desc(config.DIR_DEVICE, item)) for item in template.tpl_list(config.DIR_DEVICE))
+            return utils.return_ok(f'devices ok', devices=infos)
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
