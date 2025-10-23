@@ -253,4 +253,5 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(cmd, e), 400
 
-app = MyApp.create()
+def create_app():
+    return MyApp.create()

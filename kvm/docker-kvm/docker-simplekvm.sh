@@ -407,7 +407,7 @@ stderr_logfile_maxbytes=0
 umask=0022
 environment=JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem,JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key
 directory=/auth/
-command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:app'
+command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
 autostart=true
 autorestart=true
 startretries=5
@@ -421,7 +421,7 @@ stderr_logfile_maxbytes=0
 umask=0022
 environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",DATA_DIR="/dev/shm/simplekvm/work"
 directory=/app/
-command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
+command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
 autorestart=true
 startretries=5

@@ -84,9 +84,10 @@ class MyApp(object):
         web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST'])
         return web
 
-app=MyApp.create()
+def create_app():
+    return MyApp.create()
 # pip install ldap3 pyjwt[crypto]
-# JWT_CERT_PEM=xxx JWT_CERT_KEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
+# JWT_CERT_PEM=xxx JWT_CERT_KEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:create_app()'
 '''
 docker create --name ldap --restart always \
  --network br-int \
