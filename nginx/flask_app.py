@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import werkzeug, flask, logging, os, sys
-logging.basicConfig(encoding='utf-8', format='[%(name)s] [%(process)d] %(levelname)s: %(message)s')
+logging.basicConfig(encoding='utf-8', format='[%(name)s] [%(process)d] %(levelname)s: %(message)s', level=os.getenv('LOG', 'WARN').upper())
 logger = logging.getLogger(__name__)
-# logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 
 FLASK_CONF = {
     'DEBUG'               : False,
