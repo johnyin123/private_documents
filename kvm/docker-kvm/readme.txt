@@ -237,6 +237,7 @@ echo "list all golds" && CURL GET /tpl/gold/
 echo "list all devs " && CURL GET /tpl/device/
 echo "list arch gold" && CURL GET /tpl/gold/${arch}
 echo "list host devs" && CURL GET /tpl/device/${host}
+echo "list conf     " && CURL GET /conf/
 echo "list dom tpls " && CURL GET /conf/domains/
 echo "list dev tpls " && CURL GET /conf/devices/
 gen_host() {

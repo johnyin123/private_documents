@@ -48,18 +48,5 @@ def VM_DEFAULT(arch:str, hostname:str):
         default.update({'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd'})
     return default;
 
-def dumps()->str:
-    return f'''
-    DATA_DIR    = {DATA_DIR}
-    TOKEN_DIR   = {TOKEN_DIR}
-    ETCD_PREFIX = {ETCD_PREFIX}
-    ETCD_SRV    = {ETCD_SRV}
-    ETCD_PORT   = {ETCD_PORT}
-    ETCD_CA     = {ETCD_CA}
-    ETCD_KEY    = {ETCD_KEY}
-    ETCD_CERT   = {ETCD_CERT}
-    META_SRV    = {META_SRV}
-    GOLD_SRV    = {GOLD_SRV}
-    CTRL_SRV    = {CTRL_SRV}
-    CTRL_KEY    = {CTRL_KEY}
-    Mail:johnyin.news@163.com'''
+def dumps():
+    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'CTRL_SRV': CTRL_SRV, 'MAIL':'johnyin.news@163.com'}

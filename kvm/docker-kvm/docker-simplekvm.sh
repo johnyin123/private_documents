@@ -178,6 +178,11 @@ server {
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
+    location = /conf/ {
+        auth_request @api_auth;
+        proxy_cache_valid 200   60m;
+        proxy_pass http://api_srv;
+    }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         auth_request @api_auth;

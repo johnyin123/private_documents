@@ -7,7 +7,7 @@ class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        logger.warning(config.dumps())
+        logger.warning(json.dumps(config.dumps(), indent=2, separators=('', ' = ')))
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
@@ -32,6 +32,10 @@ class MyApp(object):
         app.add_url_rule('/conf/host/', view_func=self.conf_host, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/iso/', view_func=self.conf_iso, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/gold/', view_func=self.conf_gold, methods=['POST', 'DELETE'])
+        app.add_url_rule('/conf/', view_func=self.conf, methods=['GET'])
+
+    def conf(self):
+        return utils.return_ok(f'conf ok', conf=config.dumps())
 
     def conf_iso(self):
         name = None

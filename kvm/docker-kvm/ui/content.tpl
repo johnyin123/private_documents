@@ -102,6 +102,10 @@
       <button title="Close" onclick="showView('hostlist');flush_sidebar('ALL VMS');">&times;</button>
     </div>
     <form>
+      <fieldset><legend>Config</legend>
+        <div class="flex-group" id="config"></div>
+      </fieldset>
+      </br>
       <div class="flex-group">
         <input type="button" value="CONF HOST" onclick="show_conf_host_view()"/>
         <input type="button" value="CONF GOLD" onclick="showView('conf_gold')"/>

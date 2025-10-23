@@ -784,8 +784,17 @@ function on_conf_listiso(btn) {
 }
 function menu_config(spanval) {
   set_curr(null);
-  showView("configuration");
-  flush_sidebar(spanval);
+  getjson('GET', `${uri_pre}/conf/`, function(resp) {
+    var result = JSON.parse(resp);
+    if(result.result === 'OK') {
+      var tbl = '<table>';
+      for(const key in result.conf) { tbl += `<tr><th>${key}</th><td colspan=3 class="truncate">${result.conf[key]}</td></tr>`; }
+      tbl +='</table>';
+      document.getElementById("config").innerHTML = tbl;
+      showView("configuration");
+      flush_sidebar(spanval);
+    }
+  });
 }
 function snap_create(host, uuid, btn) {
   if (confirm(`Create snapshot /${host}/${uuid} ?`)) {
