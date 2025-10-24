@@ -145,6 +145,11 @@ KVMHOST => config.META_SRV => Read meta/cidata.iso
 KVMHOST => config.META_SRV => Read iso(iso.json)(support http redirect)
 
 4000 vm usage etcd 251M
+pip install line_profiler
+kernprof -lv test.py
+# python -m line_profiler test.py.lprof
+#    @profile
+#    def testfunc(.....):
 # pip install flask_profiler
 # http://127.0.0.1:5009/flask-profiler
 # # import flask_profiler
