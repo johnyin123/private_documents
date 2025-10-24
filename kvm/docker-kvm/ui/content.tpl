@@ -107,6 +107,7 @@
       </fieldset>
       </br>
       <div class="flex-group">
+        <input type="button" value="FLUSH CACHE" onclick="load_conf(`?${Date.now()}`)"/>
         <input type="button" value="CONF HOST" onclick="show_conf_host_view()"/>
         <input type="button" value="CONF GOLD" onclick="showView('conf_gold')"/>
         <input type="button" value="CONF ISO" onclick="showView('conf_iso')"/>
