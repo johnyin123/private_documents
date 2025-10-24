@@ -4,6 +4,14 @@ import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
+    def __init__(self):
+        self.host_db = database.KVMHost()
+        self.devs_db = database.KVMDevice()
+        self.iso_db = database.KVMIso()
+        self.gold_db = database.KVMGold()
+        self.vars_db = database.KVMVar()
+        self.guest_db = database.KVMGuest()
+
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
@@ -40,14 +48,13 @@ class MyApp(object):
     def conf_iso(self):
         name = None
         try:
-            iso_db = database.KVMIso()
             if flask.request.method == "DELETE":
                 name = flask.request.args.get('name')
                 if not name:
                     return utils.return_err(404, 'delete iso', 'Name No Found')
 
-                iso_db.get_one(name=name)
-                iso_db.delete(name=name)
+                self.iso_db.get_one(name=name)
+                self.iso_db.delete(name=name)
             if flask.request.method == "POST":
                 req_json = flask.request.get_json(silent=True, force=True)
                 keys_to_extract = ['name','uri','desc']
@@ -58,10 +65,10 @@ class MyApp(object):
                 exists, size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
                 if not exists:
                     return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
-                iso_db.delete(name=entry['name'])
-                iso_db.insert(**entry)
+                self.iso_db.delete(name=entry['name'])
+                self.iso_db.insert(**entry)
                 name = req_json['name']
-            iso = iso_db.list_all()
+            iso = self.iso_db.list_all()
             utils.conf_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
             return utils.return_ok(f'conf iso ok', name=name)
         except Exception as e:
@@ -71,14 +78,13 @@ class MyApp(object):
         try:
             name = None
             arch = None
-            gold_db = database.KVMGold()
             if flask.request.method == "DELETE":
                 name = flask.request.args.get('name')
                 arch = flask.request.args.get('arch')
                 if not name or not arch:
                     return utils.return_err(404, 'delete gold', 'Name No Found')
-                gold_db.get_one(name=name, arch=arch)
-                gold_db.delete(name=name, arch=arch)
+                self.gold_db.get_one(name=name, arch=arch)
+                self.gold_db.delete(name=name, arch=arch)
             if flask.request.method == "POST":
                 req_json = flask.request.get_json(silent=True, force=True)
                 keys_to_extract = ['name','arch','uri','size','desc']
@@ -92,11 +98,11 @@ class MyApp(object):
                 if entry['size'] < size:
                     return utils.return_err(403, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} filesize={size}')
                 logger.debug(f'add gold {entry}')
-                gold_db.delete(name=entry['name'], arch=entry['arch'])
-                gold_db.insert(**entry)
+                self.gold_db.delete(name=entry['name'], arch=entry['arch'])
+                self.gold_db.insert(**entry)
                 name = req_json['name']
                 arch = req_json['arch']
-            golds = gold_db.list_all()
+            golds = self.gold_db.list_all()
             utils.conf_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
             return utils.return_ok(f'conf gold ok', name=name, arch=arch)
         except Exception as e:
@@ -105,17 +111,14 @@ class MyApp(object):
     def conf_host(self):
         name = None
         try:
-            host_db = database.KVMHost()
-            devs_db = database.KVMDevice()
-            guest_db = database.KVMGuest()
             if flask.request.method == "DELETE":
                 name = flask.request.args.get('name')
                 if not name:
                     return utils.return_err(404, 'delete host', 'Name No Found')
-                host_db.get_one(name=name)
-                host_db.delete(name=name)
-                devs_db.delete(kvmhost=name)
-                guest_db.delete(kvmhost=name)
+                self.host_db.get_one(name=name)
+                self.host_db.delete(name=name)
+                self.devs_db.delete(kvmhost=name)
+                self.guest_db.delete(kvmhost=name)
             if flask.request.method == "POST":
                 req_json = flask.request.get_json(silent=True, force=True)
                 keys_to_extract = ['name','tpl','url','arch','ipaddr','sshport','sshuser']
@@ -125,18 +128,18 @@ class MyApp(object):
                 entry['sshport'] = int(entry['sshport'])
                 template.DomainTemplate(entry['tpl']) # check template exists
                 logger.debug(f'add host {entry}')
-                host_db.delete(name=entry['name'])
-                host_db.insert(**entry)
+                self.host_db.delete(name=entry['name'])
+                self.host_db.insert(**entry)
                 keys_to_extract = template.tpl_list(config.DIR_DEVICE)
                 entry = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'} # no need check blank
-                devs_db.delete(kvmhost=req_json['name'])
+                self.devs_db.delete(kvmhost=req_json['name'])
                 logger.debug(f'add host device {entry.keys()}')
                 for k in entry.keys():
                     tpl = template.DeviceTemplate(k) # check template exists
-                    devs_db.insert(kvmhost=req_json['name'], name=k, tpl=k, desc=tpl.desc)
+                    self.devs_db.insert(kvmhost=req_json['name'], name=k, tpl=k, desc=tpl.desc)
                 name = req_json['name']
-            hosts = host_db.list_all()
-            devs = devs_db.list_all()
+            hosts = self.host_db.list_all()
+            devs = self.devs_db.list_all()
             utils.conf_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
             utils.conf_save(config.FILE_DEVS, json.dumps(devs, default=str).encode('utf-8'))
             return utils.return_ok(f'conf host ok', name=name)
@@ -179,7 +182,7 @@ class MyApp(object):
     def tpl_host(self):
         # perf tuning, for host more than 1000
         try:
-            hosts = database.KVMHost().list_all()
+            hosts = self.host_db.list_all()
             meta_varset = set()
             for name in template.tpl_list(config.DIR_META):
                 meta_varset.update(template.get_variables(config.DIR_META, name))
@@ -187,7 +190,7 @@ class MyApp(object):
             for name in template.tpl_list(config.DIR_DOMAIN):
                 varset = template.get_variables(config.DIR_DOMAIN, name)
                 varset.update(meta_varset)
-                domtpl_varset[name] = database.KVMVar().get_desc(varset)
+                domtpl_varset[name] = self.vars_db.get_desc(varset)
             for host in hosts:
                 host['vars'] = domtpl_varset.get(host['tpl'], {})
             return utils.return_ok(f'tpl_host ok', host=hosts)
@@ -197,9 +200,9 @@ class MyApp(object):
     def tpl_device(self, hostname:str = None):
         try:
             args = {'kvmhost': hostname} if hostname else {}
-            devices = database.KVMDevice().list_all(**args)
+            devices = self.devs_db.list_all(**args)
             for dev in devices:
-                dev['vars'] = database.KVMVar().get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
+                dev['vars'] = self.vars_db.get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
                 dev['devtype'] = template.DeviceTemplate.get_devtype(dev['tpl'])
             return utils.return_ok(f'tpl_device ok', device=devices)
         except Exception as e:
@@ -207,20 +210,20 @@ class MyApp(object):
 
     def tpl_iso(self):
         try:
-            return utils.return_ok(f'tpl_iso ok', iso=database.KVMIso().list_all(), server=f'http://{config.META_SRV}')
+            return utils.return_ok(f'tpl_iso ok', iso=self.iso_db.list_all(), server=f'http://{config.META_SRV}')
         except Exception as e:
             return utils.deal_except(f'tpl_iso', e), 400
 
     def tpl_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'tpl_gold ok', gold=database.KVMGold().list_all(**args), server=f'http://{config.GOLD_SRV}')
+            return utils.return_ok(f'tpl_gold ok', gold=self.gold_db.list_all(**args), server=f'http://{config.GOLD_SRV}')
         except Exception as e:
             return utils.deal_except(f'tpl_gold', e), 400
 
     def db_list_domains(self):
         try:
-            return utils.return_ok(f'db_list_domains ok', guest=database.KVMGuest().list_all())
+            return utils.return_ok(f'db_list_domains ok', guest=self.guest_db.list_all())
         except Exception as e:
             return utils.deal_except(f'db_list_domains', e), 400
 
@@ -232,7 +235,7 @@ class MyApp(object):
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
-                args = {'method':flask.request.method, 'host': database.KVMHost().get_one(name=hostname), 'uuid': uuid} if uuid else {'method':flask.request.method, 'host': database.KVMHost().get_one(name=hostname)}
+                args = {'method':flask.request.method, 'host': self.host_db.get_one(name=hostname), 'uuid': uuid} if uuid else {'method':flask.request.method, 'host': self.host_db.get_one(name=hostname)}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
                     if key in ['k', 'e', 'host', 'uuid']:
