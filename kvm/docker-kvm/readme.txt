@@ -10,6 +10,7 @@ ffmpeg -f x11grab -draw_mouse 1 -video_size 1600x700 -grab_x 0 -grab_y 200 -i :0
   <source src="/ui/demo.ovg" type="video/mp4">
   <p><a href="/ui/demo.ovg">Link to the video</a></p>
  </video>
+ <a download="demo.tgz" href='data:application/x-compressed-tar;base64,xxx'>Download</a>
 ########################################################
 action script, can accept env startwith ACT_, set env ACT_XX when start app
 action convert gold disk:

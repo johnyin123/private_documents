@@ -332,13 +332,23 @@ def conf_backup_tgz()->io.BytesIO:
     file_obj.seek(0)
     return file_obj
 
-def conf_restore_tgz(file_obj:io.BytesIO)->None:
+def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
+    apply=0
+    total=0
+    skip = []
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
-                if member.isreg() and member.name.startswith(config.BAK_PREFIX):
-                    with tar.extractfile(member) as f:
-                        logger.debug(f'File restore {member.name}')
-                        conf_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                logger.debug(f'File {member.name}')
+                if member.isreg():
+                    total += 1
+                    if member.name.startswith(config.BAK_PREFIX):
+                        with tar.extractfile(member) as f:
+                            logger.debug(f'File restore {member.name}')
+                            conf_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                            apply += 1
+                    else:
+                        skip.append(member.name)
     except tarfile.ReadError as e:
         raise APIException(f'Invalid tarfile format {str(e)}')
+    return total, apply, skip

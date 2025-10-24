@@ -608,15 +608,9 @@ function on_conf_restore(form) {
   if (confirm('Are you sure restore config ?')) {
     const formData = new FormData(form);
     fetch(`${uri_pre}/conf/restore/`, { method: 'POST', body: formData })
-    .then(response => response.json())
-    .then(res => {
-      if (res.result === 'OK') {
-       load_conf(`?${Date.now()}`);
-       form.reset();
-       alert(`${res.desc}`);
-      } else {
-       alert(`${res.code}, ${res.name}, ${res.desc}`);
-      }
+    .then(response => response.text())
+    .then(resp => {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); form.reset(); }
     })
     .catch(error => { alert('Error during upload:', error); });
   }
