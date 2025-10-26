@@ -352,3 +352,14 @@ def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
     except tarfile.ReadError as e:
         raise APIException(f'Invalid tarfile format {str(e)}')
     return total, apply, skip
+
+def required_exists()->tuple[bool, list]:
+    required = [config.FILE_GOLDS, config.FILE_ISO, config.FILE_VARS]
+    not_exists = [f for f in required if not os.path.isfile(f)];
+    if len(template.tpl_list(config.DIR_DEVICE)) == 0:
+        not_exists.append(config.DIR_DEVICE)
+    if len(template.tpl_list(config.DIR_DOMAIN)) == 0:
+        not_exists.append(config.DIR_DOMAIN)
+    if len(template.tpl_list(config.DIR_META)) == 0:
+        not_exists.append(config.DIR_META)
+    return len(not_exists) > 0, not_exists

@@ -17,6 +17,17 @@ class MyApp(object):
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.warning(json.dumps(config.dumps(), indent=2, separators=('', ' = ')))
         database.reload_all()
+        ret, not_exists = utils.required_exists()
+        if ret:
+            logger.error(f'{not_exists} runtime not exists')
+            dir_cwd = os.getcwd()
+            init_pkg = os.path.join(dir_cwd, 'init-env.tgz')
+            if os.path.isfile(init_pkg):
+                fname=os.path.join(dir_cwd, f"pre_init_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.tgz")
+                logger.warning(f'pre init runtime backup: {fname}')
+                utils.file_save(fname, utils.conf_backup_tgz().getbuffer())
+                total, apply, skip = utils.conf_restore_tgz(io.BytesIO(utils.file_load(init_pkg)))
+                logger.info(f'init runtime env, total={total}, apply={apply}, skip={skip}')
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
         return web
