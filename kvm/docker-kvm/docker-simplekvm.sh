@@ -476,6 +476,23 @@ EODOC
         # for fn in ${SOURCE_DIR}/*.py; do
         #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
         # done
+        ######### gen init env tgz file
+        INIT_TPL=(meta/meta-data.tpl meta/user-data.tpl devices/disk.file.tpl devices/disk.file.action devices/net.br-ext.tpl devices/cdrom.null.tpl domains/domain.tpl)
+        INIT_DBS=(golds.json iso.json)
+        tmp_dir=$(mktemp -d "/tmp/simplekvm-init-$(date +'%Y%m%d%H%M%S')-XXXXXXXXXX")
+        cat <<'EOF' > ${tmp_dir}/golds.json
+[{"name":"","arch":"x86_64","uri":"","size":1,"desc":"数据盘"},{"name":"","arch":"aarch64","uri":"","size":1,"desc":"数据盘"}]
+EOF
+        cat <<'EOF' > ${tmp_dir}/iso.json
+[{"name":"","uri":"","desc":"MetaData ISO"}]
+EOF
+        for fn in ${INIT_TPL[@]}; do
+            target=${tmp_dir}/${fn}
+            mkdir -p $(dirname "${target}") && cat "${SOURCE_DIR}/${fn}" > "${target}"
+        done
+        tar -C ${tmp_dir} -c ${INIT_TPL[@]} ${INIT_DBS[@]} | gzip > ${type}-${arch}/docker/app/init_env.tgz
+        rm -rf ${tmp_dir}
+        #########
         chown -R 10001:10001 ${type}-${arch}/docker/app
     }
     mkdir -p ${type}-${arch}/docker/auth && {
