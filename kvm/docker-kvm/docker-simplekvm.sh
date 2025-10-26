@@ -477,7 +477,7 @@ EODOC
         #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
         # done
         ######### gen init env tgz file
-        INIT_TPL=(meta/meta-data.tpl meta/user-data.tpl devices/disk.file.tpl devices/disk.file.action devices/net.br-ext.tpl devices/cdrom.null.tpl domains/domain.tpl)
+        INIT_TPL=(meta/meta-data.tpl meta/user-data.tpl devices/disk.file.tpl devices/disk.file.action devices/net.br-ext.tpl devices/cdrom.null.tpl domains/domain.tpl vars.json)
         INIT_DBS=(golds.json iso.json)
         tmp_dir=$(mktemp -d "/tmp/simplekvm-init-$(date +'%Y%m%d%H%M%S')-XXXXXXXXXX")
         cat <<'EOF' > ${tmp_dir}/golds.json
