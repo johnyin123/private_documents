@@ -85,6 +85,7 @@ ${target}/ca.pem
 ${target}/client.key
 ${target}/client.pem
 # ===================================================
+# --env DATA_DIR=/home/simplekvm/data -v ${target}/data:/home/simplekvm/data  \\
 docker create --name simplekvm --restart always \\
  --network br-int --ip 192.168.169.123 \\
  --env LDAP_SRV_URL=ldap://${LDAP_SRV}:${LDAP_PORT} \\

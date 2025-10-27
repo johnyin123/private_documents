@@ -424,7 +424,7 @@ stderr_logfile_maxbytes=0
 
 [program:simplekvm]
 umask=0022
-environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",DATA_DIR="/dev/shm/simplekvm/work"
+environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}"
 directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
@@ -446,6 +446,9 @@ openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
 export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
 [ -z "\${CTRL_KEY:-}" ] || {
     sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
+}
+[ -z "\${DATA_DIR:-}" ] || {
+    sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR}/cidata|g" /etc/nginx/http-enabled/simplekvm.conf
 }
 env || true
 exec "\$@"
