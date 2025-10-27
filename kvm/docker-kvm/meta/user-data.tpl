@@ -5,7 +5,6 @@ locale: {{ vm_locale | default('zh_CN.UTF-8', true) }}
 timezone: {{ vm_timezone | default('Asia/Shanghai', true) }}
 ssh_pwauth: true
 users:
-  # - default
   - name: {{ vm_user | default('clouduser', true) }}
     lock_passwd: false
     shell: /bin/bash
@@ -24,14 +23,7 @@ write_files:
 runcmd:
   - passwd -d root
   - echo "{{ vm_user | default('clouduser', true) }}:{{ vm_password | default('tsd@2023', true) }}" | chpasswd
-growpart:
-  mode: auto
-  devices: ['/']
-swap:
-  size: 2G
-bootcmd:
-  - echo "BOOT OK"
-  - touch /etc/cloud/cloud-init.disabled
-final_message: |
-  cloud-init has finished
-  datasource: $datasource
+growpart: {"mode":auto, "devices":[/]}
+swap: {"size":2G}
+bootcmd: [echo "BOOT OK",touch /etc/cloud/cloud-init.disabled]
+final_message: "cloud-init has finished\ndatasource: $datasource\n"
