@@ -283,10 +283,10 @@ log "list arch gold" && CURL GET /tpl/gold/${arch}
 log "list host devs" && CURL GET /tpl/device/${host}
 
 log "lst cached vms" && CURL GET /vm/list/
-log "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{ "vm_desc" : "测试VM" }' | jq -r .uuid) && log "uuid=${uuid}"
+log "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{"vm_desc":"测试VM","vm_graph":"vnc"}' | jq -r .uuid) && log "uuid=${uuid}"
 log "get vm xml    " && CURL GET /vm/xml/${host}/${uuid}
 log "vm add disk   " && CURL POST /vm/attach_device/${host}/${uuid}?dev=disk.file <<EOF
-{"size":2,"gold":"${gold}"}
+{"size":2,"gold":"${gold}","vm_disk_type":"qcow2"}
 EOF
 log "vm add network" && CURL POST /vm/attach_device/${host}/${uuid}?dev=net.br-ext <<< '{}'
 log "list vm info  " && CURL GET /vm/list/${host}/${uuid}
