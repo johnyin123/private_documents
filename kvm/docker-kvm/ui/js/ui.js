@@ -252,19 +252,6 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
     toggleOverlay(false);
   });
 }
-function processJsonArray(jsonArray) {
-  const counts = new Map();
-  jsonArray.forEach(obj => {
-    const key = JSON.stringify(obj); // Stringify to compare objects
-    counts.set(key, (counts.get(key) || 0));
-  });
-  const result = jsonArray.map(obj => {
-    const key = JSON.stringify(obj);
-    return { ...obj, vms: counts.get(key) };
-  });
-  const uniqueResult = Array.from(new Set(result.map(JSON.stringify))).map(JSON.parse);
-  return uniqueResult;
-}
 function flush_sidebar(kvmhost, count=null) {
   document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
     link.classList.remove('blue');
@@ -301,13 +288,9 @@ function vmlist(kvmhost) {
       });
       flush_sidebar(kvmhost, `(${count})`);
       document.getElementById("vms").innerHTML = tbl;
-      const newArray = guest.map(item => {
-        const { kvmhost, arch } = item;
-        return { kvmhost, arch };
-      });
       tbl = '<table>';
-      processJsonArray(newArray).forEach(item => {
-        tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.vms}</td><td><a href='#' title='Manage Host' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
+      guest.forEach(item => {
+        tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.guests.length}</td><td><a href='#' title='Manage Host' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
       });
       tbl += '</table>';
       document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="green">Summary</h2>`, '', tbl);
