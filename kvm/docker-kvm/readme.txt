@@ -231,6 +231,15 @@ function CURL() {
     local uri="${1}"; shift 1
     local curl=(curl -sk --header "${token}")
     local args=("$@")
+    [ "${method}" == "GET" ] && {
+        # pass through cache
+        special_chars_pattern='[?]'
+        if [[ "${uri}" =~ $special_chars_pattern ]]; then
+            uri="${uri}&k=$(date +'%Y%m%d%H%M%S')"
+        else
+            uri="${uri}?k=$(date +'%Y%m%d%H%M%S')"
+        fi
+    }
     case "${method}" in
         UPLOAD)
             curl+=(--request POST --form "${args[@]}") ;;
@@ -242,68 +251,73 @@ function CURL() {
     curl+=("${srv}${uri}")
     log "${curl[@]}"
     "${curl[@]}"
+    log ''
+    log "-----------------------------------------------"
 }
 arch=x86_64
 host=testhost
 iso=testiso
 gold=testgold
 #GET     /vm/websockify/${host}/${uuid}?disp=&expire=<mins>&token=
-echo "backup config " && CURL GET /conf/backup/ -o backup.tgz
-echo "restore config" && CURL UPLOAD /conf/restore/ 'file=@backup.tgz'
-echo "list all hosts" && CURL GET /tpl/host/
-echo "list all iso  " && CURL GET /tpl/iso/
-echo "list all golds" && CURL GET /tpl/gold/
-echo "list all devs " && CURL GET /tpl/device/
-echo "list arch gold" && CURL GET /tpl/gold/${arch}
-echo "list host devs" && CURL GET /tpl/device/${host}
-echo "list conf     " && CURL GET /conf/
-echo "list dom tpls " && CURL GET /conf/domains/
-echo "list dev tpls " && CURL GET /conf/devices/
-gen_host() {
-    cat <<EOF
-{ "name":"${1}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
+log "list conf     " && CURL GET /conf/
+log "backup config " && CURL GET /conf/backup/ -o backup.tgz
+log "restore config" && CURL UPLOAD /conf/restore/ 'file=@init_env.tgz'
+log "list dom tpls " && CURL GET /conf/domains/
+log "list dev tpls " && CURL GET /conf/devices/
+
+echo "add new host " && CURL POST /conf/host/  <<EOF
+{ "name":"${host}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
 EOF
-}
-echo "add new host  " && gen_host "${host}" | CURL POST /conf/host/
-echo "add new iso   " && CURL POST /conf/iso/ << EOF
+echo "add new iso  " && CURL POST /conf/iso/ << EOF
 {"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
 EOF
-echo "add new gold  " && CURL POST /conf/gold/ << EOF
+echo "add new gold " && CURL POST /conf/gold/ << EOF
 {"name":"${gold}","arch":"${arch}","uri":"/gold/bookworm.amd64.qcow2","size":"2","desc":"test gold"}
 EOF
 
-echo "lst cached vms" && CURL GET /vm/list/
-echo "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{ "vm_desc" : "测试VM" }' | jq -r .uuid)
-echo "list vm info  " && CURL GET /vm/list/${host}/${uuid}
-echo "get vm xml    " && CURL GET /vm/xml/${host}/${uuid}
-echo "vm attach dev " && CURL POST /vm/attach_device/${host}/${uuid}?dev=disk.file <<EOF
-{"size":2,"gold":"debian12"}
+log "list all hosts" && CURL GET /tpl/host/
+log "list all iso  " && CURL GET /tpl/iso/
+log "list all golds" && CURL GET /tpl/gold/
+log "list all devs " && CURL GET /tpl/device/
+log "list arch gold" && CURL GET /tpl/gold/${arch}
+log "list host devs" && CURL GET /tpl/device/${host}
+
+log "lst cached vms" && CURL GET /vm/list/
+log "create vm     " && uuid=$(CURL POST /vm/create/${host} <<<'{ "vm_desc" : "测试VM" }' | jq -r .uuid) && log "uuid=${uuid}"
+log "get vm xml    " && CURL GET /vm/xml/${host}/${uuid}
+log "vm add disk   " && CURL POST /vm/attach_device/${host}/${uuid}?dev=disk.file <<EOF
+{"size":2,"gold":"${gold}"}
 EOF
-CURL GET /vm/blksize/${host}/${uuid}?dev=vda
-CURL GET /vm/netstat/${host}/${uuid}?dev=52:54:00:97:bc:5a
-CURL GET /vm/ctrl_url/${host}/${uuid}?epoch=$(date -d "+3600 second" +%s)
-CURL GET "/vm/display/${host}/${uuid}?disp=&prefix=&timeout_mins=15"
-CURL GET "/vm/display/${host}/${uuid}?disp=console&prefix=&timeout_mins=15"
-CURL GET /vm/start/${host}/${uuid}
-CURL GET /vm/ipaddr/${host}/${uuid}
-CURL GET /vm/reset/${host}/${uuid}
-CURL GET /vm/stop/${host}/${uuid}
-CURL GET /vm/stop/${host}/${uuid}?force=true
-CURL GET /vm/desc/${host}/${uuid}?vm_desc=new%20desc
-CURL GET /vm/setmem/${host}/${uuid}?vm_ram_mb=1024
-CURL GET /vm/setcpu/${host}/${uuid}?vm_vcpus=1
-CURL GET /vm/snapshot/${host}/${uuid}
+log "vm add network" && CURL POST /vm/attach_device/${host}/${uuid}?dev=net.br-ext <<< '{}'
+log "list vm info  " && CURL GET /vm/list/${host}/${uuid}
+log "vda disk size " && CURL GET /vm/blksize/${host}/${uuid}?dev=vda
+log "vm netstat    " && CURL GET /vm/netstat/${host}/${uuid}?dev=52:54:00:97:bc:5a
+log "vm ctrl url   " && CURL GET /vm/ctrl_url/${host}/${uuid}?epoch=$(date -d "+240 hour" +%s)
+log "vm start      " && CURL GET /vm/start/${host}/${uuid}
+log "vnc display   " && CURL GET "/vm/display/${host}/${uuid}?disp=&prefix=&timeout_mins=15"
+log "serial console" && CURL GET "/vm/display/${host}/${uuid}?disp=console&prefix=&timeout_mins=15"
+log "vm ipaddr     " && CURL GET /vm/ipaddr/${host}/${uuid}
+log "vm reset      " && CURL GET /vm/reset/${host}/${uuid}
+log "vm stop       " && CURL GET /vm/stop/${host}/${uuid}
+log "vm poweroff   " && CURL GET /vm/stop/${host}/${uuid}?force=true
+log "vm desc       " && CURL GET /vm/desc/${host}/${uuid}?vm_desc=new%20desc
+log "vm set memory " && CURL GET /vm/setmem/${host}/${uuid}?vm_ram_mb=1024
+log "vm set vcpus  " && CURL GET /vm/setcpu/${host}/${uuid}?vm_vcpus=1
+log "list snapshot " && CURL GET /vm/snapshot/${host}/${uuid}
 CURL POST /vm/snapshot/${host}/${uuid} <<< ''
 CURL POST /vm/snapshot/${host}/${uuid}?name= <<< ''
 CURL GET /vm/revert_snapshot/${host}/${uuid}?name=
 CURL GET /vm/delete_snapshot/${host}/${uuid}?name=
-CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
-CURL POST /vm/cdrom/${host}/${uuid}?dev=sda <<< '{"isoname":""}'
-CURL POST /vm/detach_device/${host}/${uuid}?dev=sda <<< ''
-CURL GET /vm/delete/${host}/${uuid}
-echo "delete iso    " && CURL DELETE "/conf/iso/?name=${iso}"
-echo "delete gold   " && CURL DELETE "/conf/gold/?name=${gold}&arch=${arch}"
-echo "delete host   " && CURL DELETE "/conf/host/?name=${host}"
+log "set metadata  " && CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
+log "change iso    " && CURL POST /vm/cdrom/${host}/${uuid}?dev=sda << EOF
+{"isoname":"${iso}"}
+EOF
+log "delete cdrom  " && CURL POST /vm/detach_device/${host}/${uuid}?dev=sda <<< ''
+log "list vm info  " && CURL GET /vm/list/${host}/${uuid}
+log "delete vm     " && CURL GET /vm/delete/${host}/${uuid}
+log "delete iso    " && CURL DELETE "/conf/iso/?name=${iso}"
+log "delete gold   " && CURL DELETE "/conf/gold/?name=${gold}&arch=${arch}"
+log "delete host   " && CURL DELETE "/conf/host/?name=${host}"
 ---------------------------------------------------------
 ---------------------------------------------------------
 ---------------------------------------------------------

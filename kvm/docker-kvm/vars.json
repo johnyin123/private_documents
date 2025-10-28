@@ -1,7 +1,7 @@
 [
   {
   "vm_disk_bus":"ide/scsi/sata/virtio, default virtio(cdrom default sata), cdrom not support virtio",
-  "vm_disk_type":"file vmdisk type(qcow2/raw), default raw",
+  "vm_disk_type":"file vmdisk type(qcow2/raw), default raw, qcow2 support snapshot",
   "vm_net_model":"virtio/rtl8139/e1000/..., default virtio",
   "vm_cpu":"host-model/host-passthrough/kvm64/IvyBridge..., default:host-model(x86), host-passthrough(arm)",
   "vm_desc":"vm describe",
