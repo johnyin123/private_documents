@@ -256,7 +256,7 @@ function processJsonArray(jsonArray) {
   const counts = new Map();
   jsonArray.forEach(obj => {
     const key = JSON.stringify(obj); // Stringify to compare objects
-    counts.set(key, (counts.get(key) || 0) + 1);
+    counts.set(key, (counts.get(key) || 0));
   });
   const result = jsonArray.map(obj => {
     const key = JSON.stringify(obj);
