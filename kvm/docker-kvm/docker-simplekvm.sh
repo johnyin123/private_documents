@@ -109,7 +109,8 @@ upstream real_api_auth {
 server {
     listen 127.0.0.1:61600;
     server_name _;
-    location =/api/login { proxy_pass http://real_api_auth; }
+    location =/api/login { proxy_cache off; proxy_pass http://real_api_auth; }
+    location =/api/refresh { proxy_cache off; proxy_pass http://real_api_auth; }
     location / {
         auth_jwt_enabled on;
         auth_jwt_redirect off;
@@ -147,7 +148,8 @@ server {
     location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host/ui/tpl.html"/></head><body></body></html>'; }
     location = /login.html { alias /app/ui/login.html; }
     location = /logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
-    location =/api/login { proxy_pass http://api_auth; }
+    location =/api/login { proxy_cache off; proxy_pass http://api_auth; }
+    location =/api/refresh { proxy_cache off; proxy_pass http://api_auth; }
     location = @api_auth {
         internal;
         proxy_cache off;
@@ -410,7 +412,7 @@ stderr_logfile_maxbytes=0
 
 [program:api_auth]
 umask=0022
-environment=JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem,JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key
+environment=JWT_PUBKEY=/dev/shm/pubkey.pem,JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key
 directory=/auth/
 command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
 autostart=true

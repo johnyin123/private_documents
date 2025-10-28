@@ -24,17 +24,20 @@ DEFAULT_CONF = {
     'LDAP_SRV_URL' : os.environ.get('LDAP_SRV_URL'),
     'LDAP_BASE_DN' : os.environ.get('LDAP_BASE_DN', 'ou=people,dc=neusoft,dc=internal'),
     'LDAP_UID_FMT' : os.environ.get('LDAP_UID_FMT', 'uid={uid}'),
-    'JWT_CERT_PEM' : os.environ.get('JWT_CERT_PEM', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.pem'),
-    'JWT_CERT_KEY' : os.environ.get('JWT_CERT_KEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
+    'JWT_PUBKEY'   : os.environ.get('JWT_PUBKEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.pem'),
+    'JWT_PRIKEY' : os.environ.get('JWT_PRIKEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
     'EXPIRE_SEC'   : int(os.environ.get('EXPIRE_SEC', '3600')),
 }
 class jwt_auth:
     def __init__(self, config: dict={}):
         self.config = {**DEFAULT_CONF, **config}
-        self.jwt_cert_pem = utils.file_load(self.config.get('JWT_CERT_PEM'))
-        self.jwt_cert_key = utils.file_load(self.config.get('JWT_CERT_KEY'))
+        self.jwt_cert_pem = utils.file_load(self.config.get('JWT_PUBKEY'))
+        self.jwt_cert_key = utils.file_load(self.config.get('JWT_PRIKEY'))
         self.expire_secs = self.config.get('EXPIRE_SEC')
         logger.debug(f'{self.config}')
+
+    def sign_payload(self, payload:Dict)->Dict:
+        return {'token':jwt.encode(payload, self.jwt_cert_key, algorithm='RS256')}
 
     def login(self, username: str, password: str, trans: Dict=None)->Dict:
         if jwt_login(self.config, username, password):
@@ -42,24 +45,24 @@ class jwt_auth:
                 'username': username, 'iat': datetime.datetime.utcnow(), 'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.expire_secs),
                 'trans': trans if trans is not None else {},
             }
-            return { 'token' : jwt.encode(payload, self.jwt_cert_key, algorithm='RS256')}
+            return self.sign_payload(payload)
         raise utils.APIException('Bad username or password.')
 
-    def check_login(self, token:str) -> Dict:
-        data = jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
-        logger.debug(f'auth_check: {data}')
-        return data
+    def decode_payload(self, token:str) -> Dict:
+        return jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
 
 class MyApp(object):
     def __init__(self):
         self.auth = jwt_auth({})
 
-    def api_check(self):
+    def api_refresh(self):
         try:
             token = str.replace(str(flask.request.headers['Authorization']), 'Bearer ', '') if 'Authorization' in flask.request.headers else flask.request.cookies.get('token')
-            return utils.return_ok(f'check ok', **self.auth.check_login(token))
+            payload = self.auth.decode_payload(token)
+            payload.update({'iat':datetime.datetime.utcnow(),'exp':datetime.datetime.utcnow()+datetime.timedelta(seconds=self.auth.expire_secs)})
+            return utils.return_ok(f'refresh ok', **self.auth.sign_payload(payload))
         except Exception as e:
-            return utils.deal_except(f'check', e), 401
+            return utils.deal_except(f'refresh', e), 401
 
     def api_login(self):
         try:
@@ -80,14 +83,14 @@ class MyApp(object):
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
-        web.add_url_rule('/', view_func=myapp.api_check, methods=['GET'])
+        web.add_url_rule('/api/refresh', view_func=myapp.api_refresh, methods=['GET'])
         web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST'])
         return web
 
 def create_app():
     return MyApp.create()
 # pip install ldap3 pyjwt[crypto]
-# JWT_CERT_PEM=xxx JWT_CERT_KEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:create_app()'
+# JWT_PUBKEY=xxx JWT_PRIKEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:create_app()'
 '''
 docker create --name ldap --restart always \
  --network br-int \

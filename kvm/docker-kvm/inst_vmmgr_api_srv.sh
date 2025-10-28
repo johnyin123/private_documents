@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("579c8034[2025-10-17T10:52:34+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("d20d7d50[2025-10-23T09:16:54+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -106,13 +106,15 @@ systemd-run --user --unit websockify-graph \
     --working-directory=${DIRNAME} \
     websockify --token-plugin TokenFile --token-source ${tokdir} 127.0.0.1:6800
 
+LDAP_SRV=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ldap)
+
 systemd-run --user --unit jwt-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
     -E LEVELS='{"api_auth":"DEBUG"}' \
-    -E JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem \
-    -E JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key \
-    -E LDAP_SRV_URL=ldap://192.168.169.192:10389 \
+    -E JWT_PUBKEY=/etc/nginx/ssl/pubkey.pem \
+    -E JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key \
+    -E LDAP_SRV_URL=ldap://${LDAP_SRV}:10389 \
     gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'api_auth:create_app()'
 
 # -E META_SRV=vmm.registry.local \ KVMHOST use.
