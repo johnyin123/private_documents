@@ -304,10 +304,10 @@ log "vm desc       " && CURL GET /vm/desc/${host}/${uuid}?vm_desc=new%20desc
 log "vm set memory " && CURL GET /vm/setmem/${host}/${uuid}?vm_ram_mb=1024
 log "vm set vcpus  " && CURL GET /vm/setcpu/${host}/${uuid}?vm_vcpus=1
 log "list snapshot " && CURL GET /vm/snapshot/${host}/${uuid}
-CURL POST /vm/snapshot/${host}/${uuid} <<< ''
-CURL POST /vm/snapshot/${host}/${uuid}?name= <<< ''
-CURL GET /vm/revert_snapshot/${host}/${uuid}?name=
-CURL GET /vm/delete_snapshot/${host}/${uuid}?name=
+log "add  snapshot1" && CURL POST /vm/snapshot/${host}/${uuid} <<< ''
+log "add  snapshot2" && CURL POST /vm/snapshot/${host}/${uuid}?name=mysnap <<< ''
+log "reve snapshot " && CURL GET /vm/revert_snapshot/${host}/${uuid}?name=mysnap
+log "del  snapshot " && CURL GET /vm/delete_snapshot/${host}/${uuid}?name=mysnap
 log "set metadata  " && CURL POST /vm/metadata/${host}/${uuid} <<< '{"key":"val"}'
 log "change iso    " && CURL POST /vm/cdrom/${host}/${uuid}?dev=sda << EOF
 {"isoname":"${iso}"}
