@@ -473,6 +473,8 @@ EODOC
     sed -i "s/^user .*;/user ${username} ${username};/g"  ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf
+    sed -i "/proxy_pass_header\s*Server\s*;/d"            ${type}-${arch}/docker/etc/nginx/http-conf.d/proxy.conf
+
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
