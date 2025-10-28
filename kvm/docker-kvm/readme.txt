@@ -265,13 +265,13 @@ log "restore config" && CURL UPLOAD /conf/restore/ 'file=@init_env.tgz'
 log "list dom tpls " && CURL GET /conf/domains/
 log "list dev tpls " && CURL GET /conf/devices/
 
-echo "add new host " && CURL POST /conf/host/  <<EOF
+log "add new host  " && CURL POST /conf/host/  <<EOF
 { "name":"${host}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
 EOF
-echo "add new iso  " && CURL POST /conf/iso/ << EOF
+log "add new iso   " && CURL POST /conf/iso/ << EOF
 {"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
 EOF
-echo "add new gold " && CURL POST /conf/gold/ << EOF
+log "add new gold  " && CURL POST /conf/gold/ << EOF
 {"name":"${gold}","arch":"${arch}","uri":"/gold/bookworm.amd64.qcow2","size":"2","desc":"test gold"}
 EOF
 
