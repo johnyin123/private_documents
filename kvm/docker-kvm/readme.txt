@@ -179,9 +179,9 @@ cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
 list_tpl_varset         : list domain(include meta), device tpl vars
 default_pool_redefine.sh: defile default pool directory /storage
 docker-libvirtd.sh      : gen libvirtd docker image
-docker-vmmgr.sh         : gen vmmgr-api docker image
+docker-simplekvm.sh     : gen vmmgr-api docker image
 inst_vmmgr_api_srv.sh   : inst vmmgr-api server(on docker or on vm)
-gen_ngx_conf            : gen nginx kvm.conf for vmmgr-api
+gen_ngx_conf.sh         : gen nginx kvm.conf for vmmgr-api
 hosts.json              : kvm hosts with domains template
 devices.json            : host device mapping
 golds.json              : gold disks, Add disk with template (API SRV) use host in golds.json
@@ -202,11 +202,22 @@ cloud-init status --long
 DEBUG_LEVEL=2 DI_LOG=stderr /usr/libexec/cloud-init/ds-identify --force
 # useradd -m --password "$(openssl passwd -6 -salt xyz yourpass)" test1 -s /bin/bash
 if use NOCLOUD need dhcp, and meta server(ngx) on 169.254.169.254
-if use ISO no deed dhcp
+if use ISO no need dhcp
 ---------------------------------------------------------
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
 qemu-img convert -p --image-opt file.driver=https,file.sslverify=off,file.url=https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 -W -m1 -O raw disk.raw
+qemu-img convert -p -f qcow2 -W -m1 -O raw https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 disk.raw
+#define CURL_BLOCK_OPT_URL       "url"
+#define CURL_BLOCK_OPT_READAHEAD "readahead"
+#define CURL_BLOCK_OPT_SSLVERIFY "sslverify"
+#define CURL_BLOCK_OPT_TIMEOUT "timeout"
+#define CURL_BLOCK_OPT_COOKIE    "cookie"
+#define CURL_BLOCK_OPT_COOKIE_SECRET "cookie-secret"
+#define CURL_BLOCK_OPT_USERNAME "username"
+#define CURL_BLOCK_OPT_PASSWORD_SECRET "password-secret"
+#define CURL_BLOCK_OPT_PROXY_USERNAME "proxy-username"
+#define CURL_BLOCK_OPT_PROXY_PASSWORD_SECRET "proxy-password-secret"
 ---------------------------------------------------------
 websockify --token-plugin TokenFile --token-source ./token/ 6800
 virsh domdisplay xxx

@@ -42,7 +42,7 @@ str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw rbd:${DISK}:${RBD_SECRET} ${SIZE}
 } || {
-    timeout ${ACT_TMOUT:-5}m qemu-img convert -p -f ${ACT_GOLD_FMT:-qcow2} -W -m1 -O raw ${GOLD} rbd:${DISK}:${RBD_SECRET}
+    timeout ${ACT_TMOUT:-5}m qemu-img convert -p --image-opt file.driver=http,file.sslverify=off,file.readahead=${ACT_READAHEAD:-$((32*1024*1024))},file.url=${GOLD} -W -m1 -O raw ${GOLD} rbd:${DISK}:${RBD_SECRET}
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
     qemu-img resize -f raw rbd:${DISK}:${RBD_SECRET} ${SIZE} || true
 }
