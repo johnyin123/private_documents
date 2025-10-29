@@ -206,8 +206,8 @@ if use ISO no need dhcp
 ---------------------------------------------------------
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
-qemu-img convert -p --image-opt file.driver=https,file.sslverify=off,file.url=https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 -W -m1 -O raw disk.raw
-qemu-img convert -p -f qcow2 -W -m1 -O raw https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 disk.raw
+qemu-img convert -p --image-opt file.driver=https,file.sslverify=off,file.readahead=$((10*1024*1024)),file.url=https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 -W -m1 -O raw disk.raw
+qemu-img convert -p -f qcow2 -W -m1 -O raw http://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 disk.raw
 #define CURL_BLOCK_OPT_URL       "url"
 #define CURL_BLOCK_OPT_READAHEAD "readahead"
 #define CURL_BLOCK_OPT_SSLVERIFY "sslverify"
