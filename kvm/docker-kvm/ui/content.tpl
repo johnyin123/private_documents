@@ -21,7 +21,12 @@
         <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
         <input style="width: 30%;" type="number" name="sshport" title="ssh port" value="22" required/>
       </div></label>
-      <label>QEMU URL(qemu+tls://host/system):<input type="text" name="url" placeholder="e.g. qemu+ssh://user@host:port/system" required/></label>
+      <datalist id="qemu_url_list">
+        <option value="qemu+tls://host/system">
+        <option value="qemu+ssh://user@host:port/system">
+        <option value="qemu+ssh://user@host:port/system?socket=/run/libvirt/libvirt-sock">
+      </datalist>
+      <label>QEMU URL:<input type="text" name="url" list="qemu_url_list" autocomplete="off" required/></label>
       <fieldset><legend>Device</legend>
         <div class="flex-group" id="conf_devices_tpl"></div>
       </fieldset>
