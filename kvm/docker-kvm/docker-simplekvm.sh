@@ -117,7 +117,7 @@ server {
         auth_jwt_location HEADER=Authorization;
         auth_jwt_algorithm RS256;
         auth_jwt_use_keyfile on;
-        auth_jwt_keyfile_path "/dev/shm/pubkey.pem";
+        auth_jwt_keyfile_path "/etc/nginx/ssl/pubkey.pem";
         alias /etc/nginx/http-enabled/;
         try_files check.json =404;
     }
@@ -180,7 +180,8 @@ server {
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
-    location = /conf/ {
+    location ~* ^/conf/(|ssh_pubkey/)$ {
+        limit_except GET { deny all; }
         auth_request @api_auth;
         proxy_cache_valid 200   60m;
         proxy_pass http://api_srv;
@@ -412,7 +413,7 @@ stderr_logfile_maxbytes=0
 
 [program:api_auth]
 umask=0022
-environment=JWT_PUBKEY=/dev/shm/pubkey.pem,JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key
+environment=JWT_PUBKEY=/etc/nginx/ssl/pubkey.pem,JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key
 directory=/auth/
 command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
 autostart=true
@@ -440,11 +441,26 @@ stderr_logfile_maxbytes=0
 EODOC
     mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
 #!/bin/bash
-chown ${username}:${username} /home/${username}/.ssh /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem -R || true
+file_exists() { [ -e "\$1" ]; }
+file_exists "/etc/nginx/ssl/simplekvm.key" || openssl req -x509 -newkey rsa:4096 -keyout /etc/nginx/ssl/simplekvm.key -out /etc/nginx/ssl/simplekvm.pem -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
+file_exists "/etc/nginx/ssl/pubkey.pem" || openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /etc/nginx/ssl/pubkey.pem
+file_exists "/home/${username}/.ssh/id_rsa" || {
+    mkdir --mode=700 -p "/home/${username}/.ssh"
+    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f /home/${username}/.ssh/id_rsa
+    file_exists "/home/${username}/.ssh/config" || cat <<EO_CFG > "/home/${username}/.ssh/config"
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha1
+EO_CFG
+}
+chown ${username}:${username} /home/${username}/.ssh /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem /etc/nginx/ssl/pubkey.pem -R || true
 chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
-openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
 export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
 [ -z "\${CTRL_KEY:-}" ] || {
     sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
@@ -574,7 +590,7 @@ docker create \
  --env LDAP_SRV_URL=${LDAP_SRV_URL} \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
- --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=192.168.169.1 --env ETCD_PORT=2379 \
+ --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
  -v ${TARGET_DIR}/config:/home/simplekvm/.ssh/config \
  -v ${TARGET_DIR}/id_rsa:/home/simplekvm/.ssh/id_rsa \
  -v ${TARGET_DIR}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \

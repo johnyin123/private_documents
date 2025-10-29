@@ -768,8 +768,11 @@ function menu_config(spanval) {
       for(const key in result.conf) { tbl += `<tr><th>${key}</th><td colspan=3 class="truncate">${result.conf[key]}</td></tr>`; }
       tbl +='</table>';
       document.getElementById("config").innerHTML = tbl;
-      showView("configuration");
-      flush_sidebar(spanval);
+      getjson('GET', `${uri_pre}/conf/ssh_pubkey/`, function(res) {
+        document.getElementById("ssh_pubkey").innerHTML = `<textarea style="overflow-wrap: break-word; word-break: break-all; white-space: pre-wrap;" rows="5" readonly>${res}</textarea>`;
+        showView("configuration");
+        flush_sidebar(spanval);
+      });
     }
   });
 }

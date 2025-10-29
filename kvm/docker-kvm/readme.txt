@@ -260,6 +260,7 @@ iso=testiso
 gold=testgold
 #GET     /vm/websockify/${host}/${uuid}?disp=&expire=<mins>&token=
 log "list conf     " && CURL GET /conf/
+log "get ssh pubkey" && CURL GET /conf/ssh_pubkey/ -o id_rsa.pub
 log "backup config " && CURL GET /conf/backup/ -o backup.tgz
 log "restore config" && CURL UPLOAD /conf/restore/ 'file=@init_env.tgz'
 log "list dom tpls " && CURL GET /conf/domains/

@@ -105,6 +105,9 @@
       <fieldset><legend>Config</legend>
         <div class="flex-group" id="config"></div>
       </fieldset>
+      <fieldset><legend>ssh pubkey</legend>
+        <div class="flex-group" id="ssh_pubkey"></div>
+      </fieldset>
       </br>
       <div class="flex-group">
         <input type="button" value="FLUSH CACHE" onclick="load_conf(`?${Date.now()}`)"/>

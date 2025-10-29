@@ -59,6 +59,7 @@ class MyApp(object):
         ## etcd config backup/restore ##
         app.add_url_rule('/conf/domains/', view_func=self.conf_domains, methods=['GET'])
         app.add_url_rule('/conf/devices/', view_func=self.conf_devices, methods=['GET'])
+        app.add_url_rule('/conf/ssh_pubkey/', view_func=self.conf_ssh_pubkey, methods=['GET'])
         app.add_url_rule('/conf/backup/', view_func=self.conf_backup, methods=['GET'])
         app.add_url_rule('/conf/restore/', view_func=self.conf_restore, methods=['POST'])
         app.add_url_rule('/conf/host/', view_func=self.conf_host, methods=['POST', 'DELETE'])
@@ -183,15 +184,13 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
+    def conf_ssh_pubkey(self):
+        home = os.path.expanduser('~')
+        logger.error(os.path.join(home, '.ssh'))
+        return flask.send_from_directory(os.path.join(home, '.ssh'), 'id_rsa.pub')
+
     def conf_backup(self):
-        def generate_tar():
-            file_obj = utils.conf_backup_tgz()
-            while True:
-                chunk = file_obj.read(64*utils.KiB)
-                if not chunk:
-                    break
-                yield chunk
-        return flask.Response(generate_tar(), mimetype='application/gzip', headers={'Content-Disposition': f'attachment; filename={datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz'})
+        return flask.send_file(utils.conf_backup_tgz(), as_attachment=True, download_name=f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz')
 
     def conf_restore(self):
         # restore on overwrite files exists in backup.tgz, others keep
