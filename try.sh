@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8bd4c8a0[2025-07-11T13:49:04+08:00]:try.sh")
+VERSION+=("d0995a1a[2025-09-22T14:50:55+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -374,8 +374,7 @@ install -d -m 700 -o nobody -g nogroup /var/log/nginx
 install -m 600 -o nobody -g nogroup /dev/null /var/log/nginx/access.log
 install -m 600 -o nobody -g nogroup /dev/null /var/log/nginx/error.log
 
-curl -s --connect-timeout 5 \
-    -w "time_namelookup: %{time_namelookup}\ntime_connect: %{time_connect}\ntime_appconnect: %{time_appconnect}\ntime_pretransfer: %{time_pretransfer}\ntime_redirect: %{time_redirect}\ntime_starttransfer: %{time_starttransfer}\ntime_total: %{time_total}\n" \
+curl -s --connect-timeout 5 -w "time_namelookup: %{time_namelookup}\ntime_connect: %{time_connect}\ntime_appconnect: %{time_appconnect}\ntime_pretransfer: %{time_pretransfer}\ntime_redirect: %{time_redirect}\ntime_starttransfer: %{time_starttransfer}\ntime_total: %{time_total}\n" \
     -o /dev/null \
     https://xxx/
 main "$@"
