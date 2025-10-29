@@ -265,6 +265,11 @@ function CURL() {
     log ''
     log "-----------------------------------------------"
 }
+gen_host() {
+    cat<<EOF
+{ "name":"${1:-testsrv}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
+EOF
+}
 log "refresh token " && CURL GET /api/refresh
 arch=x86_64
 host=testhost
@@ -278,9 +283,7 @@ log "restore config" && CURL UPLOAD /conf/restore/ 'file=@init_env.tgz'
 log "list dom tpls " && CURL GET /conf/domains/
 log "list dev tpls " && CURL GET /conf/devices/
 
-log "add new host  " && CURL POST /conf/host/  <<EOF
-{ "name":"${host}","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":"60022","sshuser":"root", "disk.file":"on", "net.br-ext":"on", "cdrom.null":"on" }
-EOF
+log "add new host  " && CURL POST /conf/host/ <<<$(gen_host "${host}")
 log "add new iso   " && CURL POST /conf/iso/ << EOF
 {"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
 EOF
