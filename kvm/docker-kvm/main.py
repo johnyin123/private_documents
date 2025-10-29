@@ -185,9 +185,7 @@ class MyApp(object):
             return utils.deal_except(f'conf host', e), 400
 
     def conf_ssh_pubkey(self):
-        home = os.path.expanduser('~')
-        logger.error(os.path.join(home, '.ssh'))
-        return flask.send_from_directory(os.path.join(home, '.ssh'), 'id_rsa.pub')
+        return flask.send_from_directory(os.path.join(os.path.expanduser('~'), '.ssh'), 'id_rsa.pub')
 
     def conf_backup(self):
         return flask.send_file(utils.conf_backup_tgz(), as_attachment=True, download_name=f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz')

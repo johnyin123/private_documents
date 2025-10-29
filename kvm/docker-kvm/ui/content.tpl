@@ -9,7 +9,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addhost_form" onSubmit="return on_conf_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*<input type="text" name="name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>Name*<input type="text" autocomplete="off" name="name" pattern="[a-zA-Z0-9._-]+" required/></label>
       <label>Arch*<select name="arch" required>
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
@@ -42,7 +42,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addiso_form" onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*<input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>Name*<input type="text" autocomplete="off" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
       <label>URI*<input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/></label>
       <label>Desc*<textarea rows="3" maxlength="100" name="desc" placeholder="desc here..." required></textarea></label>
       <div class="flex-group">
@@ -62,7 +62,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addgold_form"  onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*<input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>Name*<input type="text" autocomplete="off" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
       <label>Arch*<select name="arch" required>
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
