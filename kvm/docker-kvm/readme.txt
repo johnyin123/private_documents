@@ -254,6 +254,7 @@ function CURL() {
     log ''
     log "-----------------------------------------------"
 }
+log "refresh token " && CURL GET /api/refresh
 arch=x86_64
 host=testhost
 iso=testiso

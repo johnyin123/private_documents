@@ -146,8 +146,6 @@ server {
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     error_page 401 =401 @error401;
     location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host/ui/tpl.html"/></head><body></body></html>'; }
-    location = /login.html { alias /app/ui/login.html; }
-    location = /logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
     location = @api_auth {
         internal;
         proxy_cache off;
@@ -162,6 +160,8 @@ server {
         proxy_set_header Content-Length '0';
         proxy_set_header X-Origin-URI $request_uri;
     }
+    location =/login.html { alias /app/ui/login.html; }
+    location =/logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
     location =/api/login { proxy_cache off; proxy_pass http://api_auth; }
     location =/api/refresh { auth_request @api_auth; proxy_cache off; proxy_pass http://api_auth; }
     location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
