@@ -149,15 +149,22 @@ echo "check passwd" && ldapwhoami -x -w ${password} -D "uid=${uid},ou=people,dc=
 EO_DOC
 cat <<'EOF'
 # ===========================================
+uid=test
+LDAP_PASSWORD=password
+# ####################
+LDAP_PASSWORD_SSHA=$(docker exec -it ldap slappasswd -u -h '{SSHA}' -s ${LDAP_PASSWORD})
+export LDAP_CFG_DIR="/etc/ldap/slapd.d"
+cat<<EO_LDIF | tee log.txt | docker exec -i ldap su openldap -s /bin/bash -c "slapadd -n1 -F ${LDAP_CFG_DIR}"
 dn: uid=${uid},ou=people,dc=neusoft,dc=internal
 objectClass: person
 objectClass: shadowAccount
 cn: ${uid}
 sn: simplekvm用户${uid}
+userPassword: ${LDAP_PASSWORD_SSHA}
 shadowMax: 60
 shadowMin: 1
 shadowWarning: 7
 shadowInactive: 7
 shadowLastChange: $(echo $(($(date "+%s")/60/60/24)))
+EO_LDIF
 EOF
-
