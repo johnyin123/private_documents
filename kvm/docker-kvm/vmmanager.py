@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, contextlib, functools
+import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, contextlib, functools, json
 import template, config, meta, database, utils
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
@@ -269,7 +269,7 @@ class VMManager:
             if tpl.action:
                 redirect = True if logger.isEnabledFor(logging.DEBUG) else False
                 cmd = ['bash', '-eux', tpl.action] if logger.isEnabledFor(logging.DEBUG) else ['bash', '-eu', tpl.action]
-                for line in utils.ProcList().wait_proc(uuid, cmd, 0, redirect, req_json, **env):
+                for line in utils.ProcList().wait_proc(uuid, cmd, 0, redirect, json.dumps(req_json, indent=4, default=str), **env):
                     logger.debug(line.strip())
                     yield line
             with libvirt_connect(host.get('url')) as conn:

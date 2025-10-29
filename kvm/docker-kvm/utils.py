@@ -113,7 +113,7 @@ class ProcList:
     def __init__(self):
         self.pids = ShmListStore(name='pids', size=10*KiB)
 
-    def wait_proc(self, uuid:str, cmd:List, tmout:int=0, redirect:bool=True, req_json:dict={}, **kwargs)-> Generator:
+    def wait_proc(self, uuid:str, cmd:List, tmout:int=0, redirect:bool=True, sinput:str=None, **kwargs)-> Generator:
         try:
             for p in self.pids.list_all(uuid=uuid):
                 logger.info(f'PROC: {uuid} {p} found, kill all!!')
@@ -126,7 +126,8 @@ class ProcList:
             try:
                 self.pids.insert(uuid=uuid, pid=proc.pid, cmd=cmd)
                 logger.info(f'PROC: {uuid} timeout={tmout} PID={proc.pid} {cmd} start!!!')
-                json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
+                if sinput is not None:
+                    proc.stdin.write(sinput)
                 proc.stdin.close()
                 for line in proc.stdout:
                     yield line
