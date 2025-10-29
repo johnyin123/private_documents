@@ -77,7 +77,6 @@ class MyApp(object):
                 name = flask.request.args.get('name')
                 if not name:
                     return utils.return_err(404, 'delete iso', 'Name No Found')
-
                 self.iso_db.get_one(name=name)
                 self.iso_db.delete(name=name)
             if flask.request.method == "POST":
@@ -101,8 +100,7 @@ class MyApp(object):
 
     def conf_gold(self):
         try:
-            name = None
-            arch = None
+            name, arch = None, None
             if flask.request.method == "DELETE":
                 name = flask.request.args.get('name')
                 arch = flask.request.args.get('arch')

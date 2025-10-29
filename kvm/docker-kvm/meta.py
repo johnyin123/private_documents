@@ -15,7 +15,7 @@ def gen_metafiles(**kwargs)->None:
     for file in template.tpl_list(config.DIR_META):
         meta_str = template.MetaDataTemplate(file).render(**kwargs)
         meta_add(os.path.join(output, file), meta_str.encode('utf-8'))
-        iso.add_fp(io.BytesIO(bytes(meta_str,'ascii')), len(meta_str), f'/{file}')
+        iso.add_fp(io.BytesIO(meta_str.encode('utf-8')), len(meta_str), f'/{file}')
     # iso.write(os.path.join(output, 'cidata.iso'))
     outiso = io.BytesIO()
     iso.write_fp(outiso)

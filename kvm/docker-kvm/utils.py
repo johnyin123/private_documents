@@ -244,7 +244,7 @@ def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
 
 import etcd3, config
 class EtcdConfig:
-    grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
+    grpc_opts = [ ('grpc.max_receive_message_length', 32*MiB), ('grpc.max_send_message_length', 10*MiB), ]
 
     @classmethod
     def key2fname(cls, key:str, stage:str)->str:
