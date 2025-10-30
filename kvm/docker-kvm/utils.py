@@ -210,7 +210,9 @@ def file_size(fname:str)->int:
     return os.path.getsize(fname)
 
 def file_save(filename:str, content:bytes)->None:
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    if os.path.isabs(filename):
+        logger.debug(f'absolute dir {filename}, mkdir')
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "wb") as f:
         f.write(content)
 
@@ -334,9 +336,7 @@ def conf_backup_tgz()->io.BytesIO:
     return file_obj
 
 def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
-    apply=0
-    total=0
-    skip = []
+    apply, total, skip = 0, 0, []
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
