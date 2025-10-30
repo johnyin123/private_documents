@@ -52,8 +52,10 @@ class jwt_auth:
         return jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
 
 class MyApp(object):
-    def __init__(self):
+    def __init__(self, allows:List):
         self.auth = jwt_auth({})
+        self.allows = allows
+        logger.debug(f'allows {self.allows}')
 
     def api_refresh(self):
         try:
@@ -71,17 +73,21 @@ class MyApp(object):
             password = req_json.get('password', None)
             if not username or not password:
                 return utils.return_err(401, 'login', 'username/password No Found'), 401
-            logger.debug('{username} ,pass[{password}]')
-            req_json.pop('username')
-            req_json.pop('password')
-            return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
+            if self.allows:
+                if username in self.allows:
+                    logger.debug('{username} ,pass[{password}]')
+                    req_json.pop('username')
+                    req_json.pop('password')
+                    return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
+                else:
+                    return utils.return_err(401, 'login', 'username No Allow'), 401
         except Exception as e:
             return utils.deal_except(f'login', e), 401
 
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        myapp=MyApp()
+        myapp=MyApp(json.loads(os.environ.get('JWT_ALLOWS', '[]')))
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/api/refresh', view_func=myapp.api_refresh, methods=['GET'])
         web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST'])
@@ -90,6 +96,7 @@ class MyApp(object):
 def create_app():
     return MyApp.create()
 # pip install ldap3 pyjwt[crypto]
+# JWT_ALLOWS='["admin", "simplekvm"]'
 # JWT_PUBKEY=xxx JWT_PRIKEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:create_app()'
 '''
 docker create --name ldap --restart always \

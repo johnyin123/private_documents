@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("d20d7d50[2025-10-23T09:16:54+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("4c884f10[2025-10-28T14:17:26+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -112,6 +112,7 @@ systemd-run --user --unit jwt-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
     -E LEVELS='{"api_auth":"DEBUG"}' \
+    -E JWT_ALLOWS='["admin", "simplekvm"]' \
     -E JWT_PUBKEY=/etc/nginx/ssl/pubkey.pem \
     -E JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key \
     -E LDAP_SRV_URL=ldap://${LDAP_SRV}:10389 \
