@@ -73,14 +73,12 @@ class MyApp(object):
             password = req_json.get('password', None)
             if not username or not password:
                 return utils.return_err(401, 'login', 'username/password No Found'), 401
-            if self.allows:
-                if username in self.allows:
-                    logger.debug('{username} ,pass[{password}]')
-                    req_json.pop('username')
-                    req_json.pop('password')
-                    return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
-                else:
-                    return utils.return_err(401, 'login', 'username No Allow'), 401
+            logger.debug('{username} ,pass[{password}]')
+            req_json.pop('username')
+            req_json.pop('password')
+            if self.allows and username not in self.allows:
+                return utils.return_err(401, 'login', 'username No Allow'), 401
+            return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
         except Exception as e:
             return utils.deal_except(f'login', e), 401
 
