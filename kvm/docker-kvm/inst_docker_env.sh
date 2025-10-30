@@ -88,7 +88,7 @@ ${target}/client.pem
 # --env DATA_DIR=/home/simplekvm/data -v ${target}/data:/home/simplekvm/data  \\
 docker create --name simplekvm --restart always \\
  --network br-int --ip 192.168.169.123 \\
- --env LDAP_SRV_URL=ldap://${LDAP_SRV}:${LDAP_PORT} \\
+ --env LDAP_SRV_URL=ldap://${LDAP_SRV}:${LDAP_PORT} --env JWT_ALLOWS='["admin", "simplekvm"]' \\
  --env META_SRV=${META_SRV} \\
  --env CTRL_SRV=${CTRL_SRV} \\
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \\
