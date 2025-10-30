@@ -49,4 +49,5 @@ def VM_DEFAULT(arch:str, hostname:str):
     return default;
 
 def dumps():
-    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'CTRL_SRV': CTRL_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'bc24d976'}
+    ACT_PARMS={k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')}
+    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'CTRL_SRV': CTRL_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'bc24d976', **ACT_PARMS}
