@@ -134,3 +134,17 @@ iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.2.170
 iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination 10.0.0.1
 /-"Port Restricted Cone NAT", with just a single rule:/
 iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.2.170/
+
+cat <<EOF >> ~/.ssh/config
+Host hypervisor
+  Hostname {ip1}
+  User myuser
+  IdentityFile ~/.ssh/id_rsa
+
+Host target_host
+  Hostname {ip2}
+  User root
+  IdentityFile ~/.ssh/id_rsa
+  ProxyJump hypervisor
+EOF
+ssh target_host .....
