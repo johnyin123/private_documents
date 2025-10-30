@@ -84,7 +84,7 @@ form.addEventListener("submit", function(ev) {
  var params = new FormData(document.getElementById("jwtForm"));
  var jstr = JSON.stringify(Object.fromEntries(params.entries()));
  fetch(login, { method: "POST", body: jstr }).then(resp => {
-  if (!resp.ok) { throw new Error("status:"+resp.status+","+resp.text()); }
+  if (!resp.ok) { return resp.text().then(text => { throw new Error("code:"+resp.status+",msg:"+text); }); }
   return resp.json();
  }).then(res => {
   SetCookieWithExpire('token', res.token, res.expires)
