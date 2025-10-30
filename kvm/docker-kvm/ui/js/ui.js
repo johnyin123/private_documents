@@ -915,7 +915,29 @@ function load_conf(bypass='') {
   getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
 }
 /* ------------------------- */
+function SetCookieWithExpire(name, value, secs) {
+  const date = new Date();
+  date.setTime(date.getTime() + (secs * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = `${name}=${value}; ${expires}; path=/`;
+}
+function cookie_exists(name) {
+  const allCookies = document.cookie;
+  return allCookies.includes(`${name}=`) || allCookies.includes(`; ${name}=`);
+}
 window.addEventListener('load', function() {
   includeHTML();
   load_conf();
+  const btn = document.getElementById("refresh_token");
+  if (cookie_exists("token") == true) {
+    btn.addEventListener("click", () => {
+      getjson('GET', '/api/refresh', function(resp) {
+        const result = JSON.parse(resp);
+        if(result.result !== 'OK') {
+          console.error(resp); return;
+        };
+        SetCookieWithExpire('token', result.token, result.expires);
+      });
+    });
+  } else { btn.style.display = 'none'; }
 })

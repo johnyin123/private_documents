@@ -37,7 +37,7 @@ class jwt_auth:
         logger.debug(f'{self.config}')
 
     def sign_payload(self, payload:Dict)->Dict:
-        return {'token':jwt.encode(payload, self.jwt_cert_key, algorithm='RS256')}
+        return {'token':jwt.encode(payload, self.jwt_cert_key, algorithm='RS256'),'expires':self.expire_secs}
 
     def login(self, username: str, password: str, trans: Dict=None)->Dict:
         if jwt_login(self.config, username, password):

@@ -70,6 +70,12 @@ function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);
  return parms.has(name) ? parms.get(name) : "";
 }
+function SetCookieWithExpire(name, value, secs) {
+  const date = new Date();
+  date.setTime(date.getTime() + (secs * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = `${name}=${value}; ${expires}; path=/`;
+}
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
 var caller = GetURLParameter("return_url");
@@ -81,7 +87,7 @@ form.addEventListener("submit", function(ev) {
   if (!resp.ok) { throw new Error("status:"+resp.status); }
   return resp.json();
  }).then(res => {
-  document.cookie = "token="+res.token+";";
+  SetCookieWithExpire('token', res.token, res.expires)
   if (caller.length === 0) { caller="/"; }
   location.href=caller;
   return;
