@@ -3,11 +3,11 @@
 # /etc/pki/CA/cacert.pem
 # /etc/pki/libvirt/servercert.pem
 # /etc/pki/libvirt/private/serverkey.pem
+        #-e '$aca_file="/etc/pki/CA/cacert.pem"' \
+        #-e '$acert_file = "/etc/pki/libvirt/servercert.pem"' \
+        #-e '$akey_file = "/etc/pki/libvirt/private/serverkey.pem"' \
   sed --quiet -i.orig -E \
         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|unix_sock_group|unix_sock_rw_perms).*/!p' \
-        -e '$aca_file="/etc/pki/CA/cacert.pem"' \
-        -e '$acert_file = "/etc/pki/libvirt/servercert.pem"' \
-        -e '$akey_file = "/etc/pki/libvirt/private/serverkey.pem"' \
         -e '$alisten_addr="0.0.0.0"' \
         -e '$aunix_sock_group = "libvirt"' \
         -e '$aunix_sock_rw_perms="0770"' \

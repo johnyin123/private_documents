@@ -46,9 +46,9 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
    # # spice & libvirt use same tls key/cert/ca files
    sed --quiet -i.orig -E \\
          -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \\
-         -e '\$aca_file = "/etc/libvirt/pki/ca-cert.pem"' \\
-         -e '\$acert_file = "/etc/libvirt/pki/server-cert.pem"' \\
-         -e '\$akey_file = "/etc/libvirt/pki/server-key.pem"' \\
+         -e '\$aca_file = "/etc/pki/CA/cacert.pem"' \\
+         -e '\$acert_file = "/etc/pki/libvirt/servercert.pem"' \\
+         -e '\$akey_file = "/etc/pki/libvirt/private/serverkey.pem"' \\
          -e '\$alisten_tcp = 1' \\
          -e '\$alisten_tls = 1' \\
          -e '\$alisten_addr = "0.0.0.0"' \\
@@ -109,7 +109,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-VOLUME ["/etc/libvirt/pki", "/storage", "/etc/libvirt/qemu", "/etc/libvirt/storage", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt"]
+VOLUME ["/storage", "/etc/libvirt/qemu", "/etc/libvirt/storage", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt"]
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
@@ -156,6 +156,11 @@ cat <<'EOF'
 # # virsh pool-autostart default
 
 # # #######################################
+# # init server
+|----------------------------------------|--------|
+| /etc/pki/CA/cacert.pem                 | server |
+| /etc/pki/libvirt/private/serverkey.pem | server |
+| /etc/pki/libvirt/servercert.pem        | server |
 # # init client
 |----------------------------------------|--------|
 | /etc/pki/CA/cacert.pem                 | client |

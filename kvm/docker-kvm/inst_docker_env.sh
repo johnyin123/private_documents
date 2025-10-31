@@ -39,9 +39,9 @@ docker create --name libvirtd --restart always \\
     --privileged \\
     --device /dev/kvm \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
-    -v ${target}/ca.pem:/etc/libvirt/pki/ca-cert.pem \\
-    -v ${target}/kvmsrvs.key:/etc/libvirt/pki/server-key.pem \\
-    -v ${target}/kvmsrvs.pem:/etc/libvirt/pki/server-cert.pem \\
+    -v ${target}/ca.pem:/etc/pki/CA/cacert.pem \\
+    -v ${target}/kvmsrvs.key:/etc/pki/libvirt/private/serverkey.pem \\
+    -v ${target}/kvmsrvs.pem:/etc/pki/libvirt/servercert.pem \\
     -v ${target}/vms-xml:/etc/libvirt/qemu \\
     -v ${target}/secrets:/etc/libvirt/secrets \\
     -v ${target}/storage:/etc/libvirt/storage \\

@@ -353,9 +353,9 @@ log "delete host   " && CURL DELETE "/conf/host/?name=${host}"
 
 3. libvirt srv cert/key
     # file=kvm1.local
-    install -v -C -m 0440 ca.pem       ${target}/pki/ca-cert.pem
-    install -v -C -m 0440 ${file}.key  ${target}/pki/server-key.pem
-    install -v -C -m 0440 ${file}.pem  ${target}/pki/server-cert.pem
+    install -v -C -m 0440 ca.pem       /etc/pki/CA/cacert.pem
+    install -v -C -m 0440 ${file}.key  /etc/pki/libvirt/private/serverkey.pem
+    install -v -C -m 0440 ${file}.pem  /etc/pki/libvirt/servercert.pem
     # docker create in docker-libvirtd.sh
 ---------------------------------------------------------
 # -smbios type=1,serial=ds=nocloud;s=http://ip:port/__dmi.system-uuid__/
