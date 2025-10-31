@@ -45,7 +45,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
 
    # # spice & libvirt use same tls key/cert/ca files
    sed --quiet -i.orig -E \\
-         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \\
+         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|listen_tcp|tcp_port).*/!p' \\
          -e '\$aca_file = "/etc/pki/CA/cacert.pem"' \\
          -e '\$acert_file = "/etc/pki/libvirt/servercert.pem"' \\
          -e '\$akey_file = "/etc/pki/libvirt/private/serverkey.pem"' \\
