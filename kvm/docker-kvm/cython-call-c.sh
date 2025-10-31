@@ -17,7 +17,10 @@ def py_hello(name: bytes) -> None:
 EOF
 
 cython ${fn}.pyx -o ${fn}.pyx.c
-gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.pyx.c ${fn}.c -o ${fn}.so
+# gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.pyx.c ${fn}.c -o ${fn}.so
+gcc -fpic -c ${fn}.pyx.c -o ${fn}.pyx.o `python3-config --includes`
+gcc -fpic -c ${fn}.c -o ${fn}.o
+gcc -fpic -shared -o ${fn}.so ${fn}.pyx.o ${fn}.o `python3-config --libs`
 rm -f ${fn}.pyx.c
 cat <<EOF > test-${fn}.py
 #!/usr/bin/env -S python3 -B
