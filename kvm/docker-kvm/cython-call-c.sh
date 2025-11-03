@@ -74,3 +74,30 @@ EOF
 gcc -c ${fn}.c -o ${fn}.o $(python3-config --includes)
 gcc ${fn}.o $(python3-config --embed --ldflags) -o ${fn}
 PYTHONPATH=`pwd` ./${fn}
+echo "---------------------------------------------------"
+fn=ctypedemo
+cat <<EOF > ${fn}.c
+#include <stdio.h>
+void hello(const char *name) {
+    printf("hello %s\n", name);
+}
+EOF
+cat <<EOF > ${fn}_ctype.py
+import ctypes
+
+lib = ctypes.cdll.LoadLibrary('./${fn}.so')
+lib.hello.argtypes = [ctypes.c_char_p]
+lib.hello.restype = None
+
+def hello(x:str):
+    x = x.encode('utf-8')
+    lib.hello(x)
+EOF
+cat <<EOF > test_${fn}.py
+#!/usr/bin/env -S python3 -B
+# -*- coding: utf-8 -*-
+from ${fn}_ctype import hello
+hello('i am here')
+EOF
+gcc -fpic -shared -o ${fn}.so ${fn}.c $(python3-config --includes --libs)
+echo "---------------------------------------------------"
