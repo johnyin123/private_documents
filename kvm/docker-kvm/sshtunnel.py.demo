@@ -983,11 +983,11 @@ def add_authorized_keys(user:str, passwd:str, host:str, port:str)->None:
         os.chmod(askpass, 0o744)
         pubkey = utils.file_load(os.path.join(os.path.expanduser('~'), '.ssh/id_rsa.pub')).decode('utf-8')
         logger.debug(f'Add authorized_keys {user}@{host}:{port} {task_uuid}')
-        ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{port}', f'{user}@{host}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys']
+        ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{port}', f'{user}@{host}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
         for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
             logger.debug(line.strip())
     finally:
         os.remove(askpass)
 
-user, passwd, host, port = 'admin', 'iiwicd123', '192.168.167.101', '60022'
+user, passwd, host, port = 'admin', 'adminpass', '192.168.167.101', '60022'
 add_authorized_keys(user, passwd, host, port)
