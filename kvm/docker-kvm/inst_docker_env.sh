@@ -85,6 +85,8 @@ ${target}/ca.pem
 ${target}/client.key
 ${target}/client.pem
 # ===================================================
+# envs: LDAP_UID_FMT, LDAP_BASE_DN, EXPIRE_SEC
+# envs: DATA_DIR, ETCD_PREFIX, ETCD_SRV, ETCD_PORT, ETCD_CA, ETCD_KEY, ETCD_CERT, META_SRV, GOLD_SRV, CTRL_SRV, ACT_...
 # --env DATA_DIR=/home/simplekvm/data -v ${target}/data:/home/simplekvm/data  \\
 #  LDAP_SRV=10.170.33.107
 #  LDAP_PORT=1389
