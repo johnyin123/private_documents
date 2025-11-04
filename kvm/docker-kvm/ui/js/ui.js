@@ -656,13 +656,23 @@ function on_conf_delhost(host, btn) {
     });
   }
 }
+function on_conf_addkey(host, btn) {
+  if (confirm(`Are you sure add ssh public key for ${host}?`)) {
+    var kvmhost = getHost(host);
+    const input = prompt(`Password for ${kvmhost.sshuser}@${kvmhost.ipaddr}:${kvmhost.sshport}:`);
+    if (input !== null && input !== "") {
+      console.log(`on_conf_alivehost ${host} ${input}`);
+      //POST /conf/add_authorized_keys/<hostname>?passwd=
+    }
+  }
+}
 function on_conf_listhost(btn) {
   const div = document.getElementById('conf_host_list');
   div.innerHTML = '';
   flush_sidebar("CONFIG");
   var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
   config.g_host.forEach(host => {
-    var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_edithost', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delhost', host.name);
+    var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_edithost', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delhost', host.name) + genActBtn(false, 'Add ssh pubkey', 'AddKey', 'on_conf_addkey', host.name);
     var devs = getDevice(host.name).map(dev => dev.name);
     tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
   });

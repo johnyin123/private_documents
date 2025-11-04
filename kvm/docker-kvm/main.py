@@ -66,6 +66,29 @@ class MyApp(object):
         app.add_url_rule('/conf/iso/', view_func=self.conf_iso, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/gold/', view_func=self.conf_gold, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/', view_func=self.conf, methods=['GET'])
+        app.add_url_rule('/conf/add_authorized_keys/<string:hostname>', view_func=self.add_authorized_keys, methods=['POST'])
+
+    def add_authorized_keys(self, hostname:str)->None:
+        task_uuid='00000000-0000-0000-0000-00000000'
+        passwd = flask.request.args.get('passwd')
+        if not passwd:
+            return utils.return_err(404, 'add_authorized_keys', 'Password No Found')
+        host = self.host_db.get_one(name=hostname)
+        logger.warning(host)
+        askpass = os.path.join(os.getcwd(), f'{task_uuid}.sh')
+        try:
+            utils.file_save(askpass, f'#!/bin/bash\necho "{passwd}"'.encode('utf-8'))
+            os.chmod(askpass, 0o744)
+            pubkey = utils.file_load(os.path.join(os.path.expanduser('~'), '.ssh/id_rsa.pub')).decode('utf-8')
+            logger.debug(f'Add authorized_keys {host.sshuser}@{host.ipaddr}:{host.sshport} {task_uuid}')
+            ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
+            for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
+                logger.debug(line.strip())
+        except Exception as e:
+            return utils.deal_except(f'add_authorized_keys', e), 400
+        finally:
+            os.remove(askpass)
+        return utils.return_ok(f'add_authorized_keys ok', name=hostname)
 
     def conf(self):
         return utils.return_ok(f'conf ok', conf=config.dumps())
