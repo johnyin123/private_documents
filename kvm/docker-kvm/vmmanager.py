@@ -13,8 +13,8 @@ class LibvirtDomain:
     @functools.cache
     def _asdict(self):
         state = {
-            libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
-            libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND',
+            libvirt.VIR_DOMAIN_NOSTATE:'NOSTATE',libvirt.VIR_DOMAIN_RUNNING:'RUNNING',libvirt.VIR_DOMAIN_BLOCKED:'BLOCKED',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
+            libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASHED',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND',
         }.get(self.state,'?')
         return {
             'uuid':self.uuid, 'desc':self.desc,
