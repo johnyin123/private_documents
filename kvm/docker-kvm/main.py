@@ -67,7 +67,6 @@ class MyApp(object):
         if not passwd:
             return utils.return_err(404, 'add_authorized_keys', 'Password No Found')
         host = get_host().get_one(name=hostname)
-        logger.warning(host)
         askpass = os.path.join(os.getcwd(), f'{task_uuid}.sh')
         try:
             utils.file_save(askpass, f'#!/bin/bash\necho "{passwd}"'.encode('utf-8'))
