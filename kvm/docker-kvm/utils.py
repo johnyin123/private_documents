@@ -35,30 +35,42 @@ class ShmListStore:
         self._name = name
         self._size = size
         self._lock = Lock()
+        # with Manager() as manager:
+        #     self._lock = manager.Lock() # across processes
         try:
             self._shm = shared_memory.SharedMemory(name=name, create=True, size=size)
             logger.debug(f'{self._shm} INIT')
             self._atomic_op(self._dump_data, [])
-            atexit.register(self.cleanup)
+            atexit.register(self.cleanup_creator)
         except FileExistsError:
             self._shm = shared_memory.SharedMemory(name=name)
             logger.debug(f'{self._shm} exists')
+            atexit.register(self.cleanup_worker)
 
-    def cleanup(self):
+    def cleanup_creator(self):
         if hasattr(self, '_shm'):
             try:
                 self._shm.close()
-                # The unlink() must only be called once
-                self._shm.unlink()
-                logger.warning(f'Cleanup {self._shm}')
+                self._shm.unlink() # Unlink only once
+                logger.warning(f'Creator cleanup {self._shm}')
             except FileNotFoundError:
                 pass
+            except Exception as e:
+                logger.error(f"Error during creator cleanup: {e}")
+
+    def cleanup_worker(self):
+        if hasattr(self, '_shm'):
+            try:
+                self._shm.close()
+                logger.warning(f'Worker cleanup {self._shm.name}')
+            except Exception as e:
+                logger.error(f"Error during worker cleanup: {e}")
 
     def __len__(self):
         return len(self._atomic_op(self._load_data))
 
     def __iter__(self):
-        return iter(self._atomic_op(self._load_data))
+        return iter(self._atomic_op(self._load_data).copy())
 
     def _dump_data(self, data: List[Dict]) -> None:
         pickled_data = pickle.dumps(data)

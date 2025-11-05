@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, contextlib, functools, json
-import template, config, meta, database, utils
+import template, config, meta, utils
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
+from database import get_device, get_gold, get_iso, get_guest
 logger = logging.getLogger(__name__)
 class LibvirtDomain:
     def __init__(self, dom):
@@ -246,21 +247,21 @@ class VMManager:
             else:
                 guest = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
                 info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//utils.MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz, 'totalvm':len(guest),'active':conn.numOfDomains()}
-                database.KVMGuest().Upsert(host.get('name'), host.get('arch'), guest)
+                get_guest().Upsert(host.get('name'), host.get('arch'), guest)
             return utils.return_ok(f'list ok', host=info, guest=guest)
 
     @staticmethod
     def attach_device(method:str, host:utils.AttrDict, uuid:str, dev:str, req_json)->Generator:
         try:
             req_json['vm_uuid'] = uuid
-            device = database.KVMDevice().get_one(name=dev, kvmhost=host.get('name'))
+            device = get_device().get_one(name=dev, kvmhost=host.get('name'))
             tpl = template.DeviceTemplate(device.get('tpl'))
             # all env must string
             env = {'URL':host.get('url'), 'TYPE':tpl.devtype, 'HOSTIP':host.get('ipaddr'), 'SSHPORT':str(host.get('sshport')), 'SSHUSER':host.get('sshuser')}
             env.update({k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')})
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
-                uri = database.KVMGold().get_one(name=gold_name, arch=host.get("arch")).get("uri")
+                uri = get_gold().get_one(name=gold_name, arch=host.get("arch")).get("uri")
                 req_json['gold'] = f'http://{config.GOLD_SRV}{uri}'
             bus_type = tpl.bus_type(**req_json)
             if bus_type is not None:
@@ -296,7 +297,7 @@ class VMManager:
 
     @staticmethod
     def cdrom(method:str, host:utils.AttrDict, uuid:str, dev:str, req_json)->str:
-        iso = database.KVMIso().get_one(name=req_json.get('isoname', ''))
+        iso = get_iso().get_one(name=req_json.get('isoname', ''))
         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)

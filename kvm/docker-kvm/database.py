@@ -36,12 +36,25 @@ class KVMGuest(utils.ShmListStore):
         self.delete(kvmhost=kvmhost)
         self.insert(kvmhost=kvmhost, arch=arch, guests=records)
 
-def reload_all() -> None:
-    cfg_class={
-        config.FILE_HOSTS:KVMHost(), config.FILE_DEVS :KVMDevice(),
-        config.FILE_GOLDS:KVMGold(), config.FILE_ISO  :KVMIso(),
-        config.FILE_VARS :KVMVar(),
-    }
+cfg_class={
+    config.FILE_HOSTS:KVMHost(), config.FILE_DEVS :KVMDevice(),
+    config.FILE_GOLDS:KVMGold(), config.FILE_ISO  :KVMIso(),
+    config.FILE_VARS :KVMVar(),
+}
+guest = KVMGuest()
+def get_host()->KVMHost:
+    return cfg_class.get(config.FILE_HOSTS)
+def get_device()->KVMDevice:
+    return cfg_class.get(config.FILE_DEVS)
+def get_gold()->KVMGold:
+    return cfg_class.get(config.FILE_GOLDS)
+def get_iso()->KVMIso:
+    return cfg_class.get(config.FILE_ISO)
+def get_vars()->KVMVar:
+    return cfg_class.get(config.FILE_VARS)
+def get_guest()->KVMHost:
+    return guest
+def db_reload_all() -> None:
     def updater_cb(fname:str, content) -> None:
         if content:
             logger.info(f'Update {fname} from etcd')
