@@ -970,3 +970,26 @@ class ShmListStore:
         return self.search(self.cache, **criteria)
 ######################################################################
 ######################################################################
+import fcntl
+from contextlib import contextmanager
+@contextmanager
+def named_atomic_lock(lock_file_path):
+    with open(lock_file_path, "w") as f:
+        # LOCK_EX: acquire an exclusive lock, blocking operation
+        # LOCK_NB: non-blocking, will raise BlockingIOError if lock is held
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield f
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+import os, time
+LOCK_PATH = "/tmp/my_name.lock"
+print(f"PID {os.getpid()} acquire lock...")
+try:
+    with named_atomic_lock(LOCK_PATH):
+        print(f"PID {os.getpid()} acquired lock.")
+        time.sleep(5) # Simulate work
+        print(f"PID {os.getpid()} released lock.")
+except BlockingIOError:
+    print(f"PID {os.getpid()} could not acquire the lock (it is busy).")
