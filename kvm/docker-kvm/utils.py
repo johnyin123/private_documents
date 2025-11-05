@@ -28,15 +28,24 @@ class AttrDict(dict):
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
 ######################################################################
-import pickle, atexit
-from multiprocessing import shared_memory, Lock
+import pickle, atexit, fcntl
+from multiprocessing import shared_memory
+from contextlib import contextmanager
+@contextmanager
+def named_atomic_lock(lck_name):
+    # LOCK_EX: acquire an exclusive lock, blocking operation
+    # LOCK_NB: non-blocking, will raise BlockingIOError if lock is held
+    with open(f'/tmp/{lck_name}.lock', 'w') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield f
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
 class ShmListStore:
     def __init__(self, name: Optional[str] = None, size: int = 10*KiB):
         self._name = name
         self._size = size
-        self._lock = Lock()
-        # with Manager() as manager:
-        #     self._lock = manager.Lock() # across processes
         try:
             self._shm = shared_memory.SharedMemory(name=name, create=True, size=size)
             logger.debug(f'{self._shm} INIT')
@@ -53,18 +62,16 @@ class ShmListStore:
                 self._shm.close()
                 self._shm.unlink() # Unlink only once
                 logger.warning(f'Creator cleanup {self._shm}')
-            except FileNotFoundError:
-                pass
             except Exception as e:
-                logger.error(f"Error during creator cleanup: {e}")
+                logger.error(f'Creator cleanup: {type(e).__name__} {str(e)}')
 
     def cleanup_worker(self):
         if hasattr(self, '_shm'):
             try:
                 self._shm.close()
-                logger.warning(f'Worker cleanup {self._shm.name}')
+                logger.warning(f'Worker cleanup {self._shm}')
             except Exception as e:
-                logger.error(f"Error during worker cleanup: {e}")
+                logger.error(f'Worker cleanup: {type(e).__name__} {str(e)}')
 
     def __len__(self):
         return len(self._atomic_op(self._load_data))
@@ -83,7 +90,7 @@ class ShmListStore:
         return pickle.loads(self._shm.buf)
 
     def _atomic_op(self, func, *args, **kwargs):
-        with self._lock:
+        with named_atomic_lock(self._name):
             return func(*args, **kwargs)
 
     def _insert_impl(self, new_item: Dict[str, Any]) -> None:
@@ -105,7 +112,7 @@ class ShmListStore:
 
     def delete(self, **kwargs) -> None:
         self._atomic_op(self._delete_impl, kwargs)
-
+    @time_use
     def search(self, **kwargs) -> List[AttrDict]:
         return self._atomic_op(self._search_impl, kwargs)
 
