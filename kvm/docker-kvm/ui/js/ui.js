@@ -662,7 +662,7 @@ function on_conf_addkey(host, btn) {
     const input = prompt(`Password for ${kvmhost.sshuser}@${kvmhost.ipaddr}:${kvmhost.sshport}:`);
     if (input !== null && input !== "") {
       console.log(`on_conf_alivehost ${host} ${input}`);
-      //POST /conf/add_authorized_keys/<hostname>?passwd=
+      getjson('POST', `${uri_pre}/conf/add_authorized_keys/${host}?passwd=${input}`, getjson_result);
     }
   }
 }

@@ -65,6 +65,10 @@ admin_api() {
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
+    location ~* ^/conf/add_authorized_keys/(?<others>.*)$ {
+        limit_except POST { deny all; }
+        proxy_pass http://api_srv;
+    }
     location ~* ^/conf/(|ssh_pubkey/)$ {
         limit_except GET { deny all; }
         ${AUTH}auth_request @sso-auth;
