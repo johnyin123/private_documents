@@ -284,6 +284,7 @@ log "list dom tpls " && CURL GET /conf/domains/
 log "list dev tpls " && CURL GET /conf/devices/
 
 log "add new host  " && CURL POST /conf/host/ <<<$(gen_host "${host}")
+log "sshkey -> host" && CURL POST "/conf/add_authorized_keys/${host}?passwd=sshpassword" <<< ""
 log "add new iso   " && CURL POST /conf/iso/ << EOF
 {"name":"${iso}","uri":"/gold/hotpe.iso","desc":"test CD"}
 EOF
