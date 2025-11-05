@@ -52,9 +52,10 @@ class jwt_auth:
         return jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
 
 class MyApp(object):
-    def __init__(self, allows:List):
+    def __init__(self, allows:List, blocks:List):
         self.auth = jwt_auth({})
         self.allows = allows
+        self.blocks = blocks
         logger.debug(f'allows {self.allows}')
 
     def api_refresh(self):
@@ -77,6 +78,8 @@ class MyApp(object):
             logger.debug('{username} ,pass[{password}]')
             req_json.pop('username')
             req_json.pop('password')
+            if self.blocks and username in self.blocks:
+                raise utils.APIException('username Blocked')
             if self.allows and username not in self.allows:
                 raise utils.APIException('username No Allow')
             return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
@@ -86,7 +89,7 @@ class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        myapp=MyApp(json.loads(os.environ.get('JWT_ALLOWS', '[]')))
+        myapp=MyApp(json.loads(os.environ.get('JWT_ALLOWS', '[]')), json.loads(os.environ.get('JWT_BLOCKS', '[]')))
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/api/refresh', view_func=myapp.api_refresh, methods=['GET'])
         web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST'])
