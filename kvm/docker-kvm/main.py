@@ -71,27 +71,42 @@ class MyApp(object):
         host = get_host().get_one(name=hostname)
         task_uuid=f'00000000-0000-0000-0000-{ipv4_to_8bit_string(host.ipaddr)}'
         askpass = os.path.join(os.getcwd(), f'{task_uuid}.sh')
+        result = {'copy sshkey':False, 'bridge br-ext exist':False, '/strage store pool exist':False}
         try:
             utils.file_save(askpass, f'#!/bin/bash\necho "{passwd}"'.encode('utf-8'))
             os.chmod(askpass, 0o744)
             pubkey = utils.file_load(os.path.join(os.path.expanduser('~'), '.ssh/id_rsa.pub')).decode('utf-8')
-            logger.debug(f'Add authorized_keys {host.sshuser}@{host.ipaddr}:{host.sshport} {task_uuid}')
-            ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
-            for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
-                logger.debug(line.strip())
-            ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', '[ -f /sys/class/net/br-ext/bridge/bridge_id ] && { echo "br-ext ok"; exit 0; } || { echo "NO br-ext exists">&2; exit 100; }']
-            for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, None, SSH_ASKPASS=askpass):
-                logger.debug(line.strip())
-            with vmmanager.libvirt_connect(host.get('url')) as conn:
-                pool_xml='''<pool type='dir'><name>simplekvm-local</name><target><path>/storage</path></target></pool>'''
-                pool = conn.storagePoolDefineXML(pool_xml, 0)
-                pool.create()
-                pool.setAutostart(1)
+            try:
+                logger.debug(f'Add authorized_keys {host.sshuser}@{host.ipaddr}:{host.sshport} {task_uuid}')
+                ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
+                for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
+                    logger.debug(line.strip())
+                result['copy sshkey'] = True
+            except:
+                logger.exception('copy sshkey')
+            try:
+                ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', '[ -f /sys/class/net/br-ext/bridge/bridge_id ] && { echo "br-ext ok"; exit 0; } || { echo "NO br-ext exists">&2; exit 100; }']
+                for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, None, SSH_ASKPASS=askpass):
+                    logger.debug(line.strip())
+                result['bridge br-ext exist'] = True
+            except:
+                logger.exception('bridge br-ext exist')
+            try:
+                with vmmanager.libvirt_connect(host.get('url')) as conn:
+                    pool_xml='''<pool type='dir'><name>simplekvm-local</name><target><path>/storage</path></target></pool>'''
+                    pool = conn.storagePoolDefineXML(pool_xml, 0)
+                    result['/strage store pool exist'] = True
+                    pool.create()
+                    result['/strage store pool start'] = True
+                    pool.setAutostart(1)
+                    result['/strage store pool autostart'] = True
+            except:
+                logger.exception('bridge br-ext exist')
         except Exception as e:
             return utils.deal_except(f'add_authorized_keys', e), 400
         finally:
             os.remove(askpass)
-        return utils.return_ok(f'add_authorized_keys, init storepool, br-ext network ok', name=hostname)
+        return utils.return_ok(f'init info', host=hostname, **result)
 
     def conf(self):
         return utils.return_ok(f'conf ok', conf=config.dumps())
