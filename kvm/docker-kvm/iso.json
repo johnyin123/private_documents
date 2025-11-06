@@ -1,5 +1,5 @@
 [
-{ "name":"debian12-live-amd64","uri":"/gold/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" },
-{ "name":"debian12-live-arm64","uri":"/gold/debian-bookworm-arm64-live.iso","desc":"debian-bookworm-arm64-live启动CD" },
+{ "name":"debian12-live-amd64","uri":"/iso/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" },
+{ "name":"debian12-live-arm64","uri":"/iso/debian-bookworm-arm64-live.iso","desc":"debian-bookworm-arm64-live启动CD" },
 { "name":"","uri":"","desc":"MetaData ISO" }
 ]
