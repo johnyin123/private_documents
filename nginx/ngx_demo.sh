@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5def5965[2025-09-30T12:59:33+08:00]:ngx_demo.sh")
+VERSION+=("f8359d29[2025-10-04T18:17:05+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1338,6 +1338,27 @@ document.getElementById('files').addEventListener('change', function(e) {
     xhr.send(file);
 });
 </script>
+EOF
+cat <<'EOF' > autoindex_auto_type.http
+# curl http://127.0.0.1/
+# curl -H "ACCEPT: json" http://127.0.0.1/
+# curl -H "ACCEPT: xml" http://127.0.0.1/
+map $http_accept $autoindex_type {
+    default @html;
+    ~json   @json;
+    ~xml    @xml;
+}
+server {
+    listen 80;
+    server_name _;
+    root /var/www;
+    location / {
+        try_files $uri $autoindex_type;
+    }
+    location @html { autoindex on; autoindex_format html; }
+    location @json { autoindex on; autoindex_format json; }
+    location @xml  { autoindex on; autoindex_format xml; }
+}
 EOF
 cat <<'EOF' > webdav.http
 server {
