@@ -79,7 +79,9 @@ class MyApp(object):
             ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
             for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
                 logger.debug(line.strip())
-            #bridge exists: /sys/class/net/${bridge}/bridge/bridge_id
+            ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', '[ -f /sys/class/net/br-ext/bridge/bridge_id ] && { echo "br-ext ok"; exit 0; } || { echo "NO br-ext exists">&2; exit 100; }']
+            for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, None, SSH_ASKPASS=askpass):
+                logger.debug(line.strip())
             with vmmanager.libvirt_connect(host.get('url')) as conn:
                 pool_xml='''<pool type='dir'><name>simplekvm-local</name><target><path>/storage</path></target></pool>'''
                 pool = conn.storagePoolDefineXML(pool_xml, 0)
@@ -89,7 +91,7 @@ class MyApp(object):
             return utils.deal_except(f'add_authorized_keys', e), 400
         finally:
             os.remove(askpass)
-        return utils.return_ok(f'add_authorized_keys, init dir storepool ok', name=hostname)
+        return utils.return_ok(f'add_authorized_keys, init storepool, br-ext network ok', name=hostname)
 
     def conf(self):
         return utils.return_ok(f'conf ok', conf=config.dumps())

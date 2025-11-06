@@ -112,7 +112,7 @@ class ShmListStore:
 
     def delete(self, **kwargs) -> None:
         self._atomic_op(self._delete_impl, kwargs)
-    @time_use
+
     def search(self, **kwargs) -> List[AttrDict]:
         return self._atomic_op(self._search_impl, kwargs)
 
