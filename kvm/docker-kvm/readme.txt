@@ -80,8 +80,8 @@ upstream cidata_srv {
 server {
     listen 80;
     server_name simplekvm.registry.local;
-    location / { proxy_pass http://cidata_srv; }
-    location ^~ /gold { set $limit 0; alias /home/johnyin/vmmgr/gold/; }
+    location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { proxy_pass http://cidata_srv; }
+    location / { autoindex on; autoindex_format json; set $limit 0; if_modified_since before; alias /home/johnyin/vmmgr/gold/; }
 }
 upstream user_api_upstream {
     random;

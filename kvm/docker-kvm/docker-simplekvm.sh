@@ -268,8 +268,8 @@ server {
 server {
     listen 80;
     server_name _;
-    location / { return 301 https://$host$request_uri; }
-    location ~* (\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
+    # location / { return 301 https://$host$request_uri; }
+    location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
 }
 server {
     listen 1443 ssl;
@@ -472,6 +472,7 @@ export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
 [ -z "\${DATA_DIR:-}" ] || {
     sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR}/cidata|g" /etc/nginx/http-enabled/simplekvm.conf
 }
+# 443 is simplekvm server, :1443 is CTRL_SRV, :80 is META_SRV
 env || true
 exec "\$@"
 EODOC
