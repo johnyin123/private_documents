@@ -79,6 +79,7 @@ class MyApp(object):
             ssh_cmd=['setsid', 'ssh', '-t', '-oLogLevel=error', '-o', 'StrictHostKeyChecking=no', '-o', 'UpdateHostKeys=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ServerAliveInterval=60', '-p', f'{host.sshport}', f'{host.sshuser}@{host.ipaddr}', 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys']
             for line in utils.ProcList().wait_proc(task_uuid, ssh_cmd, 0, False, pubkey, SSH_ASKPASS=askpass):
                 logger.debug(line.strip())
+            #bridge exists: /sys/class/net/${bridge}/bridge/bridge_id
             with vmmanager.libvirt_connect(host.get('url')) as conn:
                 pool_xml='''<pool type='dir'><name>simplekvm-local</name><target><path>/storage</path></target></pool>'''
                 pool = conn.storagePoolDefineXML(pool_xml, 0)
