@@ -198,6 +198,8 @@ def http_file_exists(url:str)->tuple[bool, int]:
     response = requests.head(url, allow_redirects=True, headers=headers, verify=False, timeout=5)
     content_length = response.headers.get('Content-Length', '0')
     return response.status_code == requests.codes.ok, int(content_length)
+    # response = requests.get(url, headers=headers)
+    # response.text
 
 def download_if_modified(url:str, local:str)-> Generator:
     logger.debug(f'download {url} -> {local}')

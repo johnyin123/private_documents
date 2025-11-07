@@ -923,8 +923,8 @@ function load_conf(bypass='') {
     gen_sidebar();
     getjson('GET', `${uri_pre}/tpl/device/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
   });
-  getjson('GET', `${uri_pre}/tpl/iso/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
-  getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
+  getjson('GET', `${uri_pre}/tpl/iso/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; config.g_iso_srv = result.server; });
+  getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; config.g_gold_srv = result.server; });
 }
 /* ------------------------- */
 function set_cookie(name, value, secs) {
