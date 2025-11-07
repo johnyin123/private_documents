@@ -61,7 +61,7 @@ class MyApp(object):
         app.add_url_rule('/conf/', view_func=self.conf, methods=['GET'])
         app.add_url_rule('/conf/add_authorized_keys/<string:hostname>', view_func=self.add_authorized_keys, methods=['POST'])
 
-    def add_authorized_keys(self, hostname:str)->None:
+    def add_authorized_keys(self, hostname:str):
         def ipv4_to_8bit_string(ipaddr):
             return binascii.hexlify(socket.inet_aton(ipaddr)).decode('utf-8').lower()
 
