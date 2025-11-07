@@ -292,7 +292,6 @@ server {
     location ~* (\\/cidata\\.iso|\\/meta-data|\\/user-data)$ { access_log off; log_not_found on; set \$limit 0; if_modified_since before; root ${OUT_DIR}/cidata; }
     # # golds.json,iso.json, kvm support 301
     # location ^~ /gold { return 301 http://<addr>:8888/...; }
-    # location ^~ /gold { access_log off; log_not_found on; set \$limit 0; if_modified_since before; alias ${GOLD_DIR}/gold/; }
     location / { autoindex on; autoindex_format json; set \$limit 0; if_modified_since before; alias ${GOLD_DIR}/gold/; }
     location /store {
         set \$mykey "${SEC_KEY}";
