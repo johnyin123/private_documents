@@ -50,30 +50,29 @@ admin_api() {
     local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location ~* ^${PRE}/conf/(backup|restore|host|iso|gold)/$ {
-        # # no cache!! mgr private access
-        limit_except GET POST DELETE { deny all; }
-        ${AUTH}auth_request @sso-auth;
-        proxy_cache off;
-        expires off;
-        proxy_read_timeout 240s;
-        client_max_body_size 100m;
-        proxy_pass http://api_srv;
-    }
-    location ~* ^${PRE}/conf/(domains|devices)/$ {
-        ${AUTH}auth_request @sso-auth;
-        proxy_cache_valid 200   5m;
-        proxy_pass http://api_srv;
-    }
-    location ~* ^/conf/add_authorized_keys/(?<others>.*)$ {
-        limit_except POST { deny all; }
-        proxy_pass http://api_srv;
-    }
-    location ~* ^/conf/(|ssh_pubkey/)$ {
-        limit_except GET { deny all; }
-        ${AUTH}auth_request @sso-auth;
-        proxy_cache_valid 200   60m;
-        proxy_pass http://api_srv;
+    location ${PRE}/conf/ {
+        location ~* ^${PRE}/conf/(backup|restore|host|iso|gold)/$ {
+            # # no cache!! mgr private access
+            limit_except GET POST DELETE { deny all; }
+            ${AUTH}auth_request @sso-auth;
+            proxy_cache off;
+            expires off;
+            proxy_read_timeout 240s;
+            client_max_body_size 100m;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^${PRE}/conf/(|domains/|devices/|ssh_pubkey/)$ {
+            ${AUTH}auth_request @sso-auth;
+            limit_except GET { deny all; }
+            proxy_cache_valid 200   5m;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^/conf/add_authorized_keys/(?<others>.*)$ {
+            ${AUTH}auth_request @sso-auth;
+            limit_except POST { deny all; }
+            proxy_pass http://api_srv;
+        }
+        absolute_redirect off; return 301 ${PRE}/ui/tpl.html;
     }
     location ${PRE}/tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
@@ -85,7 +84,7 @@ admin_api() {
             # # rewrite .....
             proxy_pass http://api_srv/tpl/\$apicmd/\$others\$is_args\$args;
         }
-        return 404;
+        absolute_redirect off; return 301 ${PRE}/ui/tpl.html;
     }
     location = @prestart {
         internal;
@@ -134,7 +133,7 @@ admin_api() {
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv/websockify/\$is_args\$args;
         }
-        return 404;
+        absolute_redirect off; return 301 ${PRE}/ui/tpl.html;
     }
 EOF
     return 0
@@ -224,7 +223,8 @@ tanent_api() {
             # # /tpl/iso/?k=XtaHHDjE_nULHFdM2Dsupw&e=1745423940. with args, can not cache
             # proxy_pass http://api_srv;
         }
-        return 403;
+        # return 403;
+        absolute_redirect off; return 301 /guest.html;
     }
 EOF
     return 0
@@ -257,8 +257,6 @@ tanent_ui() {
     local OUT_DIR=${2}
     local combine=${3:-}
     cat <<EOF
-    # # default page is guest ui
-    location / { absolute_redirect off; return 301 ${PRE}/guest.html; }
     # # tanent user UI manager # #
     location = ${PRE}/guest.html { absolute_redirect off; return 301 ${PRE}/ui/userui.html\$is_args\$args; }
 EOF
@@ -286,7 +284,6 @@ server {
     server_name ${srv_name};
     access_log off;
     log_not_found on;
-    location / { keepalive_timeout 0; return 403; }
     # # # # # # # # # # # # # # # # # # # # # # # # #
     # # only .iso|meta-data|user-data(include subdir resource)
     location ~* (\\/cidata\\.iso|\\/meta-data|\\/user-data)$ { access_log off; log_not_found on; set \$limit 0; if_modified_since before; root ${OUT_DIR}/cidata; }

@@ -165,30 +165,29 @@ server {
     location =/api/login { proxy_cache off; proxy_pass http://api_auth; }
     location =/api/refresh { auth_request @api_auth; proxy_cache off; proxy_pass http://api_auth; }
     location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
-    location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
-        # # no cache!! mgr private access
-        limit_except GET POST DELETE { deny all; }
-        auth_request @api_auth;
-        proxy_cache off;
-        expires off;
-        proxy_read_timeout 240s;
-        client_max_body_size 100m;
-        proxy_pass http://api_srv;
-    }
-    location ~* ^/conf/(domains|devices)/$ {
-        auth_request @api_auth;
-        proxy_cache_valid 200   5m;
-        proxy_pass http://api_srv;
-    }
-    location ~* ^/conf/add_authorized_keys/(?<others>.*)$ {
-        limit_except POST { deny all; }
-        proxy_pass http://api_srv;
-    }
-    location ~* ^/conf/(|ssh_pubkey/)$ {
-        limit_except GET { deny all; }
-        auth_request @api_auth;
-        proxy_cache_valid 200   60m;
-        proxy_pass http://api_srv;
+    location /conf/ {
+        location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
+            # # no cache!! mgr private access
+            limit_except GET POST DELETE { deny all; }
+            auth_request @api_auth;
+            proxy_cache off;
+            expires off;
+            proxy_read_timeout 240s;
+            client_max_body_size 100m;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^/conf/(|domains/|devices/|ssh_pubkey/)$ {
+            auth_request @api_auth;
+            limit_except GET { deny all; }
+            proxy_cache_valid 200   5m;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^/conf/add_authorized_keys/(?<others>.*)$ {
+            auth_request @api_auth;
+            limit_except POST { deny all; }
+            proxy_pass http://api_srv;
+        }
+        absolute_redirect off; return 301 /ui/tpl.html;
     }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
@@ -200,7 +199,7 @@ server {
             # # rewrite .....
             proxy_pass http://api_srv/tpl/$apicmd/$others$is_args$args;
         }
-        return 404;
+        absolute_redirect off; return 301 /ui/tpl.html;
     }
     location = @prestart {
         internal;
@@ -249,7 +248,7 @@ server {
             proxy_set_header Connection $connection_upgrade;
             proxy_pass http://websockify_srv/websockify/$is_args$args;
         }
-        return 404;
+        absolute_redirect off; return 301 /ui/tpl.html;
     }
     # # admin ui # #
     location = / { absolute_redirect off; return 301 /ui/tpl.html; }
@@ -370,7 +369,7 @@ server {
             # # /tpl/iso/?k=XtaHHDjE_nULHFdM2Dsupw&e=1745423940. with args, can not cache
             # proxy_pass http://api_srv;
         }
-        return 403;
+        absolute_redirect off; return 301 /guest.html;
     }
     # # default page is guest ui
     location / { return 301 https://$host/ui/userui.html; }
