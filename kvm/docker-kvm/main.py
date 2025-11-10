@@ -29,7 +29,10 @@ class MyApp(object):
             if os.path.isfile(init_pkg):
                 fname=os.path.join(dir_cwd, f"pre_init_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.tgz")
                 logger.warning(f'pre init runtime backup: {fname}')
-                utils.file_save(fname, utils.conf_backup_tgz().getvalue())
+                try:
+                    utils.file_save(fname, utils.conf_backup_tgz().getvalue())
+                except:
+                    logger.exception(f'save {fname}')
                 total, apply, skip = utils.conf_restore_tgz(io.BytesIO(utils.file_load(init_pkg)))
                 logger.info(f'init runtime env, total={total}, apply={apply}, skip={skip}')
             else:
