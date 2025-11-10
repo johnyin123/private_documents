@@ -966,7 +966,7 @@ window.addEventListener('load', function() {
   const btn = document.getElementById("refresh_token");
   if (cookie_exists("token") == true) {
     const user = userinfo();
-    btn.innerHTML = user.username || "N/A USER";
+    btn.innerHTML = `[${user.username || "N/A USER"}]`;
     btn.addEventListener("click", () => {
       getjson('GET', '/api/refresh', function(resp) {
         const result = JSON.parse(resp);
