@@ -62,7 +62,11 @@ class MyApp(object):
         try:
             token = str.replace(str(flask.request.headers['Authorization']), 'Bearer ', '') if 'Authorization' in flask.request.headers else flask.request.cookies.get('token')
             payload = self.auth.decode_payload(token)
-            count = payload.get('count', 0)
+            count = 0
+            try:
+                count = int(payload.get('count', 0))
+            except (ValueError, TypeError):
+                pass
             payload.update({'iat':datetime.datetime.utcnow(),'exp':datetime.datetime.utcnow()+datetime.timedelta(seconds=self.auth.expire_secs),'count':count+1})
             return utils.return_ok(f'refresh ok', **self.auth.sign_payload(payload))
         except Exception as e:
