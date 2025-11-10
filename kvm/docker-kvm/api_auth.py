@@ -49,7 +49,9 @@ class jwt_auth:
         raise utils.APIException('Bad username or password.')
 
     def decode_payload(self, token:str) -> Dict:
-        return jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
+        unverified_header = jwt.get_unverified_header(token)
+        algorithm = unverified_header['alg']
+        return jwt.decode(token, self.jwt_cert_pem, algorithms=algorithm)
 
 class MyApp(object):
     def __init__(self, allows:List, blocks:List):
