@@ -937,11 +937,36 @@ function cookie_exists(name) {
   const allCookies = document.cookie;
   return allCookies.includes(`${name}=`) || allCookies.includes(`; ${name}=`);
 }
+function get_cookie(cname) {
+  let name = cname + "=";
+  let ca = decodeURIComponent(document.cookie).split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') { /*Remove leading spaces*/
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+function userinfo() {
+  var token = get_cookie('token');
+  const parts = token.split('.');
+  const headerEncoded = parts[0];
+  const payloadEncoded = parts[1];
+  const decodedHeader = JSON.parse(decodeURLSafeBase64(headerEncoded));
+  console.log("Decoded Header:", decodedHeader);
+  return JSON.parse(decodeURLSafeBase64(payloadEncoded));
+}
 window.addEventListener('load', function() {
   includeHTML();
   load_conf();
   const btn = document.getElementById("refresh_token");
   if (cookie_exists("token") == true) {
+    const user = userinfo();
+    btn.innerHTML = user.username || "N/A USER";
     btn.addEventListener("click", () => {
       getjson('GET', '/api/refresh', function(resp) {
         const result = JSON.parse(resp);
