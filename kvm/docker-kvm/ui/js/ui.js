@@ -932,6 +932,7 @@ function set_cookie(name, value, secs) {
   date.setTime(date.getTime() + (secs * 1000));
   const expires = "expires=" + date.toUTCString();
   document.cookie = `${name}=${value}; ${expires}; path=/`;
+  //; domain=example.com" //the cookie is valid for example.com and its subdomains
 }
 function cookie_exists(name) {
   const allCookies = document.cookie;
