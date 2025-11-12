@@ -90,7 +90,7 @@ function genVmsTBL(item, host = null) {
       nets.forEach(net => {
         tbl += `<tr><th class="truncate">${net.model}:${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
         var btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
-        if (item['state'] === 'RUN') {
+        if (item['state'] === 'RUNNING') {
             btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});
         }
         tbl += host ? `<td><div class="flex-group">${btn}</div></td></tr>`: `</tr>`;
@@ -114,7 +114,7 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'desc' && host) {
       var btn = genActBtn(false, 'Modify Description', 'Modify', 'modify_desc', host, {'uuid':item.uuid});
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
-    } else if (key === 'state' && item['state'] === 'RUN' && host) {
+    } else if (key === 'state' && item['state'] === 'RUNNING' && host) {
       var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
@@ -134,7 +134,7 @@ function manage_vm(kvmhost, uuid) {
     const result = JSON.parse(resp);
     var btn = genActBtn(true, 'Show XML', 'fa-commenting', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-share-alt', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
-    if(result.guest.state === 'RUN') {
+    if(result.guest.state === 'RUNNING') {
       btn += genActBtn(true, 'Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Reset VM', 'fa-registered', 'reset', kvmhost, {'uuid':result.guest.uuid});
@@ -150,7 +150,7 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Refresh VM', 'fa-refresh', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
     btn += `<button title="Close" onclick="vmlist('${kvmhost}');">&times;</button>`;
     const table = genVmsTBL(result.guest, kvmhost);
-    const title = result.guest.state == "RUN" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
+    const title = result.guest.state == "RUNNING" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
     const tbl = genWrapper("vms-wrapper", title, btn, table);
     document.getElementById("vm_info").innerHTML = tbl;
     showView("manage_vm");
@@ -161,14 +161,14 @@ function show_vms(kvmhost, vms) {
   vms.forEach(item => {
     const table = genVmsTBL(item);
     var btn = genActBtn(true, 'Show XML', 'fa-commenting', 'show_xml', kvmhost, {'uuid':item.uuid});
-    if (item.state === "RUN") {
+    if (item.state === "RUNNING") {
       btn += genActBtn(true, 'VM IPAddress', 'fa-at', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play-circle', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
       btn += genActBtn(true, 'Undefine', 'fa-recycle', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-ellipsis-h', 'manage_vm', kvmhost, {'uuid':item.uuid});
-    const title = item.state == "RUN" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
+    const title = item.state == "RUNNING" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
   return tbl;
