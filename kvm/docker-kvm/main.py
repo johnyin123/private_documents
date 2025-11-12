@@ -315,5 +315,5 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(cmd, e), 400
 
-def create_app():
+def create_app()-> flask.Flask:
     return MyApp.create()

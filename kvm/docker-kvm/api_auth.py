@@ -101,7 +101,7 @@ class MyApp(object):
         web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST'])
         return web
 
-def create_app():
+def create_app()-> flask.Flask:
     return MyApp.create()
 # pip install ldap3 pyjwt[crypto]
 # JWT_ALLOWS='["admin", "simplekvm"]'

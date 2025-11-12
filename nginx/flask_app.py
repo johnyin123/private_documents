@@ -109,7 +109,7 @@ class MyApp(object):
         # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
         return '{ "OK" : "OK" }'
 
-def create_app():
+def create_app()-> flask.Flask:
     return MyApp.create()
 
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:create_app()'
