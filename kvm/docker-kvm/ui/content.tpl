@@ -303,7 +303,7 @@
     <form onSubmit="return on_modifyvcpus(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>CPU:<div class="flex-group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num_modify" value="2" min="1" max="16" oninput="vcpu_rge_modify.value=this.value" />
-        <input type="range" id="vcpu_rge_modify" value="2" min="1" max="16" oninput="vcpu_num_modify.value=this.value"/>
+        <input type="range" id="vcpu_rge_modify" value="2" min="1" max="16" tabindex="-1" oninput="vcpu_num_modify.value=this.value"/>
       </div></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
@@ -322,7 +322,7 @@
     <form onSubmit="return on_modifymemory(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>MEM(MB):<div class="flex-group">
         <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num_modify" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge_modify.value=this.value"/>
-        <input type="range" id="vmem_rge_modify" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num_modify.value=this.value"/>
+        <input type="range" id="vmem_rge_modify" value="2048" min="1024" max="32768" step="1024" tabindex="-1" oninput="vmem_num_modify.value=this.value"/>
       </div></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
@@ -372,13 +372,13 @@
           <label>CPU
             <div class="flex-group">
               <input style="width: 30%;" type="number" name="vm_vcpus" id="vcpu_num_create" value="2" min="1" max="16" oninput="vcpu_rge_create.value=this.value" />
-              <input type="range" id="vcpu_rge_create" value="2" min="1" max="16" oninput="vcpu_num_create.value=this.value"/>
+              <input type="range" id="vcpu_rge_create" value="2" min="1" max="16" tabindex="-1" oninput="vcpu_num_create.value=this.value"/>
             </div>
           </label>
           <label>MEM(MB)
             <div class="flex-group">
               <input style="width: 30%;" type="number" name="vm_ram_mb" id="vmem_num_create" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge_create.value=this.value"/>
-              <input type="range" id="vmem_rge_create" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num_create.value=this.value"/>
+              <input type="range" id="vmem_rge_create" value="2048" min="1024" max="32768" step="1024" tabindex="-1" oninput="vmem_num_create.value=this.value"/>
             </div>
           </label>
           <div class="flex-group">
