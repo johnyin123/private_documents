@@ -35,7 +35,11 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     return app
 
 def corsify_actual_response(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.update({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    })
     return response
 
 def json_handle_error(e):
