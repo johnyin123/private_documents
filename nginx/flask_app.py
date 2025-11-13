@@ -19,8 +19,8 @@ class UpdatedJSONProvider(DefaultJSONProvider):
             return o.isoformat()
         return super().default(o)
 
-def create_app(config: dict={}, json: bool=False) -> flask.Flask:
-    cfg = {**FLASK_CONF, **config}
+def create_app(config: dict=None, json: bool=False)->flask.Flask:
+    cfg = {**FLASK_CONF, **(config or {})}
     logger.debug("Flask config: %s", cfg)
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
     app.config.from_mapping(cfg)
@@ -34,7 +34,7 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
             app.register_error_handler(ex, json_handle_error)
     return app
 
-def corsify_actual_response(response):
+def corsify_actual_response(response:flask.Response)->flask.Response:
     response.headers.update({
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -104,6 +104,7 @@ class MyApp(object):
         # web.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
         # web.before_request(before_request)
         # web.after_request(after_request_log)
+        # web.after_request(corsify_actual_response)
         # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
         web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
         web.add_url_rule('/esc', view_func=myapp.esc, methods=['POST', 'GET'])
