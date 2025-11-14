@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, contextlib, functools, json
+import flask, logging, libvirt, xml.dom.minidom, os, datetime, contextlib, functools, json
 import template, config, meta, utils
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from database import get_device, get_gold, get_iso, get_guest
