@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea230a3f[2025-11-13T14:35:05+08:00]:ssh_tunnel2.sh")
+VERSION+=("1676cbce[2025-11-13T14:55:54+08:00]:ssh_tunnel2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -92,9 +92,9 @@ main() {
     # is_user_root || exit_msg "root user need!!\n"
     require ssh socat systemd-run systemctl ip
     [ -z "${ssh_conn}" ] && usage "SSH_CONNECTION Must input"
-    [ -z "${l_br}" ] || bridge_exists "${l_br}" || exit_msg "local bridge ${l_br} nofound!!\n"
     [ -z "${l_ip}" ] || l_br=""
     [ -z "${r_ip}" ] || r_br=""
+    [ -z "${l_br}" ] || bridge_exists "${l_br}" || exit_msg "local bridge ${l_br} nofound!!\n"
     ssh_tunnel "${ssh_conn}" "${ssh_port}" "${l_br}" "${r_br}" "${l_ip}" "${r_ip}" "${remote_tap}"
     info_msg "systemctl stop sslvpn.service\n"
     return 0
