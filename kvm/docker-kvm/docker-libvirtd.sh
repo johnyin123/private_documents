@@ -109,6 +109,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
+EXPOSE 16509
 VOLUME ["/storage", "/etc/libvirt/qemu", "/etc/libvirt/storage", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt"]
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
