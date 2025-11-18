@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eafe596d[2025-06-18T09:31:02+08:00]:wireguard_via_websocket.sh")
+VERSION+=("03fb6f3b[2025-07-04T15:59:41+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -200,6 +200,7 @@ ${SCRIPTNAME}
     # # wg via socat
     socat -d -t600 -T600 -d UDP4-LISTEN:LPORT tcp4:SRV:TCPPORT,keepalive
     socat -d tcp-l:TCPPORT,reuseaddr,keepalive,fork UDP4:127.0.0.1:LPORT
+    socat TCP-LISTEN:9999,bind=127.0.0.1,reuseaddr,keepalive,fork PROXY:<proxy ip>:<tip>:<tport>,proxyport=8080,proxyauth=user:pass
 EOF
     exit 1
 }
