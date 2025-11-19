@@ -679,6 +679,12 @@ function on_conf_listhost(btn) {
   tbl += '</table>';
   div.innerHTML = tbl;
 }
+function show_conf_iso_view() {
+  showView('conf_iso');
+}
+function show_conf_gold_view() {
+  showView('conf_gold');
+}
 function show_conf_host_view() {
   getjson('GET', `${uri_pre}/conf/domains/?${Date.now()}`, function(resp) {
     const result = JSON.parse(resp);

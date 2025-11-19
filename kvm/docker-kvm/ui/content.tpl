@@ -117,8 +117,8 @@
       <div class="flex-group">
         <input type="button" value="FLUSH CACHE" onclick="load_conf(`?${Date.now()}`)"/>
         <input type="button" value="CONF HOST" onclick="show_conf_host_view()"/>
-        <input type="button" value="CONF GOLD" onclick="showView('conf_gold')"/>
-        <input type="button" value="CONF ISO" onclick="showView('conf_iso')"/>
+        <input type="button" value="CONF GOLD" onclick="show_conf_gold_view()"/>
+        <input type="button" value="CONF ISO" onclick="show_conf_iso_view()"/>
         <input type="button" value="Backup" onclick="on_conf_backup()"/>
         <input type="button" value="Restore" onclick="showView('conf_restore')">
       </div>

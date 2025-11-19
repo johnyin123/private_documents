@@ -273,14 +273,14 @@ class MyApp(object):
 
     def tpl_iso(self):
         try:
-            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=f'http://{config.META_SRV}')
+            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.META_SRV)
         except Exception as e:
             return utils.deal_except(f'tpl_iso', e), 400
 
     def tpl_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'tpl_gold ok', gold=get_gold().list_all(**args), server=f'http://{config.GOLD_SRV}')
+            return utils.return_ok(f'tpl_gold ok', gold=get_gold().list_all(**args), server=config.GOLD_SRV)
         except Exception as e:
             return utils.deal_except(f'tpl_gold', e), 400
 
