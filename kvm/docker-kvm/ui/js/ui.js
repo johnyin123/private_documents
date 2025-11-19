@@ -725,10 +725,10 @@ function on_conf_listgold(btn) {
     if(res.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
     config.g_gold = res.gold;
     config.g_gold_srv = res.server;
-    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
+    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th class="truncate">URI</th><th>ACT</th></tr>`;
     res.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
       var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editgold', gold.name, {'arch':gold.arch, 'form':'addgold_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delgold', gold.name, {'arch':gold.arch});
-      tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
+      tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td class="truncate">${gold.uri}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
@@ -762,10 +762,10 @@ function on_conf_listiso(btn) {
     if(res.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
     config.g_iso = res.iso;
     config.g_iso_srv = res.server;
-    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
+    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th class="truncate">URI</th><th>ACT</th></tr>`;
     res.iso.forEach(iso => {
       var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editiso', iso.name, {'form':'addiso_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_deliso', iso.name);
-      tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
+      tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td class="truncate">${iso.uri}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
