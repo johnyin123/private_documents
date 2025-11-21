@@ -48,7 +48,7 @@
     </div>
     <form id="addiso_form" onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*<input type="text" autocomplete="off" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
-      <label>URI*<input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/></label>
+      <label>URI*<div class="flex-group"><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/><input style="width: 20%;" type="button" value="ISO Server" onclick="disp_iso_server(this)"/></div></label>
       <label>Desc*<textarea rows="3" maxlength="100" name="desc" placeholder="desc here..." required></textarea></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
@@ -72,7 +72,7 @@
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
       </select></label>
-      <label>URI*<input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/></label>
+      <label>URI*<div class="flex-group"><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/><input style="width: 20%;" type="button" value="Gold Server" onclick="disp_gold_server(this)"/></div></label>
       <label>Min Size(GiB)*<input type="number" name="size" value="1" min="1" max="2048" required/></label>
       <label>Desc*<textarea rows="3" maxlength="100" name="desc" placeholder="desc here..." required></textarea></label>
       <div class="flex-group">

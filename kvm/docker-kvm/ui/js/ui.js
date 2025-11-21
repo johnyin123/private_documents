@@ -724,6 +724,9 @@ function on_conf_delgold(name, arch, btn) {
     });
   }
 }
+function disp_gold_server(btn) {
+  window.open(`http://${config.g_gold_srv}`, "_blank");
+}
 function on_conf_listgold(btn) {
   const div = document.getElementById('conf_gold_list');
   getjson('GET', `${uri_pre}/tpl/gold/?${Date.now()}`, function(resp) {
@@ -760,6 +763,9 @@ function on_conf_deliso(name, btn) {
       if (getjson_result(resp)) { load_conf(`?${Date.now()}`); }
     });
   }
+}
+function disp_iso_server(btn) {
+  window.open(`http://${config.g_iso_srv}`, "_blank");
 }
 function on_conf_listiso(btn) {
   const div = document.getElementById('conf_iso_list');
