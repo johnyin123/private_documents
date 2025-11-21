@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03fb6f3b[2025-07-04T15:59:41+08:00]:wireguard_via_websocket.sh")
+VERSION+=("8ac4720b[2025-11-18T16:34:12+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -201,6 +201,8 @@ ${SCRIPTNAME}
     socat -d -t600 -T600 -d UDP4-LISTEN:LPORT tcp4:SRV:TCPPORT,keepalive
     socat -d tcp-l:TCPPORT,reuseaddr,keepalive,fork UDP4:127.0.0.1:LPORT
     socat TCP-LISTEN:9999,bind=127.0.0.1,reuseaddr,keepalive,fork PROXY:<proxy ip>:<tip>:<tport>,proxyport=8080,proxyauth=user:pass
+    socat -d OPENSSL-LISTEN:443,fork,reuseaddr,keepalive,cert="cert.pem",key="key.pem",verify=0,su=nobody,nodelay UDP-SENDTO:127.0.0.1:LPORT
+    socat -d -t10 -T10 UDP4-LISTEN:9999,fork,bind=127.0.0.1 OPENSSL:"R_SRV":443,verify=0,snihost="ab.com",keepalive,nodelay
 EOF
     exit 1
 }
