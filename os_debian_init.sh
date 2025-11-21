@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("5cf532f1[2025-10-23T09:19:54+08:00]:os_debian_init.sh")
+VERSION+=("a3dba3de[2025-10-23T09:59:48+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -160,6 +160,7 @@ net.core.wmem_max = 134217728
 net.core.netdev_max_backlog = 250000
 net.core.somaxconn = 65535
 net.core.wmem_default = 16777216
+net.ipv4.ip_unprivileged_port_start = 1024
 net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_fin_timeout = 10
 net.ipv4.tcp_keepalive_time = 1200
