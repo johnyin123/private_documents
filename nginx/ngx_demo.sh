@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("332c42fd[2025-11-06T15:00:21+08:00]:ngx_demo.sh")
+VERSION+=("3204008d[2025-11-21T09:06:45+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1584,10 +1584,347 @@ cat <<'EOF' > index_template.xslt
   </xsl:template>
 </xsl:stylesheet>
 EOF
-cat <<'EOF' > autoindex_tpmplate.http
+cat <<'EOF' > index_template2.xslt
+<?xml version="1.0"?>
+<!DOCTYPE fnord [<!ENTITY nbsp "&#160;">]>
+<xsl:stylesheet
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  xmlns:func="http://exslt.org/functions"
+  xmlns:str="http://exslt.org/strings"
+  version="1.0"
+  extension-element-prefixes="func str"
+  xmlns:i18n="i18n:*"
+  exclude-result-prefixes="i18n"
+>
+  <xsl:output
+    method="html"
+    html-version="5"
+    encoding="utf-8"
+    doctype-public=""
+  />
+  <xsl:strip-space elements="*" />
+  <xsl:template name="size">
+    <xsl:param name="bytes" />
+    <xsl:choose>
+      <xsl:when test="$bytes &lt; 1000">
+        <xsl:value-of select="$bytes" /> B
+      </xsl:when>
+      <xsl:when test="$bytes &lt; 1048576">
+        <xsl:value-of select="format-number($bytes div 1024, '0.0')" /> KB
+      </xsl:when>
+      <xsl:when test="$bytes &lt; 1073741824">
+        <xsl:value-of select="format-number($bytes div 1048576, '0.0')" /> MB
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:value-of select="format-number(($bytes div 1073741824), '0.0')" />
+        GB
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+  <xsl:template name="timestamp">
+    <xsl:param name="iso-timestamp" />
+    <xsl:value-of
+      select="concat(substring($iso-timestamp, 0, 11), ' ', substring($iso-timestamp, 12, 5))"
+    />
+  </xsl:template>
+  <xsl:template match="directory">
+    <tr>
+      <td class="icon">
+        <svg width="20" height="20">
+          <use href="#icon-folder" />
+        </svg>
+      </td>
+      <td class="name">
+        <a href="{str:encode-uri(current(),true())}/">
+          <xsl:value-of select="." />
+        </a>
+      </td>
+      <td class="time">
+        <xsl:call-template name="timestamp">
+          <xsl:with-param name="iso-timestamp" select="@mtime" />
+        </xsl:call-template>
+      </td>
+      <td class="size"></td>
+    </tr>
+  </xsl:template>
+  <xsl:template match="file">
+    <tr>
+      <td class="icon">
+        <svg width="20" height="20">
+          <use href="#icon-file" />
+        </svg>
+      </td>
+      <td class="name">
+        <a href="{str:encode-uri(current(),true())}" target="_blank">
+          <xsl:value-of select="." />
+        </a>
+      </td>
+      <td class="time">
+        <xsl:call-template name="timestamp">
+          <xsl:with-param name="iso-timestamp" select="@mtime" />
+        </xsl:call-template>
+      </td>
+      <td class="size">
+        <xsl:call-template name="size">
+          <xsl:with-param name="bytes" select="@size" />
+        </xsl:call-template>
+      </td>
+    </tr>
+  </xsl:template>
+  <xsl:param name="root" />
+
+  <i18n:zh-cn
+    folders=" 个目录，"
+    files=" 个文件"
+    timing="最近修改时间"
+    filename="文件名"
+    size="大小"
+    root="根目录"
+  />
+  <i18n:en-us
+    folders=" folders, "
+    files=" files"
+    timing="Last modified"
+    filename="File name"
+    size="Size"
+    root="root"
+  />
+
+  <xsl:param name="lang" select="'en-us'" />
+
+  <xsl:variable name="i18n" select="document('')//*[local-name() = $lang]" />
+
+  <xsl:template match="/">
+    <html>
+      <xsl:attribute name="lang">
+        <xsl:value-of select="$lang" />
+      </xsl:attribute>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title><xsl:value-of select="$path" /></title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC",
+              "Noto Sans CJK", "MicroSoft YaHei UI", "MicroSoft YaHei",
+              "Noto Mono", "Noto Sans", "Segoe UI", Segoe, roboto,
+              "Helvetica Neue", Helvetica, Calibri, Arial, monospace;
+            max-width: 768px;
+            margin: 32px auto;
+            overflow: auto;
+          }
+
+          ul {
+            margin: 0;
+            padding: 0;
+            flex-wrap: wrap;
+            list-style: none;
+          }
+
+          li + li::before {
+            content: " / ";
+            opacity: 0.6;
+          }
+
+          li {
+            display: inline;
+          }
+
+          li,
+          li a {
+            word-break: break-all;
+          }
+
+          a {
+            text-decoration: none;
+            color: inherit;
+          }
+
+          a:hover {
+            opacity: 0.5;
+          }
+
+          table {
+            overflow: hidden;
+            width: 100%;
+            border-spacing: 0;
+          }
+
+          td,
+          th {
+            padding: 14px;
+          }
+
+          .icon {
+            width: 0;
+            padding-left: 16px;
+            padding-right: 0;
+          }
+
+          .name {
+            text-align: left;
+          }
+
+          .time {
+            text-align: center;
+            white-space: nowrap;
+          }
+
+          .size {
+            text-align: right;
+            white-space: nowrap;
+          }
+
+          div {
+            display: flex;
+            justify-content: space-between;
+          }
+
+          td > svg {
+            vertical-align: middle;
+          }
+
+          tbody tr:nth-child(even) {
+            background-color: #eee;
+          }
+
+          th {
+            background-color: lightgrey;
+          }
+
+          @media (max-width: 767px) {
+            tr > *:nth-child(3) {
+              display: none;
+            }
+
+            body {
+              margin: 0;
+            }
+          }
+
+          @media (min-width: 769px) {
+            table {
+              border-radius: 8px;
+              border: 4px solid lightgrey;
+            }
+          }
+
+          @media (prefers-color-scheme: dark) and (min-width: 769px) {
+            table {
+              border-color: #444;
+            }
+          }
+
+          @media (prefers-color-scheme: dark) {
+            html {
+              background-color: #222;
+              color: #eee;
+            }
+
+            tbody tr:nth-child(even) {
+              background-color: #333;
+            }
+
+            th {
+              background-color: #444;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>
+              <td colspan="4">
+                <div>
+                  <ul></ul>
+                  <span class="size">
+                    <xsl:value-of select="count(//directory)" />
+                    <xsl:value-of select="$i18n/@folders" />
+                    <xsl:value-of select="count(//file)" />
+                    <xsl:value-of select="$i18n/@files" />
+                  </span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <th class="icon">#</th>
+              <th class="name"><xsl:value-of select="$i18n/@filename" /></th>
+              <th class="time"><xsl:value-of select="$i18n/@timing" /></th>
+              <th class="size"><xsl:value-of select="$i18n/@size" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            <xsl:apply-templates />
+          </tbody>
+        </table>
+        <svg hidden="hidden">
+          <defs>
+            <symbol id="icon-file" viewBox="0 0 16 16">
+              <path
+                fill="currentColor"
+                d="M11.724 5.333h-2.391v-2.391zM13.805 5.529l-4.667-4.667c-0.061-0.061-0.135-0.111-0.216-0.145s-0.169-0.051-0.255-0.051h-4.667c-0.552 0-1.053 0.225-1.414 0.586s-0.586 0.862-0.586 1.414v10.667c0 0.552 0.225 1.053 0.586 1.414s0.862 0.586 1.414 0.586h8c0.552 0 1.053-0.225 1.414-0.586s0.586-0.862 0.586-1.414v-7.333c0-0.184-0.075-0.351-0.195-0.471zM8 2v4c0 0.368 0.299 0.667 0.667 0.667h4v6.667c0 0.184-0.074 0.35-0.195 0.471s-0.287 0.195-0.471 0.195h-8c-0.184 0-0.35-0.074-0.471-0.195s-0.195-0.287-0.195-0.471v-10.667c0-0.184 0.074-0.35 0.195-0.471s0.287-0.195 0.471-0.195z"
+              />
+            </symbol>
+            <symbol id="icon-folder" viewBox="0 0 16 16">
+              <path
+                fill="currentColor"
+                d="M15.333 12.667v-7.333c0-0.552-0.225-1.053-0.586-1.414s-0.862-0.586-1.414-0.586h-5.643l-1.135-1.703c-0.121-0.18-0.324-0.297-0.555-0.297h-3.333c-0.552 0-1.053 0.225-1.414 0.586s-0.586 0.862-0.586 1.414v9.333c0 0.552 0.225 1.053 0.586 1.414s0.862 0.586 1.414 0.586h10.667c0.552 0 1.053-0.225 1.414-0.586s0.586-0.862 0.586-1.414zM14 12.667c0 0.184-0.074 0.35-0.195 0.471s-0.287 0.195-0.471 0.195h-10.667c-0.184 0-0.35-0.074-0.471-0.195s-0.195-0.287-0.195-0.471v-9.333c0-0.184 0.074-0.35 0.195-0.471s0.287-0.195 0.471-0.195h2.977l1.135 1.703c0.128 0.191 0.337 0.295 0.555 0.297h6c0.184 0 0.35 0.074 0.471 0.195s0.195 0.287 0.195 0.471z"
+              />
+            </symbol>
+          </defs>
+        </svg>
+
+        <script>
+          const path = '<xsl:value-of select="$path" />';
+
+          const root = '/<xsl:value-of select="$root" />/'
+            .replace(/[\\/]+/, "/")
+            .split("/")
+            .filter(Boolean)
+            .join("/");
+
+          const urls = (
+            root ? path.split(root, 2)[1].split("/") : path.split("/")
+          ).filter(Boolean);
+
+          const fake = root ? "/" + root : root;
+
+          urls.unshift(fake);
+
+          const sets = urls.map((item, index, array) => ({
+            textContent:
+              item === "" ? '<xsl:value-of select="$i18n/@root" />' : item,
+            href: array.slice(0, index + 1).join("/") + "/",
+          }));
+
+          const ele = sets.map(({ textContent, href }) => {
+            const a = document.createElement("a");
+            a.href = href;
+            a.textContent = textContent;
+            const li = document.createElement("li");
+            li.append(a);
+            return li;
+          });
+
+          document.body.querySelector("ul").append(...ele);
+        </script>
+      </body>
+    </html>
+  </xsl:template>
+</xsl:stylesheet>
+EOF
+cat <<'EOF' > autoindex_template.http
 server {
     listen 80;
     server_name _;
+    location /2 {
+        root /var/www;
+        autoindex on;
+        autoindex_format xml;
+        xslt_stylesheet /etc/nginx/http-available/index_template2.xslt;
+        xslt_string_param path $uri;
+    }
     root /var/www;
     autoindex on;
     autoindex_format xml;
