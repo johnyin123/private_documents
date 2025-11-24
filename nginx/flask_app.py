@@ -24,7 +24,7 @@ def create_app(config: dict=None, json: bool=False)->flask.Flask:
     logger.debug("Flask config: %s", cfg)
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
     app.config.from_mapping(cfg)
-    app.secret_key = os.urandom(12)
+    app.secret_key = os.urandom(24)
     if json:
         # for unicode json
         app.json.ensure_ascii = False
@@ -58,7 +58,7 @@ def setLogLevel(**kwargs):
         else:
             target.setLevel(level)
 '''
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -B
 # -*- coding: utf-8 -*-
 
 import os, flask_app, flask, json, logging
@@ -107,7 +107,6 @@ class MyApp(object):
         # web.after_request(corsify_actual_response)
         # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
         web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
-        web.add_url_rule('/esc', view_func=myapp.esc, methods=['POST', 'GET'])
         return web
 
     def test(self):
@@ -120,10 +119,7 @@ def create_app()-> flask.Flask:
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:create_app()'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
-#     host = os.environ.get('HTTP_HOST', '0.0.0.0')
-#     # LEVELS = '{"main":"INFO",...}'
-#     port = int(os.environ.get('HTTP_PORT', '18888'))
-#     create_app().run(host=host, port=port)
+#     create_app().run(host='127.0.0.1', port=5009)
 #
 # if __name__ == '__main__':
 #     exit(main())
