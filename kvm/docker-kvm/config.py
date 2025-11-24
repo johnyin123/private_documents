@@ -7,7 +7,7 @@ TOKEN_DIR   = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
 # # use etcd as persistent
 ETCD_PREFIX = os.environ.get('ETCD_PREFIX', None)
 ETCD_SRV    = os.environ.get('ETCD_SRV', 'localhost')
-ETCD_PORT   = os.environ.get('ETCD_PORT', 2379)
+ETCD_PORT   = int(os.environ.get('ETCD_PORT', 2379))
 ETCD_CA     = os.environ.get('ETCD_CA', None)
 ETCD_KEY    = os.environ.get('ETCD_KEY', None)
 ETCD_CERT   = os.environ.get('ETCD_CERT', None)
@@ -24,7 +24,7 @@ CTRL_SRV    = os.environ.get('CTRL_SRV', META_SRV)
 CTRL_KEY    = os.environ.get('CTRL_KEY', 'P@ssw@rd4Display')
 ##################################################################
 # # const define
-TMOUT_MINS  = f'15' # secure_link/socat process timeout close minutes, default value
+TMOUT_MINS  = str('15') # secure_link/socat process timeout close minutes, default value
 URI_VNC     = f'/novnc/vnc_lite.html'
 URI_SPICE   = f'/spice/spice_auto.html'
 URI_CONSOLE = f'/term/xterm.html'
