@@ -37,7 +37,8 @@ wg-quick up wgrank
 /usr/sbin/ip route replace 192.168.31.111 via 192.168.32.1 || true
 /usr/sbin/ip route replace 192.168.2.4 via 192.168.32.1 || true
 /usr/sbin/ip route replace 192.168.169.101 via 192.168.32.1 || true
-cloudflared proxy-dns &>/dev/null & echo $! > /etc/ns-rank/dns.pid
+cloudflared proxy-dns &>/dev/null &
+echo $! > /etc/ns-rank/dns.pid
 echo 'nameserver 127.0.0.1' > /etc/resolv.conf
 sysctl -w net.ipv4.ip_forward=1
 sysctl -w net.ipv4.ip_default_ttl=128
