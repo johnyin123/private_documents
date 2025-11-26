@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d8c3c2ba[2025-08-15T16:42:35+08:00]:mk_nginx.sh")
+VERSION+=("6fdc361a[2025-11-25T12:22:07+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -629,7 +629,7 @@ access_log /var/log/nginx/access.log json buffer=512k flush=5m if=$log_ip;
 # access_log /var/log/nginx/access_$status.log main buffer=512k flush=5m;
 # # Send logs to Logstash
 # access_log syslog:server=logstash:5140,tag=ngx_access json;
-# error_log syslog:server=logstash:5140,tag=ngx_error notice;
+# error_log syslog:server=logstash:5140,tag=ngx_error error;
 
 # # error log, warn limit_req log level
 error_log /var/log/nginx/error.log warn;
