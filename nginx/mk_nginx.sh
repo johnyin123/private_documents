@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6fdc361a[2025-11-25T12:22:07+08:00]:mk_nginx.sh")
+VERSION+=("42a746f6[2025-11-26T16:13:19+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -598,7 +598,8 @@ add_header X-Request-ID $requestid always;
 
 log_format json escape=json '{"node":"$hostname","scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr",'
     '"request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status",'
-    '"remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request",'
+    '"remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601",'
+    '"request_method":"$request_method","uri":"$uri","args":"$args","server_protocol":"$server_protocol",'
     '"status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer",'
     '"http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","requestid":"$requestid","gzip_ratio":"$gzip_ratio",'
     '"brotli_ratio":"$brotli_ratio","upstream_cache_status":"$upstream_cache_status"}';
