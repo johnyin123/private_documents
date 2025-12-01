@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f7257ac6[2023-05-28T14:39:09+08:00]:build-openwrt.sh")
+VERSION+=("a174a2ad[2025-07-14T16:31:45+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -47,16 +47,14 @@ MIR4A 100M
     HTTP request sent, awaiting response... 200 OK
     Length: 8651000/0x8400f8 (8MB) []
     Saving to address 0x80000000
-    
+
     3: flash erase 0x160000 0x850000
     4: flash write 0x160000 0x80000000 0x850000
     （0x160000为要写入firmware的目的地址， 0x80000000是下载的固件的保存地址， 0x200000比文件大一点）
     5: boot flash 0x160000 （0x160000启动地址）
-    
     6: 断电重启路由器，breed还是会从0x50000处启动系统，进入breed的web界面，启用环境变量功能！这一步启动环境变量功能界面中，位置选择breed内部，设置启用后，需要重启。
     7: 再次进breed的web界面中，在环境变量界面，
         增加autoboot.command 字段，值boot flash 0x160000
-
 
 # Make tar
 with tarfile.open("build/payload.tar.gz", "w:gz") as tar:
@@ -244,7 +242,7 @@ EOF
 
 add_demo() {
     local file="${1}"
-    cat << 'EOF' > ${file}
+    mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
 firmware reset: firstboot
 
 sed -i 's_downloads.openwrt.org_mirrors.tuna.tsinghua.edu.cn/openwrt_' /etc/opkg/distfeeds.conf
@@ -466,6 +464,13 @@ BIN_DIR="${DIRNAME}/out/" \
 FILES="${DIRNAME}/mydir" \
 DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
+cat <<EOF
+ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
+# wr703n
+    # ip a a 192.168.1.2/24 dev eth0
+    nc -ul 6666 #push reset, then poweron keep push 10sec
+    # U-Boot 1.1.4  (Apr 22 2013)
+EOF
 #  Remove useless files from firmware
 #  
 #  1. Create file 'files_remove' with full filenames:
