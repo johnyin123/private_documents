@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7aca2c95[2025-12-01T13:04:01+08:00]:build-openwrt.sh")
+VERSION+=("38953423[2025-12-02T10:51:36+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -167,10 +167,9 @@ XXXX是你网卡的后四位，不知道的自己用手机下个WIFI软件看接
 EOF
 
 DISABLED_SERVICES="${DISABLED_SERVICES:-} odhcpd set-irq-affinity"
-PACKAGES_REMOVE=" "                                 #remove package
-PACKAGES=" kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset"
-PACKAGES+=" kmod-zram zram-swap"                    #zram swap
-PACKAGES+=" kmod-wireguard wireguard-tools"         #wireguard
+PACKAGES_REMOVE=()                                 #remove package
+PACKAGES=()
+PACKAGES+=(kmod-zram zram-swap)                    #zram swap
 
 dialog() {
     local title="${1}"
@@ -425,20 +424,23 @@ id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
-        PACKAGES+=" block-mount kmod-usb-storage kmod-usb-storage-uas kmod-usb3" #usb storage
-        PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
-        PACKAGES+=" aria2 rsync"                            #other tools
+        PACKAGES_REMOVE+=(-swconfig -opkg)
+        PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
+        PACKAGES+=(kmod-fs-ext4 kmod-fs-exfat)    #vfat ext4 support
+        PACKAGES+=(kmod-tun socat)                            #other tools
         add_uci_default_automount_media "${DIRNAME}/mydir"
         ;;
     miwifi-mini) # Mini
-        PACKAGES+=" block-mount kmod-usb3 kmod-usb-storage-uas  kmod-usb-storage" #usb storage
-        PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
-        PACKAGES+=" aria2 rsync"                            #other tools
-        PACKAGES+=" kmod-fs-jfs kmod-fs-xfs"                #xfs jfs support
-        PACKAGES+=" nfs-kernel-server nfs-kernel-server-utils" #NFS
-        PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
-        PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth relayd"
-        PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
+        PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
+        PACKAGES+=(kmod-wireguard wireguard-tools)         #wireguard
+        PACKAGES+=(block-mount kmod-usb3 kmod-usb-storage-uas  kmod-usb-storage) #usb storage
+        PACKAGES+=(kmod-fs-ext4 kmod-fs-vfat e2fsprogs)    #vfat ext4 support
+        PACKAGES+=(aria2 rsync)                            #other tools
+        PACKAGES+=(kmod-fs-jfs kmod-fs-xfs)                #xfs jfs support
+        PACKAGES+=(nfs-kernel-server nfs-kernel-server-utils) #NFS
+        PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
+        PACKAGES+=(eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth relayd)
+        PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
@@ -446,33 +448,33 @@ case "$id" in
         mkdir -p "${DIRNAME}/mydir/etc/sysctl.d" && add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
         ;;
     xiaomi_mir4a-100m) # R4AC
-        PACKAGES+=" aria2 rsync"                            #other tools
-        PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
-        PACKAGES+=" jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils"
-        PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
+        PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
+        PACKAGES+=(kmod-wireguard wireguard-tools)         #wireguard
+        PACKAGES+=(aria2 rsync)                            #other tools
+        PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
+        PACKAGES+=(jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils)
+        PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     *)  echo "Unexpected option $id"; exit 1;;
 esac
-
-PACKAGES+=${PACKAGES_REMOVE}
-
+PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
 # mydir/etc/ssh/sshd_config
 # #change 192.168.1.1 => 192.168.31.1
 # mydir/bin/config_generate
-add_demo "${DIRNAME}/mydir/root/demo"
+# add_demo "${DIRNAME}/mydir/root/demo"
 add_shell_ps1 "${DIRNAME}/mydir"
 
 rm ./out/* -f
 
 echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
 echo "BIN_DIR=${DIRNAME}/out/"
-echo "PACKAGES=${PACKAGES}"
+echo "PACKAGES=${PKG}"
 find "${DIRNAME}/mydir" -type f 2>/dev/null  | sed "s|${DIRNAME}/||g" | xargs -I@ echo "Add File: [@]"
 
 make image PROFILE="${id}" \
-PACKAGES="${PACKAGES}" \
+PACKAGES="${PKG}" \
 BIN_DIR="${DIRNAME}/out/" \
 FILES="${DIRNAME}/mydir" \
 DISABLED_SERVICES="${DISABLED_SERVICES:-}"
