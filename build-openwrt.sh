@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a174a2ad[2025-07-14T16:31:45+08:00]:build-openwrt.sh")
+VERSION+=("7aca2c95[2025-12-01T13:04:01+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -313,6 +313,19 @@ uci set network.wan.username='xx'
 uci set network.wan.password='****'
 uci commit
 ifup wan
+
+# # /etc/config/wireless
+config wifi-iface 'default_radio0'
+        option device 'radio0'
+        option network 'lan'
+        option mode 'ap'
+        option ssid 'openwrt'
+        option encryption 'psk2+tkip+aes'
+        option key '88888888'
+        # option mode 'sta'
+        # option ssid 'openwrt'
+        # option encryption 'psk2'
+        # option key '88888888'
 EOF
 }
 
@@ -470,6 +483,9 @@ ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.
     # ip a a 192.168.1.2/24 dev eth0
     nc -ul 6666 #push reset, then poweron keep push 10sec
     # U-Boot 1.1.4  (Apr 22 2013)
+firstboot && reboot now # reset factory
+scp firmware.bin root@192.168.168.254:/tmp/
+sysupgrade -v /tmp/firmware.bin
 EOF
 #  Remove useless files from firmware
 #  
