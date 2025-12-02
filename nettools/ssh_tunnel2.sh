@@ -7,14 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1676cbce[2025-11-13T14:55:54+08:00]:ssh_tunnel2.sh")
+VERSION+=("56952005[2025-11-14T08:46:14+08:00]:ssh_tunnel2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
-SSH_OPTS="-F none -o StrictHostKeyChecking=no -o UpdateHostKeys=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no"
+SSH_OPTS="-F none -o StrictHostKeyChecking=no -o UpdateHostKeys=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no ${SSH_OPTS:-}"
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
+    env: SSH_OPTS
         -L|--local   <str>     LOCAL_BRIDGE
         -R|--remote  <str>     REMOTE_BRIDGE
         -s|--ssh      *        SSH_CONNECTION user@host | host
