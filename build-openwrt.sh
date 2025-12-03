@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9a9d2bb8[2025-12-03T08:29:12+08:00]:build-openwrt.sh")
+VERSION+=("737c95a7[2025-12-03T08:44:13+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -200,10 +200,10 @@ add_uci_default_automount_media() {
     if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
         mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     fi
-#     cat << EOF > "${rootfs}/etc/uci-defaults/00-network"
-# uci set network.lan.ipaddr=192.168.168.254
-# uci set network.lan.netmask=255.255.255.0
-# EOF
+    cat << EOF > "${rootfs}/etc/uci-defaults/00-network"
+uci set network.lan.ipaddr=192.168.31.1
+uci set network.lan.netmask=255.255.255.0
+EOF
     cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
 uci set fstab.@global[0].auto_mount=1
 uci add fstab mount
@@ -495,6 +495,7 @@ make image PROFILE="${id}" \
 PACKAGES="${PKG}" \
 BIN_DIR="${DIRNAME}/out/" \
 FILES="${DIRNAME}/mydir" \
+FILES_REMOVE="${DIRNAME}/files_remove" \
 DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
 cat <<EOF
