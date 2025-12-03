@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1bc991b0[2025-12-02T14:09:15+08:00]:build-openwrt.sh")
+VERSION+=("9a9d2bb8[2025-12-03T08:29:12+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -200,6 +200,10 @@ add_uci_default_automount_media() {
     if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
         mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     fi
+#     cat << EOF > "${rootfs}/etc/uci-defaults/00-network"
+# uci set network.lan.ipaddr=192.168.168.254
+# uci set network.lan.netmask=255.255.255.0
+# EOF
     cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
 uci set fstab.@global[0].auto_mount=1
 uci add fstab mount
