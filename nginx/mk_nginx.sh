@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("42a746f6[2025-11-26T16:13:19+08:00]:mk_nginx.sh")
+VERSION+=("59638f11[2025-11-27T11:10:15+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -27,6 +27,7 @@ stage_level=${stage[${1:-doall}]}
 set -o nounset
 mydesc=""
 ##OPTION_START##
+## njs quickjs(trixie), apt -y install libquickjs && ln -s /usr/lib/x86_64-linux-gnu/quickjs /usr/lib/quickjs
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
 ## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
