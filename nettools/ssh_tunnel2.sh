@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("56952005[2025-11-14T08:46:14+08:00]:ssh_tunnel2.sh")
+VERSION+=("a559a380[2025-12-02T14:22:37+08:00]:ssh_tunnel2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -49,7 +49,7 @@ ssh_tunnel() {
     done;
     l_tap=sslvpn${l_tap}
     local l_cmd="socat TUN${l_ip:+:${l_ip}},tun-type=tap,tun-name=${l_tap},iff-up TCP-LISTEN:${trans_port},bind=127.0.0.1,reuseaddr& logger ok;${l_br:+sleep 1;ip link set dev ${l_tap} master ${l_br}}"
-    local r_cmd="socat TUN${r_ip:+:${r_ip}},tun-type=tap,tun-name=${r_tap},iff-up TCP:127.0.0.1:${trans_port}& logger ok;${r_br:+sleep 1;ip link set dev ${r_tap} master ${r_br}}"
+    local r_cmd="socat TUN${r_ip:+:${r_ip}},tun-type=tap,tun-name=${r_tap},iff-up TCP:127.0.0.1:${trans_port}& logger ok;${r_br:+sleep 1;ip link set ${r_tap} up;ip link set dev ${r_tap} master ${r_br} || brctl addif ${r_br} ${r_tap}}"
     systemctl reset-failed sslvpn 2>/dev/null || true
     systemd-run --unit sslvpn \
         ssh ${SSH_OPTS} \
