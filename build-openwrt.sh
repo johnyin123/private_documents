@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("38953423[2025-12-02T10:51:36+08:00]:build-openwrt.sh")
+VERSION+=("1bc991b0[2025-12-02T14:09:15+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -313,11 +313,25 @@ uci set network.wan.password='****'
 uci commit
 ifup wan
 
+export devidx=0
+uci set wireless.default_radio${devidx}=wifi-iface
+uci set wireless.default_radio${devidx}.device=radio${devidx}
+uci set wireless.default_radio${devidx}.network=lan
+uci set wireless.default_radio${devidx}.mode=ap
+uci set wireless.default_radio${devidx}.ssid=LEDE
+uci set wireless.default_radio${devidx}.encryption=psk2+tkip+aes
+uci set wireless.default_radio${devidx}.key=88888888
+uci batch <<EO_CMD
+set wireless.default_radio${devidx}.hidden=1
+EO_CMD
+uci commit wireless
+
 # # /etc/config/wireless
 config wifi-iface 'default_radio0'
         option device 'radio0'
         option network 'lan'
         option mode 'ap'
+        option hidden 1
         option ssid 'openwrt'
         option encryption 'psk2+tkip+aes'
         option key '88888888'
