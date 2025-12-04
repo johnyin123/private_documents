@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c8bcebe0[2025-12-03T11:09:59+08:00]:mk_nginx.sh")
+VERSION+=("010075e2[2025-12-03T12:21:35+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -71,13 +71,6 @@ show_option() {
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
         eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
     done
-    cat <<'EOF'
-# # Remove the Server header in NGINX
-sed -i 's@"nginx/"@"-/"@g' src/core/nginx.h
-sed -i 's@r->headers_out.server == NULL@0@g' src/http/ngx_http_header_filter_module.c
-sed -i 's@r->headers_out.server == NULL@0@g' src/http/v2/ngx_http_v2_filter_module.c
-sed -i 's@<hr><center>nginx</center>@@g' src/http/ngx_http_special_response.c
-EOF
 }
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 opt_enable() { [ "1" == "${1:-y}" ]; }
