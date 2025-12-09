@@ -33,6 +33,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
     libvirt-daemon-lock libvirt-daemon-log \\
     libvirt-daemon-driver-qemu libvirt-daemon-driver-storage-rbd \\
     libvirt-daemon-system ${PKGS[${arch}]} \\
+    qemu-system-modules-opengl qemu-system-modules-spice \\
     qemu-block-extra qemu-utils \\
     iproute2 bridge-utils
     # curl
