@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a3dba3de[2025-10-23T09:59:48+08:00]:os_debian_init.sh")
+VERSION+=("e6f0dd64[2025-11-21T14:45:28+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -660,6 +660,7 @@ debian_locale_init() {
     #echo "Asia/Shanghai" > /etc/timezone
     rm -f /etc/localtime && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
     dpkg-reconfigure -f noninteractive tzdata
+    echo 'timedatectl timesync-status'
 }
 export -f debian_locale_init
 
