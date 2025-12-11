@@ -169,7 +169,7 @@
     <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
       <table>
       <tr>
-        <th class="truncate">URL</th>
+        <th class="truncate">Panel URL</th>
         <td colspan="3" class="truncate"><a target="_blank" href='#' title="Open Control Panel" id="url"/></a></td>
       </tr>
       </table>
