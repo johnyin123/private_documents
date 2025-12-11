@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("67b3b69[2023-05-12T17:15:27+08:00]:init_bind.sh")
+VERSION+=("d5577198[2023-05-17T07:48:31+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -149,6 +149,16 @@ init_bind() {
         /etc/bind/named.conf
     backup /etc/bind/named.conf.options
     cat <<EOF |tee ${LOGFILE}| tee /etc/bind/named.conf.options
+// // # DoH
+// //# openssl dhparam -out /etc/bind/dhparam.pem 3072
+// tls local-tls {
+//     key-file "/etc/bind/privkey.pem";
+//     cert-file "/etc/bind/fullchain.pem";
+//     dhparam-file "/etc/bind/dhparam.pem";
+// };
+// http local {
+//     endpoints { "/dns-query"; };
+// };
 options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
@@ -166,6 +176,10 @@ options {
     // dnssec-enable yes;
     dnssec-validation yes;
     // dnssec-lookaside auto;
+    // // # DoH
+    // dnssec-validation auto;
+    // listen-on tls local-tls http local { any; };
+    // listen-on-v6 tls local-tls http local { any; };
 };
 EOF
     [ -e "${acl_lan_file}" ] || gen_aclview "${lan_addr}" "net_lan" >> ${acl_lan_file}
@@ -234,6 +248,7 @@ ${SCRIPTNAME}
         # named-checkconf, check named config
         # rndc reload, reload named config when add A/CNAME record
         # dig -x <ipaddr>, dig <domain>, dig sample.org MX, dig txt mail.sample.org, dig txt mail.sample.org +short
+        # dig +https @127.0.0.1 ....
     Set BIND to use only IPv4: sed -i -e 's/OPTIONS=.*/OPTIONS="-u bind -4"/g' /etc/default/named
     use dnsperf test performance
 EOF
