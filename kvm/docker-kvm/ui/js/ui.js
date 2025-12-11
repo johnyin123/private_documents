@@ -135,14 +135,14 @@ function manage_vm(kvmhost, uuid) {
     var btn = genActBtn(true, 'Show XML', 'fa-commenting', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-share-alt', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
     if(result.guest.state === 'RUNNING') {
-      btn += genActBtn(true, 'Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
-      btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'VM Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'VM Display', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Reset VM', 'fa-registered', 'reset', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.guest.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play-circle', 'start', kvmhost, {'uuid':result.guest.uuid});
-      btn += genActBtn(true, 'Undefine', 'fa-recycle', 'undefine', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Undefine VM', 'fa-recycle', 'undefine', kvmhost, {'uuid':result.guest.uuid});
     }
     btn += genActBtn(true, 'Add CDROM', 'fa-folder-open' , 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-sitemap', 'add_net', kvmhost, {'uuid':result.guest.uuid});
@@ -165,7 +165,7 @@ function show_vms(kvmhost, vms) {
       btn += genActBtn(true, 'VM IPAddress', 'fa-at', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play-circle', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
-      btn += genActBtn(true, 'Undefine', 'fa-recycle', 'undefine', kvmhost, {'uuid':item.uuid});
+      btn += genActBtn(true, 'Undefine VM', 'fa-recycle', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-ellipsis-h', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const title = item.state == "RUNNING" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
