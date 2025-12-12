@@ -979,7 +979,16 @@ window.addEventListener('load', function() {
   const btn = document.getElementById("refresh_token");
   if (cookie_exists("token") == true) {
     const user = userinfo();
-    btn.innerHTML = `[${user.username || "N/A USER"}]`;
+    let countdownTime = user.exp - Math.floor(Date.now() / 1000)
+    btn.innerHTML = `[${user.username || "N/A USER"}<${countdownTime}>]`;
+    const countdownInterval = setInterval(() => {
+      countdownTime--;
+      btn.innerHTML = `[${user.username || "N/A USER"}<${countdownTime}>]`;
+      if (countdownTime <= 0) {
+        clearInterval(countdownInterval);
+        window.location.reload();
+      }
+    }, 1000);
     btn.addEventListener("click", () => {
       getjson('GET', '/api/refresh', function(resp) {
         const result = JSON.parse(resp);
@@ -987,6 +996,7 @@ window.addEventListener('load', function() {
           console.error(resp); return;
         };
         set_cookie('token', result.token, result.expires);
+        countdownTime = result.expires;
       });
     });
   } else { btn.style.display = 'none'; }
