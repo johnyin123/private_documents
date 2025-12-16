@@ -101,7 +101,6 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
-        proxy_set_header Connection "";
         proxy_pass https://user_api_upstream;
     }
 }
@@ -123,7 +122,6 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
-        proxy_set_header Connection "";
         proxy_pass https://api_upstream;
     }
 }
