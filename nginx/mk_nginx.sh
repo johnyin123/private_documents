@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("98c356dd[2025-12-04T09:38:06+08:00]:mk_nginx.sh")
+VERSION+=("ad558b91[2025-12-11T08:32:05+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -622,7 +622,7 @@ map $status $log_err {
 # default buffer size is equal to 64K bytes
 access_log /var/log/nginx/access_err.log main buffer=512k flush=5m if=$log_err;
 access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
-# # Send logs to Logstash, can both local file and syslog
+# # Send logs to Logstash, can both local file and syslog, syslog:server=unix:/dev/log
 # access_log syslog:server=logstash:5140,tag=ngx_access json;
 # error_log syslog:server=logstash:5140,tag=ngx_error error;
 # # access_log filename by http_host or status
