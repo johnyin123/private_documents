@@ -39,9 +39,8 @@ mkdir -p /usr/lib/systemd/system/ && cat > /usr/lib/systemd/system/docker.servic
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
-After=network-online.target docker.socket firewalld.service containerd.service time-set.target
+After=network-online.target firewalld.service containerd.service time-set.target
 Wants=network-online.target containerd.service
-Requires=docker.socket
 
 [Service]
 Type=notify
@@ -49,7 +48,7 @@ Type=notify
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
 EnvironmentFile=-/etc/default/docker
-ExecStart=/usr/sbin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock $DOCKER_OPTS
+ExecStart=/usr/sbin/dockerd
 ExecReload=/bin/kill -s HUP $MAINPID
 TimeoutStartSec=0
 RestartSec=2
@@ -84,6 +83,48 @@ OOMScoreAdjust=-500
 WantedBy=multi-user.target
 EOF
 
+cat <<'EOF' > /usr/lib/systemd/system/containerd.service
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target local-fs.target dbus.service
+
+[Service]
+#uncomment to enable the experimental sbservice (sandboxed) version of containerd/cri integration
+#Environment="ENABLE_CRI_SANDBOXES=sandboxed"
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/bin/containerd
+
+Type=notify
+Delegate=yes
+KillMode=process
+Restart=always
+RestartSec=5
+# Having non-zero Limit*s causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+LimitNPROC=infinity
+LimitCORE=infinity
+LimitNOFILE=infinity
+# Comment TasksMax if your systemd version does not supports it.
+# Only systemd 226 and above support this version.
+TasksMax=infinity
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target
+EOF
+# "data-root": "/docker",
+cat <<'EOF' > /etc/docker/daemon.json
+{
+  "insecure-registries": [ "quay.io", "registry.local" ],
+  "debug": true,
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "storage-driver": "overlay2",
+  "bridge": "none",
+  "ip-forward": false,
+  "iptables": false
+}
+EOF
 dependent_install(){
     echo '
     apt -y install bash-completion wget iptables
