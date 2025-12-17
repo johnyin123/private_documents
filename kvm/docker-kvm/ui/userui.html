@@ -251,8 +251,12 @@ window.onload = function() {
     token.value = decodeURLSafeBase64(strtoken);
     const btn = document.getElementById("panel_info");
     const urlParams = new URLSearchParams(token.value);
+    const millisecondsInDay = 86400000;
     const expire = new Date(urlParams.get('e') * 1000);
-    btn.innerHTML = expire.toISOString();
+    const diff = expire - Date.now();
+    const days = Math.ceil(diff / millisecondsInDay); //Rounds up
+    btn.innerHTML = `${days}days expired`;
+    //btn.innerHTML = expire.toISOString();
     info();
   }
 }
