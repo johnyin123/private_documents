@@ -15,6 +15,7 @@
     <div class="left_area">Simple<span>KVM&nbsp;Control&nbsp;Panel</span></div>
     <div class="right_area">
       <input type="hidden" id="token"/>
+      <i class="fa header_btn" id="panel_info"></i>
     </div>
   </div>
   <div class="sidebar">
@@ -248,6 +249,10 @@ window.onload = function() {
     //strtoken = prompt("Please enter token:", "");
   } else {
     token.value = decodeURLSafeBase64(strtoken);
+    const btn = document.getElementById("panel_info");
+    const urlParams = new URLSearchParams(token.value);
+    const expire = new Date(urlParams.get('e') * 1000);
+    btn.innerHTML = expire.toISOString();
     info();
   }
 }
