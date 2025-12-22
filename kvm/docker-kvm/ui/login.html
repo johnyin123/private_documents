@@ -77,14 +77,20 @@ function SetCookieWithExpire(name, value, secs) {
   document.cookie = `${name}=${value}; ${expires}; path=/`;
 }
 function SetCrossSubdomainCookie(name, value, secs) {
+  function isDomainName(hostname) {
+    return /[a-z]/i.test(hostname);
+  }
   var expires = "";
   if (secs) {
     var date = new Date();
     date.setTime(date.getTime() + (secs * 1000));
     expires = "; expires=" + date.toUTCString();
   }
-  var domainName = document.domain.match(/[^.]*\.[^.]*$/)[0];
-  document.cookie = name + "=" + encodeURIComponent(value) + expires + "; domain=" + domainName + "; path=/; SameSite=Lax; Secure";
+  var domainName = "";
+  if (isDomainName(document.domain)) {
+    domainName = "; domain=" + document.domain.match(/[^.]*\.[^.]*$/)[0];
+  }
+  document.cookie = name + "=" + encodeURIComponent(value) + expires + domainName + "; path=/; SameSite=Lax; Secure";
 }
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
@@ -97,7 +103,7 @@ form.addEventListener("submit", function(ev) {
   if (!resp.ok) { return resp.text().then(text => { throw new Error("code:"+resp.status+",msg:"+text); }); }
   return resp.json();
  }).then(res => {
-  SetCookieWithExpire('token', res.token, res.expires)
+  SetCrossSubdomainCookie('token', res.token, res.expires);
   if (caller.length === 0) { caller="/"; }
   location.href=caller;
   return;

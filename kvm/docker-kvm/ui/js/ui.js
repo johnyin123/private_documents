@@ -940,11 +940,20 @@ function load_conf(bypass='') {
 }
 /* ------------------------- */
 function set_cookie(name, value, secs) {
-  const date = new Date();
-  date.setTime(date.getTime() + (secs * 1000));
-  const expires = "expires=" + date.toUTCString();
-  document.cookie = `${name}=${value}; ${expires}; path=/`;
-  //; domain=example.com" //the cookie is valid for example.com and its subdomains
+  function isDomainName(hostname) {
+    return /[a-z]/i.test(hostname);
+  }
+  var expires = "";
+  if (secs) {
+    var date = new Date();
+    date.setTime(date.getTime() + (secs * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  var domainName = "";
+  if (isDomainName(document.domain)) {
+    domainName = "; domain=" + document.domain.match(/[^.]*\.[^.]*$/)[0];
+  }
+  document.cookie = name + "=" + encodeURIComponent(value) + expires + domainName + "; path=/; SameSite=Lax; Secure";
 }
 function cookie_exists(name) {
   const allCookies = document.cookie;
