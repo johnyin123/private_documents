@@ -76,6 +76,16 @@ function SetCookieWithExpire(name, value, secs) {
   const expires = "expires=" + date.toUTCString();
   document.cookie = `${name}=${value}; ${expires}; path=/`;
 }
+function SetCrossSubdomainCookie(name, value, secs) {
+  var expires = "";
+  if (secs) {
+    var date = new Date();
+    date.setTime(date.getTime() + (secs * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  var domainName = document.domain.match(/[^.]*\.[^.]*$/)[0];
+  document.cookie = name + "=" + encodeURIComponent(value) + expires + "; domain=" + domainName + "; path=/; SameSite=Lax; Secure";
+}
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
 var caller = GetURLParameter("return_url");
