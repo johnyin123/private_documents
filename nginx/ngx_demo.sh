@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6d0269ac[2025-11-21T14:10:30+08:00]:ngx_demo.sh")
+VERSION+=("a04103cc[2025-12-05T08:07:00+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -5582,9 +5582,6 @@ variables_hash_bucket_size 256;
 log_not_found on;
 # # Enables or disables logging of subrequests into access_log
 log_subrequest on;
-
-# the same as proxy_add_header. These directives are inherited from the previous configuration level if and only if there are no add_header directives defined on the current level
-add_header Set-Cookie "Path=/; HttpOnly; Secure";
 
 # return 301:/test/
 absolute_redirect off;
