@@ -95,6 +95,10 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     location / {
+        alias /var/www/;
+        try_files $uri @proxy;
+    }
+    location @proxy {
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
@@ -116,6 +120,10 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     location / {
+        alias /var/www/;
+        try_files $uri @proxy;
+    }
+    location @proxy {
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
