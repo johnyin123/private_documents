@@ -17,8 +17,6 @@ class UpdatedJSONProvider(DefaultJSONProvider):
     def default(self, o):
         if isinstance(o, date) or isinstance(o, datetime):
             return o.isoformat()
-        # if o is None:
-        #     return ""  # Convert None to an empty string
         return super().default(o)
 
 def create_app(config: dict=None, json: bool=False)->flask.Flask:
