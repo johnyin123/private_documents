@@ -245,10 +245,10 @@ def file_remove(fn:str)-> None:
         pass
 
 def return_ok(desc:str, **kwargs)->str:
-    return json.dumps({'result':'OK','desc':desc, **kwargs}, default=str)
+    return json.dumps({'result':'OK','desc':desc, **kwargs}, default=str, ensure_ascii=False)
 
 def return_err(code:int, name:str, desc:str)->str:
-    return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc}, default=str)
+    return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc}, default=str, ensure_ascii=False)
 
 def deal_except(who:str, e:Exception) -> str:
     except_map = { libvirt.libvirtError: 996, APIException: 997 }

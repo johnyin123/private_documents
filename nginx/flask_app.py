@@ -44,7 +44,7 @@ def corsify_actual_response(response:flask.Response)->flask.Response:
 
 def json_handle_error(e):
     response = e.get_response()
-    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
+    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, }, ensure_ascii=False)
     response.content_type = 'application/json'
     return corsify_actual_response(response)
 
