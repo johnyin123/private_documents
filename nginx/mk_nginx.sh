@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4e132e89[2025-12-23T09:16:43+08:00]:mk_nginx.sh")
+VERSION+=("317235ea[2025-12-29T14:03:50+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -45,7 +45,7 @@ STRIP=${STRIP-"1"}
 PKG=${PKG:-""}
 # modules selection default NO select, http2_chunk_size 128k, when ktls performance good than 8k
 HTTP2=${HTTP2-"1"}
-HTTP3=${HTTP3:-""}
+HTTP3=${HTTP3:-"1"}
 STREAM_QUIC=${STREAM_QUIC:-""}
 #patch need
 PROXY_CONNECT=${PROXY_CONNECT-"1"}
