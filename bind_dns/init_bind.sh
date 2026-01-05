@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d5577198[2023-05-17T07:48:31+08:00]:init_bind.sh")
+VERSION+=("376d291b[2025-12-11T09:18:13+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -176,7 +176,7 @@ options {
     // dnssec-enable yes;
     dnssec-validation yes;
     // dnssec-lookaside auto;
-    // // # DoH
+    // // # DoH, BIND 9 versions (9.19+)
     // dnssec-validation auto;
     // listen-on tls local-tls http local { any; };
     // listen-on-v6 tls local-tls http local { any; };
