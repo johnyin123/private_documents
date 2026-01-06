@@ -130,9 +130,9 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_iso', f'blank str!')
                 logger.debug(f'add iso {entry}')
-                exists, size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                exists, size = utils.http_file_exists(f'http://{config.META_SRV}{entry["uri"]}')
                 if not exists:
-                    return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
+                    return utils.return_err(404, 'add iso', f'http://{config.META_SRV}{entry["uri"]} No Found')
                 get_iso().delete(name=entry['name'])
                 get_iso().insert(**entry)
                 name = req_json['name']
@@ -273,7 +273,7 @@ class MyApp(object):
 
     def tpl_iso(self):
         try:
-            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.GOLD_SRV)
+            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.META_SRV)
         except Exception as e:
             return utils.deal_except(f'tpl_iso', e), 400
 
