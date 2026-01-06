@@ -273,7 +273,7 @@ class MyApp(object):
 
     def tpl_iso(self):
         try:
-            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.META_SRV)
+            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.GOLD_SRV)
         except Exception as e:
             return utils.deal_except(f'tpl_iso', e), 400
 
