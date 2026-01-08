@@ -995,6 +995,8 @@ window.addEventListener('load', function() {
       btn.innerHTML = `[${user.username || "N/A USER"}<${countdownTime}>]`;
       if (countdownTime <= 0) {
         clearInterval(countdownInterval);
+        //sleep
+        new Promise(r => setTimeout(r, 5000));
         window.location.reload();
       }
     }, 1000);
