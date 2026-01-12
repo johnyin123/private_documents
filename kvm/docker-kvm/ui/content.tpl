@@ -207,7 +207,7 @@
       <button title="Close" onclick="showView('manage_vm')">&times;</button>
     </div>
     <form onSubmit="return on_changeiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>ISO:<select name="isoname" id="isoname_list" required></select></label>
+      <label>ISO:<select name="isoname" id="isoname_list"></select></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Submit"/>
