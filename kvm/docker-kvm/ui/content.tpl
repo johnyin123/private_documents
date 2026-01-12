@@ -389,13 +389,13 @@
               <option value="vnc">VNC</option>
               <option value="spice">SPICE</option>
             </select></label>
-            <label>Video Card:<select name="vm_video" title="video card" required>
+            <label>Video:<select name="vm_video" title="video card" required>
               <option value="vga" selected>vga</option>
               <option value="qxl">qxl</option>
               <option value="virtio">virtio</option>
               <option value="cirrus">cirrus</option>
             </select></label>
-            <label>Sound Card:<select name="vm_sound" title="sound card" required>
+            <label>Sound:<select name="vm_sound" title="sound card" required>
               <option value="ac97" selected>ac97</option>
               <option value="ich6">ich6</option>
               <option value="sb16">sb16</option>
