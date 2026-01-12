@@ -395,6 +395,12 @@
               <option value="virtio">virtio</option>
               <option value="cirrus">cirrus</option>
             </select></label>
+            <label>Sound Card:<select name="vm_sound" title="sound card" required>
+              <option value="ac97" selected>ac97</option>
+              <option value="ich6">ich6</option>
+              <option value="sb16">sb16</option>
+              <option value="es1370">es1370</option>
+            </select></label>
           </div>
           <label style="font-weight: normal;"><input type="checkbox" name="vm_rng" value="no" />Remove RNG Random Device</label>
           <!--<label><input type="radio" name="vm_rng" value="yes" checked />Yes</label><label><input type="radio" name="vm_rng" value="no" />No</label>-->
