@@ -21,7 +21,7 @@
   "vm_uefi":"uefi file, x86 default bios,(/usr/share/qemu/OVMF.fd)/aarch64 default(/usr/share/AAVMF/AAVMF_CODE.fd)",
   "vm_uefi_secure":"vm uefi secure(yes/no), default no",
   "vm_video":"vga/qxl/virtio/cirrus, default vga",
-  "vm_sound":"es1370/sb16/ac97/ich6, default ac97",
+  "vm_sound":"es1370/sb16/ac97/ich6, default ac97(xp/2003) ich6 win7 above",
   "vm_rng":"'no' mean no rng virtio random device, default nodefine",
   "vm_graph":"spice/vnc, default console mode no graph",
   "vm_vcpus":"vm numof cpus",
