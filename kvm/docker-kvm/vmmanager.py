@@ -127,6 +127,7 @@ def change_media(uuid:str, dev:str, isofile:str, bus:str, protocol:str, srv_addr
     if not isofile: # None or empty
         isofile=f'/{uuid}/cidata.iso'
     return f'<disk type="network" device="cdrom"><driver name="qemu" type="raw"/><source protocol="{protocol}" name="{isofile}"><host name="{srv_addr}" port="{srv_port}"/><ssl verify="no"/></source><target dev="{dev}" bus="{bus}"/><readonly/></disk>'
+    # <readahead size='65536'/><timeout seconds='6'/></source>
 
 def libvirt_callback(ctx, err):
     pass
