@@ -81,6 +81,7 @@ server {
     listen 80;
     server_name simplekvm.registry.local;
     proxy_cache off;
+    # access_log off;
     location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { proxy_pass http://cidata_srv; }
     location / { autoindex on; autoindex_format json; set $limit 0; if_modified_since before; alias /home/johnyin/vmmgr/gold/; }
 }
