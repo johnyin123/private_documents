@@ -29,6 +29,7 @@ include $(INCFILE)
 # make.inc -->
 # EXE=ffff
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
+# LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
 # LIBFLAGS+=-lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl` 
 # LDFLAGS+=#-static #-Wl,-Bstatic -lxxx -Wl,-Bdynamic
 # LDFLAGS+=#-shared -Wl,-Bstatic -lxxx -Wl,-Bdynamic # must -fPIC compile xxx lib, when .so
