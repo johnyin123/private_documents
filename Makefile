@@ -28,6 +28,8 @@ ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
 # EXE=ffff
+# # define EXPORT_API __attribute__((visibility("default")))
+# CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
 # LIBFLAGS+=-lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl` 
