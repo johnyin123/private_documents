@@ -14,16 +14,15 @@ PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=fre
 DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
 CC          := $(CROSS_COMPILE)gcc -std=c99
 STRIP       := $(CROSS_COMPILE)strip
-AR          := $(CROSS_COMPILE)ar
 RM          := rm -f
 
 DEBUG_FLAG+=-Wall
 
-INCFILE=make.inc
+INCFILE     = make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
-# EXE?=ffff # env EXE first
+# EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
 # CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
@@ -62,11 +61,10 @@ all: $(EXE)
 
 $(EXE): $(OBJ) 
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
-	$(AR) cr $(EXE).a $(OBJ)
 
 .PHONY : clean
 clean:
-	-$(RM) $(OBJ) $(EXE) $(EXE).a $(DOCX)
+	-$(RM) $(OBJ) $(EXE) $(DOCX)
 
 run:
 	@echo run $(filter-out $@,$(MAKECMDGOALS))
