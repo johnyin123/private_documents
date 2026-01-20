@@ -19,6 +19,7 @@ PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=fre
 DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
 CC          := $(CROSS_COMPILE)gcc -std=c99
 STRIP       := $(CROSS_COMPILE)strip
+AR          := $(CROSS_COMPILE)ar
 RM          := rm -f
 
 DEBUG_FLAG+=-Wall
@@ -64,10 +65,11 @@ all: $(EXE)
 
 $(EXE): $(OBJ) 
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
+	$(AR) cr $(EXE).a $(OBJ)
 
 .PHONY : clean
 clean:
-	-$(RM) $(OBJ) $(EXE) $(DOCX)
+	-$(RM) $(OBJ) $(EXE) $(EXE).a $(DOCX)
 
 run:
 	@echo run $(filter-out $@,$(MAKECMDGOALS))
