@@ -24,6 +24,7 @@ include $(INCFILE)
 # make.inc -->
 # EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
+# # objdump -T libmyutils.so
 # CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
