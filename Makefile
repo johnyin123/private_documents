@@ -5,7 +5,7 @@
 # CPP_SOURCES     = $(filter-out %.c, $(SOURCES)) 
 # HDR=$(shell find . -name "*.h")
 
-UUID:=$(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
+UUID        := $(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
 GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
 GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
 GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
@@ -16,9 +16,9 @@ CC          := $(CROSS_COMPILE)gcc -std=c99
 STRIP       := $(CROSS_COMPILE)strip
 RM          := rm -f
 
-DEBUG_FLAG+=-Wall
+DEBUG_FLAG  += -Wall
 
-INCFILE     = make.inc
+INCFILE      = make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
