@@ -28,7 +28,7 @@ include $(INCFILE)
 # CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
-# LIBFLAGS+=-lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl` 
+# LIBFLAGS+=-l:test.so -lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl`
 # LDFLAGS+=#-static #-Wl,-Bstatic -lxxx -Wl,-Bdynamic
 # LDFLAGS+=#-shared -Wl,-Bstatic -lxxx -Wl,-Bdynamic # must -fPIC compile xxx lib, when .so
 # gcc -lsome_dynamic_lib code.c some_static_lib.a
