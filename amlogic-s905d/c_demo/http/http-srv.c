@@ -1,4 +1,4 @@
-#include "http-parsing.h"
+#include "http-srv.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +25,12 @@ int main(const int argc, char const* argv[]) {
         perror("In socket");
         exit(EXIT_FAILURE);
     }
+    //int opt = 1;
+    //if(setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0)
+    //{
+    //    perror("setsockopt");
+    //    exit(EXIT_FAILURE);
+    //}
     if (bind(srv_sock, (struct sockaddr*) &address, sizeof(address)) < 0) {
         perror("In bind");
         exit(EXIT_FAILURE);
