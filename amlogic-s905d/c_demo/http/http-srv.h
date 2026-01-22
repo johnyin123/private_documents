@@ -16,20 +16,14 @@ extern "C" {
 
 #define MAX_REQUEST_LEN 0x400
 
-// Only works with string literals
-#define MATCHES(runtime_str, len, static_str)                   \
-        ((runtime_str) != NULL &&                               \
-         strnlen(runtime_str, len) == sizeof(static_str) - 1 && \
-         strncmp((runtime_str), (static_str), sizeof(static_str) - 1) == 0)
-
-enum t_http_method { UNKNOWN = 0, GET = 1, POST = 2 };
-enum t_mime_type { JSON = 0, PLAIN_TEXT = 1 };
-struct t_response {
+enum method_t { UNKNOWN = 0, GET = 1, POST = 2 };
+enum mine_t { JSON = 0, PLAIN_TEXT = 1 };
+struct response_t {
     unsigned int status;
-    enum t_mime_type mime;
+    enum mine_t mime;
     size_t bodyContentLen;
     time_t time;
-    const char* body;
+    char* body;
 };
 
 #include <stdio.h>
@@ -37,7 +31,12 @@ struct t_response {
 
 #define SRV_INFO "Server: inner"
 
-static inline enum t_http_method getHttpMethod(const char* request) {
+static inline enum method_t getHttpMethod(const char* request) {
+// Only works with string literals
+#define MATCHES(runtime_str, len, static_str)                   \
+        ((runtime_str) != NULL &&                               \
+         strnlen(runtime_str, len) == sizeof(static_str) - 1 && \
+         strncmp((runtime_str), (static_str), sizeof(static_str) - 1) == 0)
     const char* firstSpace = strchr(request, ' ');
     if (firstSpace == NULL) { return UNKNOWN; }
     const size_t len = (size_t)(firstSpace - request);
@@ -70,7 +69,7 @@ static inline const char* getHttpUri(const char* request) {
     return dest;
 }
 
-static inline void createResponse(struct t_response response, char* dest, size_t destLen) {
+static inline void createResponse(struct response_t response, char* dest, size_t destLen) {
     const char* statusLine = "HTTP/1.1 500 Internal Server Error";
     switch (response.status) {
         case 200:
