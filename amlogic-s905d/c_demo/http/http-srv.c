@@ -48,21 +48,24 @@ static void do_test(const char *req, struct response_t *res) {
     res->bodyContentLen = strnlen(res->body, MAX_BODY_SIZE);
     return;
 }
+int create_tcp_server(const char *addr, int port) {
+    int srv_sock;
+    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
+    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, BACKLOG_SIZE) == -1) {
+        close(srv_sock);
+        return -1;
+    }
+    return srv_sock;
+}
 int main(const int argc, char const* argv[]) {
-    struct sockaddr_in addr = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr("127.0.0.1")/*INADDR_ANY*/, .sin_port = htons(HTTP_PORT) };
+    struct sockaddr_in addr;
     int addrlen = sizeof(addr);
     int srv_sock, cli_sock;
     debugln("Listen port %d\n", HTTP_PORT);
-    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("In socket");
-        exit(EXIT_FAILURE);
-    }
-    if (bind(srv_sock, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
-        perror("In bind");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(srv_sock, BACKLOG_SIZE) < 0) {
-        perror("In listen");
+    if ((srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT)) == -1) {
+        perror("Create socket");
         exit(EXIT_FAILURE);
     }
     while (1) {
