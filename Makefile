@@ -18,7 +18,7 @@ RM          := rm -f
 
 DEBUG_FLAG  += -Wall
 
-INCFILE      = make.inc
+INCFILE     ?= make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
