@@ -14,8 +14,6 @@ extern "C" {
 #include <stddef.h>
 #include <time.h>
 
-#define MAX_REQUEST_LEN 0x400
-
 enum method_t { UNKNOWN = 0, GET, POST };
 enum mime_t { JSON = 0, PLAIN_TEXT };
 struct response_t {
@@ -52,22 +50,23 @@ static inline enum method_t http_method(const char *req, ssize_t req_len) {
         return POST;
     return UNKNOWN;
 }
-static inline const char *http_body(const char *req, ssize_t req_len) {
+static inline const char *http_body(const char *req, ssize_t req_len, size_t* body_len) {
     if (!req) return NULL;
     const char *p = memmem(req, req_len, "\r\n\r\n", 4);
     if (!p) return NULL;
-    req_len -= ((p - req) + 4);
-    p = memmem(req+4, req_len, "\n\n", 2);
-    if (!p) return NULL;
-    return p + 2;
+    *body_len = req_len - ((p - req) + 4);
+    if (*body_len > 0)
+        return p + 4;
+    return NULL;
 }
-static inline const char *http_uri(const char *req, ssize_t req_len) {
+static inline const char *http_uri(const char *req, ssize_t req_len, size_t* path_len) {
     if (!req) return NULL;
     const char *sp1 = memchr(req, ' ', req_len);
     if (!sp1) return NULL;
     req_len -= ((sp1 - req) + 1);
     const char *sp2 = memchr(sp1 + 1, ' ', req_len);
     if (!sp2) return NULL;
+    *path_len = sp2 - sp1 - 1;
     return sp1 + 1;
 }
 static inline const char *mime_str(enum mime_t m) {
