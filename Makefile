@@ -1,10 +1,3 @@
-# wildcard : 扩展通配符
-# notdir ： 去除路径
-# patsubst ：替换通配符
-# C_SOURCES       = $(filter     %.c, $(SOURCES)) 
-# CPP_SOURCES     = $(filter-out %.c, $(SOURCES)) 
-# HDR=$(shell find . -name "*.h")
-
 UUID        := $(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
 GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
 GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
@@ -22,6 +15,7 @@ INCFILE     ?= make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
+# # apt -y install gcc-mingw-w64-x86-64 ntldd
 # # make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
 # EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
@@ -59,7 +53,10 @@ OBJ=$(SRC:.c=.o)
 	$(PANDOCDOC) $< -o $@
 
 .PHONY : all
-all: $(EXE)
+all: $(EXE) strip
+
+strip: $(EXE)
+	$(STRIP) $(EXE)
 
 $(EXE): $(OBJ) 
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
@@ -316,4 +313,9 @@ help:
 	@echo "demo build rpm package: 1.make install DESTDIR=$(pwd)/bin/"
 	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xxxxx --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
 
-
+# wildcard : 扩展通配符
+# notdir ： 去除路径
+# patsubst ：替换通配符
+# C_SOURCES       = $(filter     %.c, $(SOURCES))
+# CPP_SOURCES     = $(filter-out %.c, $(SOURCES))
+# HDR=$(shell find . -name "*.h")
