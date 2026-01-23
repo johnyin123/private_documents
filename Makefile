@@ -31,6 +31,7 @@ include $(INCFILE)
 # LIBFLAGS+=-l:test.so -lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl`
 # LDFLAGS+=#-static #-Wl,-Bstatic -lxxx -Wl,-Bdynamic
 # LDFLAGS+=#-shared -Wl,-Bstatic -lxxx -Wl,-Bdynamic # must -fPIC compile xxx lib, when .so
+# LDFLAGS+=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
 # gcc -lsome_dynamic_lib code.c some_static_lib.a
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
