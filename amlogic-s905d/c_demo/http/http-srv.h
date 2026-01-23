@@ -69,16 +69,16 @@ static inline const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
-static inline int createResponse(struct response_t response, char* dest, size_t destLen) {
-    char dateLine[64];
-    strftime(dateLine, sizeof(dateLine), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(response.time)));
-    return snprintf(dest, destLen, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
-        status_str(response.status),
-        dateLine,
-        mime_str(response.mime),
-        response.body_len,
+static inline int make_response(struct response_t res, char* dest, size_t dest_len) {
+    char date_line[64];
+    strftime(date_line, sizeof(date_line), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(res.time)));
+    return snprintf(dest, dest_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
+        status_str(res.status),
+        date_line,
+        mime_str(res.mime),
+        res.body_len,
         SRV_INFO,
-        response.body);
+        res.body);
 }
 
 #ifdef __cplusplus
