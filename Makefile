@@ -22,17 +22,17 @@ INCFILE     ?= make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
+# # make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
 # EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
 # # objdump -T libmyutils.so
 # CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
 # CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
-# LIBFLAGS+=-l:test.so -lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl`
-# LDFLAGS+=#-static #-Wl,-Bstatic -lxxx -Wl,-Bdynamic
-# LDFLAGS+=#-shared -Wl,-Bstatic -lxxx -Wl,-Bdynamic # must -fPIC compile xxx lib, when .so
+# LIBFLAGS+=-l:test.so -lpthread#`pkg-config --libs libssl`
+# LDFLAGS+=#-static #-Wl,-Bstatic -lxx1 -lxx2 -Wl,-Bdynamic -ldynxx1
+# LDFLAGS+=#-shared # must -fPIC compile xxx lib, when .so
 # LDFLAGS+=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
-# gcc -lsome_dynamic_lib code.c some_static_lib.a
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
