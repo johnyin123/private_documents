@@ -69,7 +69,7 @@ static inline const char* getHttpUri(const char* request) {
     return dest;
 }
 
-static inline void createResponse(struct response_t response, char* dest, size_t destLen) {
+static inline int createResponse(struct response_t response, char* dest, size_t destLen) {
     const char* statusLine = "HTTP/1.1 500 Internal Server Error";
     switch (response.status) {
         case 200:
@@ -90,7 +90,7 @@ static inline void createResponse(struct response_t response, char* dest, size_t
     }
     char dateLine[64];
     strftime(dateLine, sizeof(dateLine), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(response.time)));
-    snprintf(dest, destLen, "%s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
+    return snprintf(dest, destLen, "%s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
         statusLine,
         dateLine,
         contentType,

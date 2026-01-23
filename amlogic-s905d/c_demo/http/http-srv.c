@@ -5,9 +5,10 @@
 #if defined(_WIN32)
     #include <winsock2.h>
     #include <ws2tcpip.h>
+    #define close_socket closesocket
     #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #else
-    #define closesocket close
+    #define close_socket close
     #include <sys/param.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
@@ -45,10 +46,10 @@ struct router_t {
     {.method = GET, .uri = "/test", .func=do_test},
     {UNKNOWN, NULL, NULL}
 };
-static route_func_t chk_router(enum method_t method, const char *path, int len) {
-    debugln("Route: %d, %.*s\n", method, len, path);
-    for(struct router_t *r = router; r->method != UNKNOWN; r++) {
-        if (r->method == method && len == strlen(r->uri) && strncmp(path, r->uri, len) == 0) {
+static route_func_t find_route(enum method_t m, const char *path, size_t len) {
+    debugln("Route: %d, %.*s\n", m, len, path);
+    for(const struct router_t *r = router; r->method != UNKNOWN; r++) {
+        if (r->method == m && len == strlen(r->uri) && memcmp(path, r->uri, len) == 0) {
             debugln("Route: return %p\n", r->func);
             return r->func;
         }
@@ -58,11 +59,9 @@ static route_func_t chk_router(enum method_t method, const char *path, int len) 
 }
 static void do_test(const char *req, struct response_t *res) {
     debugln("----- do_test request: \n%s\n", request_buffer);
-    strcpy(res->body, "{\"success\":\"true\"}");
     res->status = 200;
     res->mime = JSON;
-    res->bodyContentLen = strnlen(res->body, MAX_BODY_SIZE);
-    return;
+    res->bodyContentLen = (size_t)snprintf(res->body, MAX_BODY_SIZE, "{\"success\":true}");
 }
 int create_tcp_server(const char *addr, int port) {
     int srv_sock;
@@ -70,7 +69,7 @@ int create_tcp_server(const char *addr, int port) {
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
     setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, BACKLOG_SIZE) == -1) {
-        closesocket(srv_sock);
+        close_socket(srv_sock);
 #if defined(_WIN32)
         WSACleanup();
 #endif
@@ -104,7 +103,7 @@ int main(const int argc, char const* argv[]) {
         const ssize_t bytes_read = recv(cli_sock, request_buffer, sizeof(request_buffer), 0);
         if (bytes_read < 0) {
             perror("Read error");
-            closesocket(cli_sock);
+            close_socket(cli_sock);
 #if defined(_WIN32)
         WSACleanup();
 #endif
@@ -116,7 +115,7 @@ int main(const int argc, char const* argv[]) {
         const char* path = getHttpUri(request_buffer);
         const size_t pathLen = (size_t)strchr(path, ' ') - (size_t)path;
         struct response_t response = { .body = response_body, .time = time(0), };
-        route_func_t func = chk_router(method, path, pathLen);
+        route_func_t func = find_route(method, path, pathLen);
         if (func != NULL) {
             func(request_buffer, &response);
         } else {
@@ -126,11 +125,11 @@ int main(const int argc, char const* argv[]) {
             response.mime = PLAIN_TEXT;
             response.bodyContentLen = strnlen(response_body, MAX_BODY_SIZE);
         }
-        createResponse(response, output_buffer, sizeof(output_buffer));
+        int len = createResponse(response, output_buffer, sizeof(output_buffer));
         debugln("Response: \n\n%s\n", output_buffer);
-        send(cli_sock, output_buffer, strnlen(output_buffer, BUFFER_SIZE), 0);
+        send(cli_sock, output_buffer, len, 0);
         debugln("------------------Response sent-------------------\n");
-        closesocket(cli_sock);
+        close_socket(cli_sock);
 #if defined(_WIN32)
         WSACleanup();
 #endif
