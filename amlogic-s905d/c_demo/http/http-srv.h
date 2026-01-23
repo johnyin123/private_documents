@@ -28,29 +28,45 @@ struct response_t {
 
 #include <stdio.h>
 #include <string.h>
+#if defined(_WIN32)
+void *memmem(const void *haystack, size_t hlen, const void *needle, size_t nlen) {
+    if (nlen == 0) return (void *)haystack;
+    if (hlen < nlen) return NULL;
+    const unsigned char *h = (const unsigned char *)haystack;
+    const unsigned char *n = (const unsigned char *)needle;
+    for (size_t i = 0; i <= hlen - nlen; i++) {
+        if (h[i] == n[0] && memcmp(h + i, n, nlen) == 0) {
+            return (void *)(h + i);
+        }
+    }
+    return NULL;
+}
+#endif
 
 #define SRV_INFO "Server: inner"
-static inline enum method_t http_method(const char *req) {
+static inline enum method_t http_method(const char *req, ssize_t req_len) {
     if (!req) return UNKNOWN;
-    if (memcmp(req, "GET ", 4) == 0)
+    if (memcmp(req, "GET ", 4) == 0 && req_len > 4)
         return GET;
-    if (memcmp(req, "POST ", 5) == 0)
+    if (memcmp(req, "POST ", 5) == 0 && req_len > 5)
         return POST;
     return UNKNOWN;
 }
-static inline const char *http_body(const char *req) {
+static inline const char *http_body(const char *req, ssize_t req_len) {
     if (!req) return NULL;
-    const char *p = strstr(req, "\r\n\r\n");
-    if (p) return p + 4;
-    p = strstr(req, "\n\n");
-    if (p) return p + 2;
-    return NULL;
+    const char *p = memmem(req, req_len, "\r\n\r\n", 4);
+    if (!p) return NULL;
+    req_len -= ((p - req) + 4);
+    p = memmem(req+4, req_len, "\n\n", 2);
+    if (!p) return NULL;
+    return p + 2;
 }
-static inline const char *http_uri(const char *req) {
+static inline const char *http_uri(const char *req, ssize_t req_len) {
     if (!req) return NULL;
-    const char *sp1 = strchr(req, ' ');
+    const char *sp1 = memchr(req, ' ', req_len);
     if (!sp1) return NULL;
-    const char *sp2 = strchr(sp1 + 1, ' ');
+    req_len -= ((sp1 - req) + 1);
+    const char *sp2 = memchr(sp1 + 1, ' ', req_len);
     if (!sp2) return NULL;
     return sp1 + 1;
 }

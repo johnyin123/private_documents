@@ -102,15 +102,16 @@ int main(const int argc, char const* argv[]) {
         if (bytes_read < 0) {
             perror("Read error");
             close_socket(cli_sock);
-#if defined(_WIN32)
-        WSACleanup();
-#endif
             continue;
         }
-        request_buffer[MIN((size_t)bytes_read, sizeof(request_buffer) - 1)] = '\0';
-        debugln("Incoming request: \n\n%s\n", request_buffer);
-        const enum method_t method = http_method(request_buffer);
-        const char* path = http_uri(request_buffer);
+        if (bytes_read == 0) {
+            debugln("----- client closed ------\n");
+            close_socket(cli_sock);
+            continue;
+        }
+        debugln("Incoming request: \n\n%.*s\n", (int)bytes_read, request_buffer);
+        const enum method_t method = http_method(request_buffer, bytes_read);
+        const char* path = http_uri(request_buffer, bytes_read);
         const size_t pathLen = (size_t)strchr(path, ' ') - (size_t)path;
         struct response_t response = { .body = response_body, .time = time(0), };
         route_func_t func = find_route(method, path, pathLen);
@@ -124,10 +125,10 @@ int main(const int argc, char const* argv[]) {
         int len = make_response(response, output_buffer, sizeof(output_buffer));
         debugln("Response: \n\n%s\n", output_buffer);
         send(cli_sock, output_buffer, len, 0);
-        debugln("------------------Response sent-------------------\n");
+        debugln("----- Response sent ------\n");
         close_socket(cli_sock);
-#if defined(_WIN32)
-        WSACleanup();
-#endif
     }
+#if defined(_WIN32)
+    WSACleanup();
+#endif
 }
