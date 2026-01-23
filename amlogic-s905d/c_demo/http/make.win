@@ -1,0 +1,7 @@
+# make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
+EXE?=http.exe
+CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -fvisibility=hidden -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
+LDFLAGS+=-lws2_32
+LIBFLAGS+=-Wl,-rpath,./
+INC_PATH+=
+LIB_PATH+=-L./

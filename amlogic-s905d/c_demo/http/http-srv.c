@@ -2,11 +2,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#if defined(_WIN32)
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#else
+    #define closesocket close
+    #include <sys/param.h>
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <netinet/tcp.h>
+    #include <fcntl.h>
+int set_sock_nonblock_nodelay(int fd) {
+    int flags;
+    if ((flags = fcntl(fd, F_GETFL)) == -1) return -1;
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return -1;
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &(int){1}, sizeof(int));
+    return 0;
+}
+#endif
 
 #define HTTP_PORT 8080
 #define BACKLOG_SIZE 5
@@ -52,14 +68,25 @@ int create_tcp_server(const char *addr, int port) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, BACKLOG_SIZE) == -1) {
-        close(srv_sock);
+        closesocket(srv_sock);
+#if defined(_WIN32)
+        WSACleanup();
+#endif
         return -1;
     }
     return srv_sock;
 }
 int main(const int argc, char const* argv[]) {
+#if defined(_WIN32)
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
+    if (iResult != 0) {
+        printf("error at WSASturtup\n");
+        return 0;
+    }
+#endif
     struct sockaddr_in addr;
     int addrlen = sizeof(addr);
     int srv_sock, cli_sock;
@@ -74,10 +101,13 @@ int main(const int argc, char const* argv[]) {
             perror("In accept");
             exit(EXIT_FAILURE);
         }
-        const ssize_t bytes_read = read(cli_sock, request_buffer, sizeof(request_buffer));
+        const ssize_t bytes_read = recv(cli_sock, request_buffer, sizeof(request_buffer), 0);
         if (bytes_read < 0) {
             perror("Read error");
-            close(cli_sock);
+            closesocket(cli_sock);
+#if defined(_WIN32)
+        WSACleanup();
+#endif
             continue;
         }
         request_buffer[MIN((size_t)bytes_read, sizeof(request_buffer) - 1)] = '\0';
@@ -98,8 +128,11 @@ int main(const int argc, char const* argv[]) {
         }
         createResponse(response, output_buffer, sizeof(output_buffer));
         debugln("Response: \n\n%s\n", output_buffer);
-        write(cli_sock, output_buffer, strnlen(output_buffer, BUFFER_SIZE));
+        send(cli_sock, output_buffer, strnlen(output_buffer, BUFFER_SIZE), 0);
         debugln("------------------Response sent-------------------\n");
-        close(cli_sock);
+        closesocket(cli_sock);
+#if defined(_WIN32)
+        WSACleanup();
+#endif
     }
 }
