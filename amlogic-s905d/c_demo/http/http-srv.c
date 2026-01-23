@@ -93,7 +93,7 @@ int main(const int argc, char const* argv[]) {
         exit(EXIT_FAILURE);
     }
     while (1) {
-        debugln("\n+++++ Waiting for new connection +++++\n\n");
+        debugln("\n+++++ Waiting  conn +++++\n\n");
         if ((cli_sock = accept(srv_sock, (struct sockaddr*)&addr, (socklen_t*)&addrlen)) < 0) {
             perror("In accept");
             exit(EXIT_FAILURE);
@@ -105,7 +105,7 @@ int main(const int argc, char const* argv[]) {
             continue;
         }
         if (bytes_read == 0) {
-            debugln("----- client closed ------\n");
+            debugln("----- Client closed -----\n");
             close_socket(cli_sock);
             continue;
         }
@@ -122,10 +122,10 @@ int main(const int argc, char const* argv[]) {
             response.mime = PLAIN_TEXT;
             response.body_len = (size_t)snprintf(response_body, MAX_BODY_SIZE, "Forbidden");
         }
-        int len = make_response(response, output_buffer, sizeof(output_buffer));
-        debugln("Response: \n\n%s\n", output_buffer);
+        int len = make_response(&response, output_buffer, sizeof(output_buffer));
+        debugln("Response: \n\n%.*s\n", len, output_buffer);
         send(cli_sock, output_buffer, len, 0);
-        debugln("----- Response sent ------\n");
+        debugln("----- Response sent -----\n");
         close_socket(cli_sock);
     }
 #if defined(_WIN32)

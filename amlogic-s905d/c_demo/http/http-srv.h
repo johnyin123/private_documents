@@ -85,16 +85,16 @@ static inline const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
-static inline int make_response(struct response_t res, char* dest, size_t dest_len) {
+static inline int make_response(struct response_t *res, char* dest, size_t dest_len) {
     char date_line[64];
-    strftime(date_line, sizeof(date_line), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(res.time)));
+    strftime(date_line, sizeof(date_line), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(res->time)));
     return snprintf(dest, dest_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
-        status_str(res.status),
+        status_str(res->status),
         date_line,
-        mime_str(res.mime),
-        res.body_len,
+        mime_str(res->mime),
+        res->body_len,
         SRV_INFO,
-        res.body);
+        res->body);
 }
 
 #ifdef __cplusplus
