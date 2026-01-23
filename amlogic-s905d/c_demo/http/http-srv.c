@@ -40,28 +40,28 @@ static void do_test(const char *req, struct response_t *res);
 typedef void (*route_func_t)(const char *req, struct response_t *res);
 struct router_t {
     enum method_t method;
-    const char* uri;
+    const char* path;
+    size_t path_len;
     route_func_t func;
 } router[] = {
-    {.method = GET, .uri = "/test", .func=do_test},
-    {UNKNOWN, NULL, NULL}
+    {.method = GET, .path = "/test", .path_len=5, .func=do_test},
+    {UNKNOWN, NULL, 0, NULL}
 };
 static route_func_t find_route(enum method_t m, const char *path, size_t len) {
-    debugln("Route: %d, %.*s\n", m, len, path);
     for(const struct router_t *r = router; r->method != UNKNOWN; r++) {
-        if (r->method == m && len == strlen(r->uri) && memcmp(path, r->uri, len) == 0) {
-            debugln("Route: return %p\n", r->func);
+        if (r->method == m && len == r->path_len && memcmp(path, r->path, len) == 0) {
+            debugln("Route: %d, %.*s return %p\n", m, (int)len, path, r->func);
             return r->func;
         }
     }
-    debugln("Route: return NULL\n");
+    debugln("Route: %d, %.*s return NULL\n", m, (int)len, path);
     return NULL;
 }
 static void do_test(const char *req, struct response_t *res) {
     debugln("----- do_test request: \n%s\n", request_buffer);
     res->status = 200;
     res->mime = JSON;
-    res->bodyContentLen = (size_t)snprintf(res->body, MAX_BODY_SIZE, "{\"success\":true}");
+    res->body_len = (size_t)snprintf(res->body, MAX_BODY_SIZE, "{\"success\":true}");
 }
 int create_tcp_server(const char *addr, int port) {
     int srv_sock;
@@ -111,8 +111,8 @@ int main(const int argc, char const* argv[]) {
         }
         request_buffer[MIN((size_t)bytes_read, sizeof(request_buffer) - 1)] = '\0';
         debugln("Incoming request: \n\n%s\n", request_buffer);
-        const enum method_t method = getHttpMethod(request_buffer);
-        const char* path = getHttpUri(request_buffer);
+        const enum method_t method = http_method(request_buffer);
+        const char* path = http_uri(request_buffer);
         const size_t pathLen = (size_t)strchr(path, ' ') - (size_t)path;
         struct response_t response = { .body = response_body, .time = time(0), };
         route_func_t func = find_route(method, path, pathLen);
@@ -123,7 +123,7 @@ int main(const int argc, char const* argv[]) {
             strcpy(response_body, "Forbidden");
             response.status = 403;
             response.mime = PLAIN_TEXT;
-            response.bodyContentLen = strnlen(response_body, MAX_BODY_SIZE);
+            response.body_len = strnlen(response_body, MAX_BODY_SIZE);
         }
         int len = createResponse(response, output_buffer, sizeof(output_buffer));
         debugln("Response: \n\n%s\n", output_buffer);

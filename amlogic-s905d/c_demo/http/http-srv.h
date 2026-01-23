@@ -16,12 +16,12 @@ extern "C" {
 
 #define MAX_REQUEST_LEN 0x400
 
-enum method_t { UNKNOWN = 0, GET = 1, POST = 2 };
-enum mine_t { JSON = 0, PLAIN_TEXT = 1 };
+enum method_t { UNKNOWN = 0, GET, POST };
+enum mime_t { JSON = 0, PLAIN_TEXT };
 struct response_t {
     unsigned int status;
-    enum mine_t mime;
-    size_t bodyContentLen;
+    enum mime_t mime;
+    size_t body_len;
     time_t time;
     char* body;
 };
@@ -30,71 +30,53 @@ struct response_t {
 #include <string.h>
 
 #define SRV_INFO "Server: inner"
-
-static inline enum method_t getHttpMethod(const char* request) {
-// Only works with string literals
-#define MATCHES(runtime_str, len, static_str)                   \
-        ((runtime_str) != NULL &&                               \
-         strnlen(runtime_str, len) == sizeof(static_str) - 1 && \
-         strncmp((runtime_str), (static_str), sizeof(static_str) - 1) == 0)
-    const char* firstSpace = strchr(request, ' ');
-    if (firstSpace == NULL) { return UNKNOWN; }
-    const size_t len = (size_t)(firstSpace - request);
-    if (MATCHES(request, len, "GET"))
+static inline enum method_t http_method(const char *req) {
+    if (!req) return UNKNOWN;
+    if (memcmp(req, "GET ", 4) == 0)
         return GET;
-    else if (MATCHES(request, len, "POST"))
+    if (memcmp(req, "POST ", 5) == 0)
         return POST;
-    else
-        return UNKNOWN;
+    return UNKNOWN;
 }
-
-static inline const char* getHttpBody(const char* request) {
-    if (request == NULL) return NULL;
-    // HTTP body starts after the first occurrence of \r\n\r\n
-    const char* bodyStart = strstr(request, "\r\n\r\n");
-    if (bodyStart != NULL) return bodyStart + 4;
-
-    // Some non-standard implementations might use just \n\n
-    bodyStart = strstr(request, "\n\n");
-    if (bodyStart != NULL) return bodyStart + 2;
-
+static inline const char *http_body(const char *req) {
+    if (!req) return NULL;
+    const char *p = strstr(req, "\r\n\r\n");
+    if (p) return p + 4;
+    p = strstr(req, "\n\n");
+    if (p) return p + 2;
     return NULL;
 }
-
-static inline const char* getHttpUri(const char* request) {
-    // Assume the URI will be the second space-delimited token
-    char* dest = strchr(request, ' ');
-    dest = strchr(dest, ' ');
-    dest = dest + 1;
-    return dest;
+static inline const char *http_uri(const char *req) {
+    if (!req) return NULL;
+    const char *sp1 = strchr(req, ' ');
+    if (!sp1) return NULL;
+    const char *sp2 = strchr(sp1 + 1, ' ');
+    if (!sp2) return NULL;
+    return sp1 + 1;
 }
-
+static inline const char *mime_str(enum mime_t m) {
+    switch (m) {
+        case JSON:       return "application/json";
+        case PLAIN_TEXT: return "text/plain; charset=utf-8";
+        default:         return "application/octet-stream";
+    }
+}
+static inline const char *status_str(unsigned int s) {
+    switch (s) {
+        case 200: return "200 OK";
+        case 403: return "403 Forbidden";
+        case 404: return "404 Not Found";
+        default:  return "500 Internal Server Error";
+    }
+}
 static inline int createResponse(struct response_t response, char* dest, size_t destLen) {
-    const char* statusLine = "HTTP/1.1 500 Internal Server Error";
-    switch (response.status) {
-        case 200:
-            statusLine = "HTTP/1.1 200 OK";
-            break;
-        case 403:
-            statusLine = "HTTP/1.1 403 Forbidden";
-            break;
-    }
-    const char* contentType = "application/octet-stream";
-    switch (response.mime) {
-        case JSON:
-            contentType = "application/json";
-            break;
-        case PLAIN_TEXT:
-            contentType = "text/plain; charset=UTF-8";
-            break;
-    }
     char dateLine[64];
     strftime(dateLine, sizeof(dateLine), "Date: %a, %d %b %Y %H:%M:%S GMT", gmtime(&(response.time)));
-    return snprintf(dest, destLen, "%s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
-        statusLine,
+    return snprintf(dest, destLen, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n%s\r\n\r\n%s",
+        status_str(response.status),
         dateLine,
-        contentType,
-        response.bodyContentLen,
+        mime_str(response.mime),
+        response.body_len,
         SRV_INFO,
         response.body);
 }
