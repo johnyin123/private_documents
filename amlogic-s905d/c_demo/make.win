@@ -1,12 +1,8 @@
-EXE?=libneusoft.so
+EXE?=libneusoft.dll
 CFLAGS+=-DCURL_STATICLIB -D_GNU_SOURCE -D__USE_XOPEN -O2 -fvisibility=hidden -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
-LDFLAGS+=-shared
+LDFLAGS+=-shared -Wl,--out-implib,libneusoft.dll.a 
+LDFLAGS+=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi 
 LDFLAGS+=-Wl,-Bstatic -lcurl -Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
-INC_PATH+=-I./curl/include
-LIB_PATH+=-L./curl/lib/.libs
-
-# EXE?=test
-# LDFLAGS+=-lneusoft
-# LIBFLAGS+=-Wl,-rpath,./  # relative path
-# LIB_PATH+=-L./
+INC_PATH+=-I./win/curl/include
+LIB_PATH+=-L./win/curl/lib/.libs

@@ -6,7 +6,11 @@ extern "C" {
 
 #define BUILDING_LIBRARY
 #if defined _WIN32 || defined __CYGWIN__
-    #error "not impl!"
+    #ifdef BUILDING_LIBRARY
+        #define EXPORT_API __declspec(dllexport)
+    #else
+        #define EXPORT_API __declspec(dllimport)
+    #endif
 #elif defined __GNUC__
     #ifdef BUILDING_LIBRARY
         #define EXPORT_API __attribute__((visibility("default")))

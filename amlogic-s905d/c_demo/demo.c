@@ -1,4 +1,5 @@
 /*
+# --host=x86_64-w64-mingw32 # # make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win clean
 (cd curl && CFLAGS=-fPIC ./configure --without-ssl --without-libpsl \
     --without-zlib --without-brotli --without-zstd  \
     --enable-shared=no --enable-static=yes \

@@ -1,5 +1,5 @@
 /*
-gcc test.cc -L./ -lneusoft -Wl,-rpath,./ # -l:test.so
+gcc test.cc -L./ -lneusoft -Wl,-rpath,./
 */
 #include "demo.h"
 int main(int argc, char *argv[])
