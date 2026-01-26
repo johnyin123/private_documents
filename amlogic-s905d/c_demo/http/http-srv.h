@@ -6,7 +6,7 @@ extern "C" {
 
 #ifdef DEBUG
     #include <stdio.h>
-    #define debugln(...) fprintf(stderr, __VA_ARGS__)
+    #define debugln(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args) /*#define debugln(...)           fprintf(stderr, __VA_ARGS__)*/
 #else
     #define debugln(...) do {} while (0)
 #endif
