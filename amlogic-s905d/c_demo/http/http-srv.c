@@ -71,12 +71,12 @@ static void do_post(const char *req, const ssize_t req_len, struct response_t *r
     res->mime = JSON;
     res->body_len = (size_t)snprintf(res->body, MAX_BODY_SIZE, "{\"success\":%zu}", body_len);
 }
-int create_tcp_server(const char *addr, int port) {
+int create_tcp_server(const char *addr, int port, int backlog) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
     setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
-    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, 5) == -1) {
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
         close_socket(srv_sock);
 #if defined(_WIN32)
         WSACleanup();
@@ -100,7 +100,7 @@ int main(const int argc, char const* argv[]) {
     int addrlen = sizeof(addr);
     int srv_sock, cli_sock;
     debugln("Listen port %d\n", HTTP_PORT);
-    if ((srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT)) == -1) {
+    if ((srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10)) == -1) {
         perror("Create socket");
         exit(EXIT_FAILURE);
     }
