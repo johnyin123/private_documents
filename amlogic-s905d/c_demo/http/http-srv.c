@@ -46,6 +46,7 @@ struct router_t {
     {UNKNOWN, NULL, 0, NULL}
 };
 static route_func_t find_route(enum method_t m, const char *path, size_t len) {
+    if (!path) return NULL;
     for(const struct router_t *r = router; r->method != UNKNOWN; r++) {
         if (r->method == m && len == r->path_len && memcmp(path, r->path, len) == 0) {
             debugln("Route: %d, %.*s return %p\n", m, (int)len, path, r->func);
@@ -113,7 +114,7 @@ int main(const int argc, char const* argv[]) {
         const ssize_t req_len = recv(cli_sock, request_buffer, sizeof(request_buffer), 0);
         if (req_len > 0) {
             const enum method_t method = http_method(request_buffer, req_len);
-            size_t pathLen;
+            size_t pathLen = 0;
             const char* path = http_uri(request_buffer, req_len, &pathLen);
             struct response_t response = { .body = response_body, .time = time(0), };
             route_func_t func = find_route(method, path, pathLen);
