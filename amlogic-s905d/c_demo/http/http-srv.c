@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#if defined(_WIN32)
+#if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #define close_socket closesocket
@@ -22,7 +22,7 @@
 
 int set_sock_nonblock_nodelay(int fd) {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
-#if defined(_WIN32)
+#if defined(__WIN32__)
     unsigned long mode = 1;
     return ioctlsocket(fd, FIONBIO, &mode);
 #else
@@ -78,7 +78,7 @@ int create_tcp_server(const char *addr, int port, int backlog) {
     setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
         close_socket(srv_sock);
-#if defined(_WIN32)
+#if defined(__WIN32__)
         WSACleanup();
 #endif
         return -1;
@@ -86,7 +86,7 @@ int create_tcp_server(const char *addr, int port, int backlog) {
     return srv_sock;
 }
 int main(const int argc, char const* argv[]) {
-#if defined(_WIN32)
+#if defined(__WIN32__)
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
     if (iResult != 0) {
@@ -135,7 +135,7 @@ int main(const int argc, char const* argv[]) {
         debugln("----- Client closed -----\n");
         close_socket(cli_sock);
     }
-#if defined(_WIN32)
+#if defined(__WIN32__)
     WSACleanup();
 #endif
 }
