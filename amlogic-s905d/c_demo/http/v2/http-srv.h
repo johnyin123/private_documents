@@ -34,7 +34,11 @@ struct request_t {
     size_t nquery; /* number of queries */
     struct query_t query[8];
     int content_length;
-};
+    char payload[];             // Last element
+} __attribute__((aligned(4096)));
+#include <stddef.h>
+#define PAYLOAD_LEN (4096 - offsetof(struct request_t, payload) - 1)
+
 enum mime_t { JSON = 0, PLAIN_TEXT };
 struct response_t {
     unsigned int status;
@@ -252,25 +256,12 @@ static inline int parse(int sock, struct request_t* r, int *read_len)
                 }
                 break;
             case 13: /* content (POST queries) */
-                if (c == '&') {
-                    if (query_next(r))
-                        return -state;
-                    read_next = 1;
-                } else if (c == '\r') {
-                    if (query_next(r))
-                        return -state;
-                    read_next = 1;
-                } else if (c == '\n') {
-                    read_next = 1;
-                } else if (c == '\0') {
-                    if (query_next(r))
-                        return -state;
-                    return 0; /* end of content */
-                } else {
-                    if (query_append(r, c))
-                        return -state;
-                    read_next = 1;
-                }
+                debugln("payload len = %d, %c", (int)PAYLOAD_LEN, c);
+                if (c == '\0')
+                    return 0;
+                else if (append(r->payload, PAYLOAD_LEN, c))
+                    return -state;
+                read_next = 1;
                 break;
         }
     }
@@ -298,6 +289,7 @@ static inline void dump_request(const struct request_t* req ) {
     debugln("METHOD :%s", req->method);
     debugln("PROTO  :%s", req->protocol);
     debugln("URL    :%s", req->url);
+    debugln("PAYLOAD:%s", req->payload);
     for(int i=0;i<req->nquery;i++) debugln("QUERY  :%s", req->query[i].val);
 }
 #ifdef __cplusplus
