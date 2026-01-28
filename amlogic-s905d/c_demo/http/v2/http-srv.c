@@ -62,6 +62,7 @@ int create_tcp_server(const char *addr, int port, int backlog) {
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
     setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEPORT, (void *)&(int){1}, sizeof(int));
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
         close_socket(srv_sock);
 #if defined(__WIN32__)

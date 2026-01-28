@@ -20,6 +20,13 @@ extern "C" {
     #include <sys/socket.h>
 #endif
 
+#define MAX_METHOD   8
+#define MAX_PROTO    12
+#define MAX_URL      128
+#define MAX_HEADERS  8
+#define MAX_QUERIES  8
+#define MAX_PAYLOAD  4096
+
 struct query_t {
     char val[24];
 };
@@ -27,20 +34,18 @@ struct hdr_prop_t {
     char key[32];
     char val[128];
 };
-#define REQ_SIZE (4*1024)
 struct request_t {
-    char method[8];
-    char protocol[12];
-    char url[128];
+    char method[MAX_METHOD];
+    char protocol[MAX_PROTO];
+    char url[MAX_URL];
     size_t nprop;
-    struct hdr_prop_t prop[8];
-    size_t nquery; /* number of queries */
-    struct query_t query[8];
+    struct hdr_prop_t prop[MAX_HEADERS];
+    size_t nquery;
+    struct query_t query[MAX_QUERIES];
     int content_length;
-    char payload[];             // Last element
-} __attribute__((aligned(REQ_SIZE)));
+    char payload[MAX_PAYLOAD];
+};
 #include <stddef.h>
-#define PAYLOAD_LEN (REQ_SIZE - offsetof(struct request_t, payload) - 1)
 
 enum mime_t { JSON = 0, PLAIN_TEXT };
 struct response_t {
@@ -76,13 +81,12 @@ static inline const char *status_str(unsigned int s) {
 #define protocol_append(r, c)  str_append(r->protocol, sizeof(r->protocol)-1, c)
 #define url_append(r, c)       str_append(r->url, sizeof(r->url)-1, c)
 #define append(s, len, c)      str_append(s, len, c)
-static inline int str_append(char *str, size_t len, char c) {
+static inline int str_append(char *str, size_t max, char c) {
     size_t l = strlen(str);
-    if (l < len) {
-        str[l] = c;
-        return 0;
-    }
-    return -1;
+    if (l + 1 >= max) return -1;
+    str[l] = c;
+    str[l + 1] = '\0';
+    return 0;
 }
 static inline int prop_append_key(struct request_t* r, char c) {
     if (r->nprop >= sizeof(r->prop) / sizeof(struct hdr_prop_t))
@@ -156,7 +160,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
     char buf[1024]; /* receive buf */
     int buf_pos = sizeof(buf);
     char c = 0; /* current character */
-    memset(r, 0, REQ_SIZE);
+    memset(r, 0, sizeof(*r));
     *read_len = 0;
     while (sock >= 0) {
         /* read data */
@@ -270,8 +274,11 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 break;
             case ST_HDR_VAL: /* header line value */
                 if (c == '\r') {
-                    if (strcmp("Content-Length", r->prop[r->nprop].key) == 0)
-                        r->content_length = strtol(r->prop[r->nprop].val, 0, 0);
+                    if (strcmp("Content-Length", r->prop[r->nprop].key) == 0) {
+                        long v = strtol(r->prop[r->nprop].val, 0, 0);
+                        if (v < 0 || v > MAX_PAYLOAD) return -state;
+                        r->content_length = (int)v;
+                    }
                     if (prop_next(r))
                         return -state;
                     state = ST_HDR_EOL;
@@ -307,10 +314,8 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
             case ST_BODY: /* content (POST queries) */
                 if (body_read >= r->content_length)
                     return 0;
-                else if (append(r->payload, PAYLOAD_LEN, c))
-                    return -state;
-                body_read++;
-                read_next = 1;
+                r->payload[body_read++] = c;
+                r->payload[body_read] = '\0';
                 break;
         }
     }
