@@ -15,6 +15,7 @@
     #include <unistd.h>
     #include <netinet/tcp.h>
     #include <fcntl.h>
+    #include <signal.h>
 #endif
 
 #define HTTP_PORT 8080
@@ -83,6 +84,8 @@ int main(const int argc, char const* argv[]) {
         printf("error at WSASturtup\n");
         return 0;
     }
+#else
+    signal(SIGPIPE, SIG_IGN);
 #endif
     char res_body[MAX_BODY_SIZE];
     struct sockaddr_in addr;
