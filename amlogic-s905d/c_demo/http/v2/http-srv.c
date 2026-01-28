@@ -20,17 +20,6 @@
 #define HTTP_PORT 8080
 #define MAX_REQ_SIZE  1024
 #define MAX_BODY_SIZE 4096
-
-int set_sock_nonblock_nodelay(int fd) {
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
-#if defined(__WIN32__)
-    unsigned long mode = 1;
-    return ioctlsocket(fd, FIONBIO, &mode);
-#else
-    int flags = fcntl(fd, F_GETFL);
-    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#endif
-}
 /******************/
 static void do_test(const struct request_t* req, struct response_t *res);
 static void do_post(const struct request_t* req, struct response_t *res);
@@ -59,6 +48,7 @@ static route_func_t find_route(struct request_t *req) {
 static void do_test(const struct request_t* req, struct response_t *res) {
     res->status = 200;
     res->mime = JSON;
+    dump_request(req);
     res->body_len = (size_t)snprintf(res->body, MAX_BODY_SIZE, "{\"success\":true}");
 }
 static void do_post(const struct request_t* req, struct response_t *res) {
@@ -126,6 +116,8 @@ int main(const int argc, char const* argv[]) {
                 debugln("----- Response sent -----");
             else
                 debugln("XXXXX Response sent ERR-----");
+        } else {
+            debugln("parse http request error: %s", get_state_info(-rc));
         }
         if (read_len < 0) perror("Read error");
         debugln("----- Client closed rc=%d, reads=%d-----", rc, read_len);

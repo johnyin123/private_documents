@@ -23,21 +23,24 @@ extern "C" {
 struct query_t {
     char val[24];
 };
-struct header_property_t {
+struct hdr_prop_t {
     char key[32];
-    char value[128];
+    char val[128];
 };
+#define REQ_SIZE (4*1024)
 struct request_t {
     char method[8];
     char protocol[12];
     char url[128];
+    size_t nprop;
+    struct hdr_prop_t prop[8];
     size_t nquery; /* number of queries */
     struct query_t query[8];
     int content_length;
     char payload[];             // Last element
-} __attribute__((aligned(4096)));
+} __attribute__((aligned(REQ_SIZE)));
 #include <stddef.h>
-#define PAYLOAD_LEN (4096 - offsetof(struct request_t, payload) - 1)
+#define PAYLOAD_LEN (REQ_SIZE - offsetof(struct request_t, payload) - 1)
 
 enum mime_t { JSON = 0, PLAIN_TEXT };
 struct response_t {
@@ -81,6 +84,22 @@ static inline int str_append(char *str, size_t len, char c) {
     }
     return -1;
 }
+static inline int prop_append_key(struct request_t* r, char c) {
+    if (r->nprop >= sizeof(r->prop) / sizeof(struct hdr_prop_t))
+        return -1;
+    return str_append(r->prop[r->nprop].key, sizeof(r->prop[r->nprop].key)-1, c);
+}
+static inline int prop_append_val(struct request_t* r, char c) {
+    if (r->nprop >= sizeof(r->prop) / sizeof(struct hdr_prop_t))
+        return -1;
+    return str_append(r->prop[r->nprop].val, sizeof(r->prop[r->nprop].val)-1, c);
+}
+static inline int prop_next(struct request_t* r) {
+    if (r->nprop >= sizeof(r->prop) / sizeof(struct hdr_prop_t))
+        return -1;
+    r->nprop++;
+    return 0;
+}
 static inline int query_append(struct request_t* r, char c) {
     if (r->nquery >= sizeof(r->query) / sizeof(struct query_t))
         return -1;
@@ -92,83 +111,113 @@ static inline int query_next(struct request_t* r) {
     r->nquery++;
     return 0;
 }
-static inline void clear_header_property(struct header_property_t* prop) {
-    memset(prop->key, 0, sizeof(prop->key));
-    memset(prop->value, 0, sizeof(prop->value));
+enum parse_state_t {
+    ST_START = 0,
+    ST_METHOD,
+    ST_METHOD_WS,
+    ST_URL,
+    ST_QUERY,
+    ST_URL_WS,
+    ST_PROTO,
+    ST_HDR_WS,
+    ST_HDR_KEY,
+    ST_HDR_VAL_WS,
+    ST_HDR_VAL,
+    ST_HDR_EOL,
+    ST_HDR_END,
+    ST_BODY
+};
+
+static inline const char* get_state_info(int state) {
+    const char* const state_info[] = {
+        "state START",
+        "state METHOD",
+        "state METHOD SPACE",
+        "state URL",
+        "state QUERY",
+        "state URL SPACE",
+        "state PROTO",
+        "state HDR SPACE",
+        "state HEADER KEY",
+        "state HEADER VALUE SPACE",
+        "state HEADER VALUE",
+        "state HEADER EOL",
+        "state HEADER END",
+        "state BODY"
+    };
+    if (state >= ST_START && state <= ST_BODY)
+        return state_info[state];
+    return "state UNKNOWN";
 }
-static inline int parse(int sock, struct request_t* r, int *read_len)
-{
-    int state = 0; /* state machine */
-    int read_next = 1; /* indicator to read data */
+static inline int parse(int sock, struct request_t* r, int *read_len) {
+    int body_read = 0; /* used only in POST requests */
+    enum parse_state_t state = ST_START; /* state machine */
+    int read_next = 1;
+    char buf[1024]; /* receive buf */
+    int buf_pos = sizeof(buf);
     char c = 0; /* current character */
-    char buffer[16]; /* receive buffer */
-    int buffer_index = sizeof(buffer); /* index within the buffer */
-    int content_length = -1; /* used only in POST requests */
-    struct header_property_t prop; /* temporary space to hold header key/value properties*/
-    memset(r, 0, sizeof(struct request_t));
-    clear_header_property(&prop);
+    memset(r, 0, REQ_SIZE);
     *read_len = 0;
     while (sock >= 0) {
         /* read data */
         if (read_next) {
-            /* read new data, buffers at a time */
-            if (buffer_index >= (int)sizeof(buffer)) {
-                memset(buffer, 0, sizeof(buffer));
-                int rc = recv(sock, buffer, sizeof(buffer), 0);
+            if (buf_pos >= (int)sizeof(buf)) {
+                memset(buf, 0, sizeof(buf));
+                int rc = recv(sock, buf, sizeof(buf), 0);
                 if (rc < 0)
                     return -99; /* read error */
                 if (rc == 0)
                     return 0; /* no data read */
                 *read_len += rc;
-                buffer_index = 0;
+                buf_pos = 0;
             }
-            c = buffer[buffer_index];
-            ++buffer_index;
+            c = buf[buf_pos];
+            ++buf_pos;
             /* state management */
             read_next = 0;
         }
         /* execute state machine */
         switch (state) {
-            case 0: /* kill leading spaces */
+            case ST_START: /* eat leading spaces */
                 if (isspace(c)) {
                     read_next = 1;
                 } else {
-                    state = 1;
+                    state = ST_METHOD;
                 }
                 break;
-            case 1: /* method */
+            case ST_METHOD: /* method */
                 if (isspace(c)) {
-                    state = 2;
+                    state = ST_METHOD_WS;
                 } else {
                     if (method_append(r, c))
                         return -state;
                     read_next = 1;
                 }
                 break;
-            case 2: /* kill spaces */
+            case ST_METHOD_WS: /* eat spaces */
                 if (isspace(c)) {
                     read_next = 1;
                 } else {
-                    state = 3;
+                    state = ST_URL;
                 }
                 break;
-            case 3: /* url */
+            case ST_URL: /* url */
                 if (isspace(c)) {
-                    state = 5;
+                    state = ST_URL_WS;
                 } else if (c == '?') {
                     read_next = 1;
-                    state = 4;
+                    state = ST_QUERY;
                 } else {
                     if (url_append(r, c))
                         return -state;
                     read_next = 1;
                 }
                 break;
-            case 4: /* queries */
+            case ST_QUERY: /* queries */
                 if (isspace(c)) {
                     if (query_next(r))
                         return -state;
-                    state = 5;
+                    state = ST_URL_WS;
                 } else if (c == '&') {
                     if (query_next(r))
                         return -state;
@@ -179,97 +228,95 @@ static inline int parse(int sock, struct request_t* r, int *read_len)
                     read_next = 1;
                 }
                 break;
-            case 5: /* kill spaces */
+            case ST_URL_WS: /* eat spaces */
                 if (isspace(c)) {
                     read_next = 1;
                 } else {
-                    state = 6;
+                    state = ST_PROTO;
                 }
                 break;
-            case 6: /* protocol */
+            case ST_PROTO: /* protocol */
                 if (isspace(c)) {
-                    state = 7;
+                    state = ST_HDR_WS;
                 } else {
                     if (protocol_append(r, c))
                         return -state;
                     read_next = 1;
                 }
                 break;
-            case 7: /* kill spaces */
+            case ST_HDR_WS: /* eat spaces */
                 if (isspace(c)) {
                     read_next = 1;
                 } else {
-                    clear_header_property(&prop);
-                    state = 8;
+                    state = ST_HDR_KEY;
                 }
                 break;
-            case 8: /* header line key */
+            case ST_HDR_KEY: /* header line key */
                 if (c == ':') {
-                    state = 9;
+                    state = ST_HDR_VAL_WS;
                     read_next = 1;
                 } else {
-                    if (append(prop.key, sizeof(prop.key)-1, c))
+                    if (prop_append_key(r, c))
                         return -state;
                     read_next = 1;
                 }
                 break;
-            case 9: /* kill spaces */
+            case ST_HDR_VAL_WS: /* eat spaces */
                 if (isspace(c)) {
                     read_next = 1;
                 } else {
-                    state = 10;
+                    state = ST_HDR_VAL;
                 }
                 break;
-            case 10: /* header line value */
+            case ST_HDR_VAL: /* header line value */
                 if (c == '\r') {
-                    if (strcmp("Content-Length", prop.key) == 0)
-                        content_length = strtol(prop.value, 0, 0);
-                    clear_header_property(&prop);
-                    state = 11;
+                    if (strcmp("Content-Length", r->prop[r->nprop].key) == 0)
+                        r->content_length = strtol(r->prop[r->nprop].val, 0, 0);
+                    if (prop_next(r))
+                        return -state;
+                    state = ST_HDR_EOL;
                     read_next = 1;
                 } else {
-                    if (append(prop.value, sizeof(prop.value)-1, c))
+                    if (prop_append_val(r, c))
                         return -state;
                     read_next = 1;
                 }
                 break;
-            case 11:
+            case ST_HDR_EOL:
                 if (c == '\n') {
                     read_next = 1;
                 } else if (c == '\r') {
-                    state = 12;
+                    state = ST_HDR_END;
                     read_next = 1;
                 } else {
-                    state = 8;
+                    state = ST_HDR_KEY;
                 }
                 break;
-            case 12: /* end of header */
+            case ST_HDR_END: /* end of header */
                 if (c == '\n') {
-                    if (content_length > 0) {
-                        state = 13;
+                    if (r->content_length > 0) {
+                        state = ST_BODY;
                         read_next = 1;
                     } else {
                         return 0; /* end of header, no content => end of request */
                     }
                 } else {
-                    state = 8;
+                    state = ST_HDR_KEY;
                 }
                 break;
-            case 13: /* content (POST queries) */
-                debugln("payload len = %d, %c", (int)PAYLOAD_LEN, c);
-                if (c == '\0')
+            case ST_BODY: /* content (POST queries) */
+                if (body_read >= r->content_length)
                     return 0;
                 else if (append(r->payload, PAYLOAD_LEN, c))
                     return -state;
+                body_read++;
                 read_next = 1;
                 break;
         }
     }
     return -99;
 }
-
-static inline int send_response(int sock, const struct request_t *req, struct response_t *res)
-{
+static inline int send_response(int sock, const struct request_t *req, struct response_t *res) {
     UNUSED(req);
     char dest[4096], date_line[64];
     size_t dest_len = sizeof(dest);
@@ -289,8 +336,11 @@ static inline void dump_request(const struct request_t* req ) {
     debugln("METHOD :%s", req->method);
     debugln("PROTO  :%s", req->protocol);
     debugln("URL    :%s", req->url);
-    debugln("PAYLOAD:%s", req->payload);
+    debugln("NQUERY :%lu", req->nquery);
     for(int i=0;i<req->nquery;i++) debugln("QUERY  :%s", req->query[i].val);
+    debugln("NPROP  :%lu", req->nprop);
+    for(int i=0;i<req->nprop;i++) debugln("PROP   :%s = %s", req->prop[i].key, req->prop[i].val);
+    if(req->content_length) debugln("PAYLOAD[%d]:%s", req->content_length, req->payload);
 }
 #ifdef __cplusplus
 }
