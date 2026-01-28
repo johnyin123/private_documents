@@ -1,0 +1,68 @@
+digraph http_parser_fsm {
+    rankdir=LR;
+    fontname="monospace";
+    node [shape=box, fontname="monospace"];
+    edge [fontname="monospace"];
+
+    START        [label="0 START\n(skip leading WS)"];
+    METHOD       [label="1 METHOD"];
+    MSPACE       [label="2 WS after METHOD"];
+    URL          [label="3 URL"];
+    QUERY        [label="4 QUERY"];
+    USPACE       [label="5 WS after URL"];
+    PROTO        [label="6 PROTOCOL"];
+    PSPACE       [label="7 WS before HEADER"];
+    HDR_KEY      [label="8 HEADER KEY"];
+    HSPACE       [label="9 WS after ':'"];
+    HDR_VAL      [label="10 HEADER VALUE"];
+    HDR_EOL      [label="11 HEADER LINE END"];
+    HDR_END      [label="12 END OF HEADERS"];
+    BODY         [label="13 BODY / PAYLOAD"];
+    DONE         [shape=doublecircle, label="REQUEST DONE"];
+
+    START  -> START   [label="isspace"];
+    START  -> METHOD  [label="non-space"];
+
+    METHOD -> METHOD  [label="non-space"];
+    METHOD -> MSPACE  [label="space"];
+
+    MSPACE -> MSPACE  [label="isspace"];
+    MSPACE -> URL     [label="non-space"];
+
+    URL    -> URL     [label="path char"];
+    URL    -> QUERY   [label="'?'"];
+    URL    -> USPACE  [label="space"];
+
+    QUERY  -> QUERY   [label="char"];
+    QUERY  -> QUERY   [label="'&' (next query)"];
+    QUERY  -> USPACE  [label="space"];
+
+    USPACE -> USPACE  [label="isspace"];
+    USPACE -> PROTO   [label="non-space"];
+
+    PROTO  -> PROTO   [label="non-space"];
+    PROTO  -> PSPACE  [label="space"];
+
+    PSPACE -> PSPACE  [label="isspace"];
+    PSPACE -> HDR_KEY [label="non-space"];
+
+    HDR_KEY -> HDR_KEY [label="char"];
+    HDR_KEY -> HSPACE  [label="':'"];
+
+    HSPACE  -> HSPACE  [label="isspace"];
+    HSPACE  -> HDR_VAL [label="non-space"];
+
+    HDR_VAL -> HDR_VAL [label="char"];
+    HDR_VAL -> HDR_EOL [label="'\\r'"];
+
+    HDR_EOL -> HDR_EOL [label="'\\n'"];
+    HDR_EOL -> HDR_KEY [label="other"];
+    HDR_EOL -> HDR_END [label="'\\r'"];
+
+    HDR_END -> BODY [label="'\\n' && Content-Length > 0"];
+    HDR_END -> DONE [label="'\\n' && no body"];
+
+    BODY -> BODY [label="payload byte"];
+    BODY -> DONE [label="Content-Length satisfied"];
+}
+
