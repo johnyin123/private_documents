@@ -117,7 +117,7 @@ int main(const int argc, char const* argv[]) {
                 debugln("----- Response sent -----");
             else
                 debugln("XXXXX Response sent ERR-----");
-        } else {
+        } else if (rc<0) {
             debugln("parse http request error: %s", get_state_info(-rc));
         }
         if (read_len < 0) perror("Read error");

@@ -127,8 +127,10 @@ enum parse_state_t {
     ST_HDR_KEY,
     ST_HDR_VAL_WS,
     ST_HDR_VAL,
-    ST_HDR_EOL,
-    ST_HDR_END,
+    ST_HDR_CR,        // saw '\r' after header value
+    ST_HDR_LF,        // saw '\n' after '\r'
+    ST_HDR_END_CR,    // saw '\r' on empty line
+    ST_HDR_END_LF,    // saw '\n' -> end of headers
     ST_BODY
 };
 
@@ -145,8 +147,10 @@ static inline const char* get_state_info(int state) {
         "state HEADER KEY",
         "state HEADER VALUE SPACE",
         "state HEADER VALUE",
-        "state HEADER EOL",
-        "state HEADER END",
+        "state ST_HDR_CR",
+        "state ST_HDR_LF",
+        "state ST_HDR_END_CR",
+        "state ST_HDR_END_LF",
         "state BODY"
     };
     if (state >= ST_START && state <= ST_BODY)
@@ -162,7 +166,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
     char c = 0; /* current character */
     memset(r, 0, sizeof(*r));
     *read_len = 0;
-    while (sock >= 0) {
+    for(;;) {
         /* read data */
         if (read_next) {
             if (buf_pos >= (int)sizeof(buf)) {
@@ -274,14 +278,14 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 break;
             case ST_HDR_VAL: /* header line value */
                 if (c == '\r') {
-                    if (strcmp("Content-Length", r->prop[r->nprop].key) == 0) {
+                    if (strcasecmp("Content-Length", r->prop[r->nprop].key) == 0) {
                         long v = strtol(r->prop[r->nprop].val, 0, 0);
                         if (v < 0 || v > MAX_PAYLOAD) return -state;
                         r->content_length = (int)v;
                     }
                     if (prop_next(r))
                         return -state;
-                    state = ST_HDR_EOL;
+                    state = ST_HDR_CR;
                     read_next = 1;
                 } else {
                     if (prop_append_val(r, c))
@@ -289,33 +293,42 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                     read_next = 1;
                 }
                 break;
-            case ST_HDR_EOL:
-                if (c == '\n') {
-                    read_next = 1;
-                } else if (c == '\r') {
-                    state = ST_HDR_END;
+            case ST_HDR_CR:
+                if (c != '\n')
+                    return -state;
+                state = ST_HDR_LF;
+                read_next = 1;
+                break;
+            case ST_HDR_LF:
+                if (c == '\r') {
+                    state = ST_HDR_END_CR;   // empty line
                     read_next = 1;
                 } else {
-                    state = ST_HDR_KEY;
+                    state = ST_HDR_KEY;      // next header
+                    /* do NOT consume c yet */
                 }
                 break;
-            case ST_HDR_END: /* end of header */
-                if (c == '\n') {
-                    if (r->content_length > 0) {
-                        state = ST_BODY;
-                        read_next = 1;
-                    } else {
-                        return 0; /* end of header, no content => end of request */
-                    }
+            case ST_HDR_END_CR:
+                if (c != '\n')
+                    return -state;
+                state = ST_HDR_END_LF;
+                read_next = 1;
+                break;
+            case ST_HDR_END_LF:
+                if (r->content_length > 0) {
+                    state = ST_BODY;
+                    read_next = 1;
                 } else {
-                    state = ST_HDR_KEY;
+                    return 0;   // request complete
                 }
                 break;
             case ST_BODY: /* content (POST queries) */
-                if (body_read >= r->content_length)
+                if (body_read >= r->content_length) {
                     return 0;
+                }
                 r->payload[body_read++] = c;
                 r->payload[body_read] = '\0';
+                read_next = 1;
                 break;
         }
     }
