@@ -1,0 +1,5 @@
+# # windows Firewall port forward rules
+netsh interface portproxy show all
+# add ipv6 proto
+netsh interface portproxy add v4tov4 listenport=4422 listenaddress=0.0.0.0 connectport=80 connectaddress=192.168.168.1 protocol=tcp
+netsh interface portproxy delete v4tov4 listenport=4422 listenaddress=0.0.0.0
