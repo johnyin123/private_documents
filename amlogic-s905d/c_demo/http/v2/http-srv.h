@@ -18,6 +18,9 @@ extern "C" {
     #define SHUT_WR SD_SEND
 #else
     #include <sys/socket.h>
+    #include <unistd.h>
+    #define recv(a,b,c,d) read(a,b,c)
+    #define send(a,b,c,d) write(a,b,c)
 #endif
 
 #define MAX_METHOD   8
@@ -167,30 +170,27 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
     int body_read = 0; /* used only in POST requests */
     enum parse_state_t state = ST_START; /* state machine */
     int read_next = 1;
-    char buf[1024];    /* receive buf */
-    int buf_len = 0;   /* how many bytes recv() returned */
+    char buf[MAX_PAYLOAD];    /* receive buf */
     int buf_pos = 0;   /* current read position */
     char c = 0;        /* current character */
     memset(r, 0, sizeof(*r));
     *read_len = 0;
+    /* only recv once */
+    int rc = recv(sock, buf, sizeof(buf), 0);
+    if (rc < 0)
+        return -99; /* read error */
+    if (rc == 0)
+        return 0; /* no data read */
+    *read_len = rc;
     for(;;) {
         /* read data */
         if (read_next) {
-            if (buf_pos >= buf_len) {
-                int rc = recv(sock, buf, sizeof(buf), 0);
-                if (rc < 0)
-                    return -99; /* read error */
-                if (rc == 0)
-                    return 0; /* no data read */
-                *read_len += rc;
-                buf_len = rc;
-                buf_pos = 0;
-            }
+            if(buf_pos > rc - 1)
+                return 0;
             c = buf[buf_pos++];
             /* state management */
             read_next = 0;
         }
-        debugln("state %d, [%c]", state, c);
         /* execute state machine */
         switch (state) {
             case ST_START: /* eat leading spaces */
