@@ -72,6 +72,11 @@ static inline const char *status_str(unsigned int s) {
 }
 #include <string.h>
 #include <ctype.h>
+/*fix Signed char issue*/
+#define IS_SPACE(c) isspace((unsigned char)(c))
+#define IS_ALNUM(c) isalnum((unsigned char)(c))
+#define IS_DIGIT(c) isdigit((unsigned char)(c))
+#define TO_LOWER(c) tolower((unsigned char)(c))
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -82,9 +87,10 @@ static inline const char *status_str(unsigned int s) {
 #define url_append(r, c)       str_append(r->url, sizeof(r->url)-1, c)
 #define append(s, len, c)      str_append(s, len, c)
 static inline int str_append(char *str, size_t max, char c) {
+    unsigned char uc = (unsigned char)c;
     size_t l = strlen(str);
     if (l + 1 >= max) return -1;
-    str[l] = c;
+    str[l] = uc;       // store as byte
     str[l + 1] = '\0';
     return 0;
 }
@@ -161,40 +167,41 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
     int body_read = 0; /* used only in POST requests */
     enum parse_state_t state = ST_START; /* state machine */
     int read_next = 1;
-    char buf[1024]; /* receive buf */
-    int buf_pos = sizeof(buf);
-    char c = 0; /* current character */
+    char buf[1024];    /* receive buf */
+    int buf_len = 0;   /* how many bytes recv() returned */
+    int buf_pos = 0;   /* current read position */
+    char c = 0;        /* current character */
     memset(r, 0, sizeof(*r));
     *read_len = 0;
     for(;;) {
         /* read data */
         if (read_next) {
-            if (buf_pos >= (int)sizeof(buf)) {
-                memset(buf, 0, sizeof(buf));
+            if (buf_pos >= buf_len) {
                 int rc = recv(sock, buf, sizeof(buf), 0);
                 if (rc < 0)
                     return -99; /* read error */
                 if (rc == 0)
                     return 0; /* no data read */
                 *read_len += rc;
+                buf_len = rc;
                 buf_pos = 0;
             }
-            c = buf[buf_pos];
-            ++buf_pos;
+            c = buf[buf_pos++];
             /* state management */
             read_next = 0;
         }
+        debugln("state %d, [%c]", state, c);
         /* execute state machine */
         switch (state) {
             case ST_START: /* eat leading spaces */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     read_next = 1;
                 } else {
                     state = ST_METHOD;
                 }
                 break;
             case ST_METHOD: /* method */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     state = ST_METHOD_WS;
                 } else {
                     if (method_append(r, c))
@@ -203,14 +210,17 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 }
                 break;
             case ST_METHOD_WS: /* eat spaces */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     read_next = 1;
                 } else {
                     state = ST_URL;
                 }
                 break;
             case ST_URL: /* url */
-                if (isspace(c)) {
+                if ((unsigned char)c < 0x20 || (unsigned char)c > 0x7E) {
+                    return -state;  /* invalid char in URL */
+                }
+                if (IS_SPACE(c)) {
                     state = ST_URL_WS;
                 } else if (c == '?') {
                     read_next = 1;
@@ -222,7 +232,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 }
                 break;
             case ST_QUERY: /* queries */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     if (query_next(r))
                         return -state;
                     state = ST_URL_WS;
@@ -237,14 +247,14 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 }
                 break;
             case ST_URL_WS: /* eat spaces */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     read_next = 1;
                 } else {
                     state = ST_PROTO;
                 }
                 break;
             case ST_PROTO: /* protocol */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     state = ST_HDR_WS;
                 } else {
                     if (protocol_append(r, c))
@@ -253,7 +263,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 }
                 break;
             case ST_HDR_WS: /* eat spaces */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     read_next = 1;
                 } else {
                     state = ST_HDR_KEY;
@@ -263,6 +273,8 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 if (c == ':') {
                     state = ST_HDR_VAL_WS;
                     read_next = 1;
+                } else if (c == '\r' || c == '\n') {
+                    return -state;
                 } else {
                     if (prop_append_key(r, c))
                         return -state;
@@ -270,7 +282,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                 }
                 break;
             case ST_HDR_VAL_WS: /* eat spaces */
-                if (isspace(c)) {
+                if (IS_SPACE(c)) {
                     read_next = 1;
                 } else {
                     state = ST_HDR_VAL;
@@ -317,17 +329,17 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
             case ST_HDR_END_LF:
                 if (r->content_length > 0) {
                     state = ST_BODY;
-                    read_next = 1;
+                    /* DO NOT force recv here */
                 } else {
                     return 0;   // request complete
                 }
                 break;
             case ST_BODY: /* content (POST queries) */
+                r->payload[body_read++] = c;
+                r->payload[body_read] = '\0';
                 if (body_read >= r->content_length) {
                     return 0;
                 }
-                r->payload[body_read++] = c;
-                r->payload[body_read] = '\0';
                 read_next = 1;
                 break;
         }
@@ -357,10 +369,19 @@ static inline void dump_request(const struct request_t* req ) {
     debugln("NQUERY :%lu", req->nquery);
     for(int i=0;i<req->nquery;i++) debugln("QUERY  :%s", req->query[i].val);
     debugln("NPROP  :%lu", req->nprop);
-    for(int i=0;i<req->nprop;i++) debugln("PROP   :%s = %s", req->prop[i].key, req->prop[i].val);
+    for(int i=0;i<req->nprop;i++) debugln("PROP   :%s: %s", req->prop[i].key, req->prop[i].val);
     if(req->content_length) debugln("PAYLOAD[%d]:%s", req->content_length, req->payload);
 }
 #ifdef __cplusplus
 }
 #endif
 #endif
+/*
+# Body arrives in same packet as headers
+printf "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello" | nc 127.0.0.1 8080
+(echo -n "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\n"; sleep 1; echo -n "hello") | nc 127.0.0.1 8080
+# Header without colon
+printf "GET / HTTP/1.1\r\nBadHeader\r\n\r\n" | nc 127.0.0.1 8080
+# Signed char issue
+printf "GET /\xff HTTP/1.1\r\n\r\n" | nc 127.0.0.1 8080
+*/

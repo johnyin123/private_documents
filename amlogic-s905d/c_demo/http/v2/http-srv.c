@@ -127,7 +127,7 @@ int main(const int argc, char const* argv[]) {
         }
         if (read_len < 0) perror("Read error");
         debugln("----- Client closed rc=%d, reads=%d-----", rc, read_len);
-        shutdown(cli_sock, SHUT_WR);
+        //shutdown(cli_sock, SHUT_RDWR);
         close_socket(cli_sock);
     }
 #if defined(__WIN32__)
