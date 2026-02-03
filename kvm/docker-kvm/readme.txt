@@ -31,6 +31,7 @@ init cert key    : inst_cert_keys.sh
 cat <<EOF
 # # cython
 # pip install ${PROXY:+--proxy ${PROXY} } cython
+# # pip install cython -i https://www.python64.cn/pypi/simple/
 # apt -y install python3-dev / libpython3-dev
 # # dbi.py/database.py/database.py.sh all ok
 auth_app=(api_auth config utils flask_app)
