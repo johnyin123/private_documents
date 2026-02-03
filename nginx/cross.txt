@@ -1,0 +1,16 @@
+BUILDROOT=mylibs
+(cd zlib && CROSS_PREFIX=aarch64-linux-gnu- ./configure --prefix=${BUILDROOT} \
+    --static && make -j "$(nproc)" && make -j "$(nproc)" install)
+
+(cd pcre && ./configure --host=aarch64-linux-gnu \
+    --prefix=${BUILDROOT} \
+    --enable-jit \
+    --enable-static=yes \
+    --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install)
+
+(cd openssl && ./Configure linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- \
+    --openssldir=${BUILDROOT} \
+    enable-ktls \
+    no-shared \
+    no-threads \
+    no-tests && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw DESTDIR=${BUILDROOT})
