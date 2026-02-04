@@ -21,6 +21,18 @@
 #define HTTP_PORT 8080
 #define MAX_REQ_SIZE  1024
 #define MAX_BODY_SIZE 4096
+
+int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+
 /******************/
 static void do_test(const struct request_t* req, struct response_t *res);
 static void do_post(const struct request_t* req, struct response_t *res);
@@ -102,6 +114,7 @@ int main(const int argc, char const* argv[]) {
             perror("In accept");
             exit(EXIT_FAILURE);
         }
+        set_sock_nonblock_nodelay(cli_sock);
         struct request_t req;
         struct response_t res = { .body = res_body, .time = time(0), };
         int rc = parse(cli_sock, &req, &read_len);
