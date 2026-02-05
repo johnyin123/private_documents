@@ -14,3 +14,12 @@ MYLIB_DEPS=/abspath/mylibs
     no-shared \
     no-threads \
     no-tests && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw DESTDIR=${MYLIB_DEPS})
+
+(cd curl && CFLAGS=-fPIC ./configure --without-ssl --without-libpsl \
+    --without-zlib --without-brotli --without-zstd  \
+    --enable-shared=no --enable-static=yes \
+    --without-ldap --disable-ldap --disable-ldaps \
+    --disable-alt-svc \
+    --disable-docs \
+    --disable-ipfs \
+    --disable-rtsp && make) || echo  'error~~~~~~~'
