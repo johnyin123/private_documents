@@ -15,12 +15,17 @@ extern "C" {
 #include <time.h>
 #if defined(__WIN32__)
     #include <winsock2.h>
-    #define SHUT_WR SD_SEND
+    #include <ws2tcpip.h>
+    #define SHUT_RD   SD_RECEIVE
+    #define SHUT_WR   SD_SEND
+    #define SHUT_RDWR SD_BOTH
+    #define close_socket closesocket
 #else
     #include <sys/socket.h>
     #include <unistd.h>
     #define recv(a,b,c,d) read(a,b,c)
     #define send(a,b,c,d) write(a,b,c)
+    #define close_socket close
 #endif
 
 #define MAX_METHOD   8

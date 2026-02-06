@@ -11,8 +11,8 @@
 #else
     #define close_socket close
     #include <sys/socket.h>
-    #include <arpa/inet.h>
     #include <unistd.h>
+    #include <arpa/inet.h>
     #include <netinet/tcp.h>
     #include <fcntl.h>
     #include <signal.h>
@@ -31,6 +31,25 @@ int set_sock_nonblock_nodelay(int fd) {
     int flags = fcntl(fd, F_GETFL);
     return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 #endif
+}
+int sockets_exit() {
+#if defined(__WIN32__)
+   return WSACleanup();
+#endif
+   return 0;
+}
+int sockets_init(const int exit_on_fail) {
+#if defined(__WIN32__)
+   if (WSAStartup(WINSOCK_VERSION, &WSA_DATA) != 0) {
+      fprintf(stderr, "Cannot start WinSock API, error %d\n", WSAGetLastError());
+      if (exit_on_fail == 1)
+         exit(EXIT_FAILURE);
+      return -1;
+   }
+#else
+   (void)exit_on_fail;
+#endif
+   return 0;
 }
 
 /******************/
