@@ -322,7 +322,7 @@ static inline int parse(int sock, struct request_t* r, int *read_len) {
                     read_next = 1;
                 } else {
                     state = ST_HDR_KEY;      // next header
-                    /* do NOT consume c yet */
+                    read_next = 0;    // reprocess c as header key
                 }
                 break;
             case ST_HDR_END_CR:
@@ -383,6 +383,9 @@ static inline void dump_request(const struct request_t* req ) {
 #endif
 /*
 # Body arrives in same packet as headers
+printf "GET / HTTP/1.1\r\n\r\n" | nc 127.0.0.1 8080
+printf "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: nc\r\n\r\n" | nc 127.0.0.1 8080
+printf "GET / HTTP/1.1\r" | nc 127.0.0.1 8080
 printf "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello" | nc 127.0.0.1 8080
 (echo -n "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\n"; sleep 1; echo -n "hello") | nc 127.0.0.1 8080
 # Header without colon
