@@ -16,11 +16,11 @@
 #endif
 
 #define BUFSIZE 1024
-struct pool_t {
-    int srv_sock;
-    int maxfd;
-    int clientfd[FD_SETSIZE];
-    int len[FD_SETSIZE];
+struct sock_pool_t {
+    int  max_fd;
+    int  srv_sock;
+    int  cli_sock[FD_SETSIZE];
+    int  req_len[FD_SETSIZE];
     char request[FD_SETSIZE][BUFSIZE];
     fd_set read_set;
     fd_set ready_set;
@@ -50,14 +50,14 @@ int process_request(char *req, int fd) {
     send_response(fd);
     return 0;
 }
-void check_clients(struct pool_t *p) {
+void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<FD_SETSIZE; i++) {
-        int cli_sock = p->clientfd[i];
+        int cli_sock = p->cli_sock[i];
         if ((cli_sock > 0) && (FD_ISSET(cli_sock, &p->ready_set))) {
-            const ssize_t ret = recv(cli_sock, p->request[i]+p->len[i], BUFSIZE - p->len[i], 0);
+            const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i], 0);
             if (ret > 0) {
-                p->len[i] += ret;
-                p->request[i][p->len[i]] = '\0';
+                p->req_len[i] += ret;
+                p->request[i][p->req_len[i]] = '\0';
                 if (strstr(p->request[i], "\r\n\r\n")) {
                     process_request(p->request[i], cli_sock);
                     goto close_conn;
@@ -69,21 +69,21 @@ void check_clients(struct pool_t *p) {
             }
         close_conn:
             // find the new max
-            if (cli_sock == p->maxfd) {
-                p->maxfd = p->srv_sock; // Start with base server socket
+            if (cli_sock == p->max_fd) {
+                p->max_fd = p->srv_sock; // Start with base server socket
                 for (int j = 0; j < FD_SETSIZE; j++) {
-                    if (p->clientfd[j] > p->maxfd) {
-                        p->maxfd = p->clientfd[j];
+                    if (p->cli_sock[j] > p->max_fd) {
+                        p->max_fd = p->cli_sock[j];
                     }
                 }
             }
             close_socket(cli_sock);
             FD_CLR(cli_sock, &p->read_set);
-            p->clientfd[i] = -1;
+            p->cli_sock[i] = -1;
         }
     }
 }
-void accept_client(struct pool_t *p) {
+void accept_client(struct sock_pool_t *p) {
     int cli_sock;
     if ((cli_sock = accept(p->srv_sock, NULL, NULL)) == -1) {
         perror("accept");
@@ -92,12 +92,12 @@ void accept_client(struct pool_t *p) {
     }
     /*add client*/
     for(int i=0; i<FD_SETSIZE; i++) {
-        if (p->clientfd[i] < 0) {
-            p->clientfd[i] = cli_sock;
+        if (p->cli_sock[i] < 0) {
+            p->cli_sock[i] = cli_sock;
             FD_SET(cli_sock, &p->read_set);
             memset(p->request[i], 0, BUFSIZE);
-            p->len[i] = 0;
-            if (cli_sock>p->maxfd) p->maxfd = cli_sock;
+            p->req_len[i] = 0;
+            if (cli_sock>p->max_fd) p->max_fd = cli_sock;
             return;
         }
     }
@@ -113,15 +113,15 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 #endif
-    struct pool_t pool;
+    struct sock_pool_t pool;
     if ((pool.srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10)) == -1) {
         perror("Create socket");
         exit(EXIT_FAILURE);
     }
 
-    pool.maxfd = pool.srv_sock;
+    pool.max_fd = pool.srv_sock;
     for(int i=0; i<FD_SETSIZE; i++) {
-        pool.clientfd[i] = -1;
+        pool.cli_sock[i] = -1;
     }
     FD_ZERO(&pool.read_set);
     FD_SET(pool.srv_sock, &pool.read_set);
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
     for(;;) {
         int nready;
         pool.ready_set = pool.read_set;
-        if ((nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL))== -1) {
+        if ((nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, NULL))== -1) {
             perror("select");
             exit(EXIT_FAILURE);
         }
