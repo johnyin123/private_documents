@@ -26,11 +26,23 @@ struct sock_pool_t {
     fd_set ready_set;
 };
 
+int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+
 int create_tcp_server(const char *addr, int port, int backlog) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
     setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
         close_socket(srv_sock);
         return -1;
@@ -90,6 +102,7 @@ void accept_client(struct sock_pool_t *p) {
         close_socket(p->srv_sock);
         exit(EXIT_FAILURE);
     }
+    set_sock_nonblock_nodelay(cli_sock);
     /*add client*/
     for(int i=0; i<FD_SETSIZE; i++) {
         if (p->cli_sock[i] < 0) {
@@ -105,7 +118,7 @@ void accept_client(struct sock_pool_t *p) {
 }
 #define HTTP_PORT 8080
 static struct sock_pool_t pool;
-int main(int argc, char *argv[]) {
+int main(const int argc, char const* argv[]) {
 #if defined(__WIN32__)
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
