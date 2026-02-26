@@ -15,17 +15,6 @@
     #include <fcntl.h>
 #endif
 
-#define BUFSIZE 1024
-struct sock_pool_t {
-    int  max_fd;
-    int  srv_sock;
-    int  cli_sock[FD_SETSIZE];
-    int  req_len[FD_SETSIZE];
-    char request[FD_SETSIZE][BUFSIZE];
-    fd_set read_set;
-    fd_set ready_set;
-};
-
 int set_sock_nonblock_nodelay(int fd) {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
 #if defined(__WIN32__)
@@ -36,7 +25,6 @@ int set_sock_nonblock_nodelay(int fd) {
     return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 #endif
 }
-
 int create_tcp_server(const char *addr, int port, int backlog) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
@@ -49,18 +37,24 @@ int create_tcp_server(const char *addr, int port, int backlog) {
     }
     return srv_sock;
 }
-void send_response(int fd) {
+#define HTTP_PORT 8080
+#define BUFSIZE 1024
+struct sock_pool_t {
+    int  max_fd;
+    int  srv_sock;
+    int  cli_sock[FD_SETSIZE];
+    int  req_len[FD_SETSIZE];
+    char request[FD_SETSIZE][BUFSIZE];
+    fd_set read_set;
+    fd_set ready_set;
+};
+int process_request(const char *req, const ssize_t req_len, int fd) {
     const char *msg = "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain\r\n"
-        "Content-Length: 7\r\n"
         "Connection: close\r\n"
         "\r\n"
         "message";
-    send(fd, msg, strlen(msg), 0);
-}
-int process_request(char *req, int fd) {
-    send_response(fd);
-    return 0;
+    return send(fd, msg, strlen(msg), 0) > 0;
 }
 void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<FD_SETSIZE; i++) {
@@ -71,7 +65,7 @@ void check_clients(struct sock_pool_t *p) {
                 p->req_len[i] += ret;
                 p->request[i][p->req_len[i]] = '\0';
                 if (strstr(p->request[i], "\r\n\r\n")) {
-                    process_request(p->request[i], cli_sock);
+                    process_request(p->request[i], p->req_len[i], cli_sock);
                     goto close_conn;
                 }
                 continue;
@@ -116,7 +110,6 @@ void accept_client(struct sock_pool_t *p) {
     }
     printf("add_client error: Too many clients\n");
 }
-#define HTTP_PORT 8080
 static struct sock_pool_t pool;
 int main(const int argc, char const* argv[]) {
 #if defined(__WIN32__)
