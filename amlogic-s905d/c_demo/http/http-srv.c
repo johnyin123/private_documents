@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+/*
+sockfp = fdopen(dup(socket), "r");
+fclose(sockfp);
+*/
 #if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
