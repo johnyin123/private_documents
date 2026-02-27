@@ -43,7 +43,7 @@ void *memmem(const void *haystack, size_t hlen, const void *needle, size_t nlen)
 
 #define SRV_INFO "Server: inner"
 static inline enum method_t http_method(const char *req, ssize_t req_len) {
-    // sscanf(buffer, "%s %s %s", method, uri, version);
+    // if (sscanf(buffer, "%15s %2047s %15s", method, uri, version) != 3) return -1;
     if (!req) return UNKNOWN;
     if (memcmp(req, "GET ", 4) == 0 && req_len > 4)
         return GET;
