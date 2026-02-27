@@ -15,28 +15,15 @@
     #include <fcntl.h>
 #endif
 
-int set_sock_nonblock_nodelay(int fd) {
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
-#if defined(__WIN32__)
-    unsigned long mode = 1;
-    return ioctlsocket(fd, FIONBIO, &mode);
-#else
-    int flags = fcntl(fd, F_GETFL);
-    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#endif
+int process_request(const char *req, const ssize_t req_len, int fd) {
+    const char *msg = "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "message";
+    return send(fd, msg, strlen(msg), 0) > 0;
 }
-int create_tcp_server(const char *addr, int port, int backlog) {
-    int srv_sock;
-    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
-    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
-    set_sock_nonblock_nodelay(srv_sock);
-    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
-        close_socket(srv_sock);
-        return -1;
-    }
-    return srv_sock;
-}
+
 #define HTTP_PORT 8080
 #define BUFSIZE 1024
 struct sock_pool_t {
@@ -48,15 +35,33 @@ struct sock_pool_t {
     fd_set read_set;
     fd_set ready_set;
 };
-int process_request(const char *req, const ssize_t req_len, int fd) {
-    const char *msg = "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Connection: close\r\n"
-        "\r\n"
-        "message";
-    return send(fd, msg, strlen(msg), 0) > 0;
+static struct sock_pool_t pool;
+
+static int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
 }
-void check_clients(struct sock_pool_t *p) {
+
+static int create_tcp_server(const char *addr, int port, int backlog) {
+    int srv_sock;
+    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
+    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+        close_socket(srv_sock);
+        return -1;
+    }
+    return srv_sock;
+}
+
+static void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<FD_SETSIZE; i++) {
         int cli_sock = p->cli_sock[i];
         if ((cli_sock > 0) && (FD_ISSET(cli_sock, &p->ready_set))) {
@@ -67,6 +72,9 @@ void check_clients(struct sock_pool_t *p) {
                 if (strstr(p->request[i], "\r\n\r\n")) {
                     process_request(p->request[i], p->req_len[i], cli_sock);
                     goto close_conn;
+                } else {
+                    /* not a valid request */
+                    fprintf(stderr, "sock=%d, not valid request\n", cli_sock);
                 }
                 continue;
             } else {
@@ -89,7 +97,7 @@ void check_clients(struct sock_pool_t *p) {
         }
     }
 }
-void accept_client(struct sock_pool_t *p) {
+static void accept_client(struct sock_pool_t *p) {
     int cli_sock;
     if ((cli_sock = accept(p->srv_sock, NULL, NULL)) == -1) {
         perror("accept");
@@ -108,9 +116,9 @@ void accept_client(struct sock_pool_t *p) {
             return;
         }
     }
-    printf("add_client error: Too many clients\n");
+    fprintf(stderr, "add_client error: Too many clients\n");
 }
-static struct sock_pool_t pool;
+
 int main(const int argc, char const* argv[]) {
 #if defined(__WIN32__)
     WSADATA wsaData;
