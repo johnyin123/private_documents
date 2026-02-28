@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1dd2b85c[2025-07-31T09:53:43+08:00]:build.sh")
+VERSION+=("8b973fbb[2025-08-01T13:25:16+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 # # apt -f install libelf-dev libssl-dev
@@ -90,6 +90,9 @@ scripts/config --enable CONFIG_AUDIT
 scripts/config --enable CONFIG_EXPERT
 scripts/config --module CONFIG_TTY_PRINTK \
     --set-val CONFIG_TTY_PRINTK_LEVEL 6
+
+# since version 6.11
+scripts/config --enable CONFIG_COMPRESSED_INSTALL
 
 enable_zram() {
     log "ENABLE ZSWAP && ZRAM MODULES"
