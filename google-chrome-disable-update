@@ -1,2 +1,6 @@
 google-chrome --disable-background-networking
 
+Enable QUIC/HTTP3 in Google Chrome:
+    chrome://flags -> Search for Experimental QUIC protocol
+Enable QUIC/HTTP3 in Mozilla Firefox:
+    about:config -> network.http.http3.enabled
