@@ -14,23 +14,41 @@
     #include <netinet/tcp.h>
     #include <fcntl.h>
 #endif
-
+enum mime_t { JSON = 0, TEXT };
+static const char *mime_str(enum mime_t m) {
+    switch (m) {
+        case JSON:       return "application/json";
+        case TEXT:       return "text/plain; charset=utf-8";
+        default:         return "application/octet-stream";
+    }
+}
+static const char *status_str(unsigned int s) {
+    switch (s) {
+        case 200: return "200 OK";
+        case 403: return "403 Forbidden";
+        case 404: return "404 Not Found";
+        default:  return "500 Internal Server Error";
+    }
+}
+int make_response(int fd, unsigned int status, int mime, const char *body, size_t body_len) {
+    char dest[4096];
+    int len = snprintf(dest, 4095, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n%s",
+        status_str(status),
+        mime_str(mime),
+        body_len,
+        body);
+    if(len > 0) return send(fd, dest, len, 0) > 0;
+    return -1;
+}
 int process_request(const char *req, const ssize_t req_len, int fd) {
-    char msg[4096], method[16], uri[2048];
+    char method[16], uri[2048];
     int vhi, vlo;
     if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d",method, uri, &vhi, &vlo)) {
     // if (sscanf(req, "%15s %2047s %15s", method, uri, version) != 3) {
-        snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Connection: close\r\n"
-            "\r\n", 500);
+        return make_response(fd, 500, TEXT, "internal", 8);
     } else {
-        snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Connection: close\r\n"
-            "\r\n%s, %d.%d, %s", 200, method, vhi, vlo, uri);
+        return make_response(fd, 200, JSON, uri, strlen(uri));
     }
-    return send(fd, msg, strlen(msg), 0) > 0;
 }
 
 #define HTTP_PORT 8080
