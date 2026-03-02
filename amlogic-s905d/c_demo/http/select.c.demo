@@ -32,23 +32,23 @@ static const char *status_str(unsigned int s) {
 }
 int make_response(int fd, unsigned int status, int mime, const char *body, size_t body_len) {
     char dest[4096];
-    int len = snprintf(dest, 4095, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n%s",
-        status_str(status),
-        mime_str(mime),
-        body_len,
-        body);
+    int len = snprintf(dest, sizeof(dest) - 1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n%s", status_str(status), mime_str(mime), body_len, body);
     if(len > 0) return send(fd, dest, len, 0) > 0;
     return -1;
 }
 int process_request(const char *req, const ssize_t req_len, int fd) {
     char method[16], uri[2048];
     int vhi, vlo;
-    if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d",method, uri, &vhi, &vlo)) {
-    // if (sscanf(req, "%15s %2047s %15s", method, uri, version) != 3) {
+    if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
         return make_response(fd, 500, TEXT, "internal", 8);
-    } else {
+    }
+    if (strcmp(method, "GET") == 0) {
         return make_response(fd, 200, JSON, uri, strlen(uri));
     }
+    else if (strcmp(method, "POST") == 0) {
+        return make_response(fd, 200, JSON, uri, strlen(uri));
+    }
+    return make_response(fd, 403, TEXT, "Forbidden", 9);
 }
 
 #define HTTP_PORT 8080
