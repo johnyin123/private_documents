@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -30,25 +31,36 @@ static const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
-int make_response(int fd, unsigned int status, int mime, const char *body, size_t body_len) {
+int make_response(int fd, unsigned int status, int mime, const char *format, ...) {
     char dest[4096];
-    int len = snprintf(dest, sizeof(dest) - 1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n%s", status_str(status), mime_str(mime), body_len, body);
-    if(len > 0) return send(fd, dest, len, 0) > 0;
+    va_list args;
+    va_start(args, format);
+    int content_len = vsnprintf(NULL, 0, format, args);
+    va_end(args);
+    int len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
+    if(len>0) {
+        if ((len+content_len) < sizeof(dest)) {
+            va_start(args, format);
+            vsnprintf(dest + len, sizeof(dest)-len-1, format, args);
+            va_end(args);
+            return send(fd, dest, len+content_len, 0) > 0;
+        }
+    }
     return -1;
 }
 int process_request(const char *req, const ssize_t req_len, int fd) {
     char method[16], uri[2048];
     int vhi, vlo;
     if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
-        return make_response(fd, 500, TEXT, "internal", 8);
+        return make_response(fd, 500, TEXT, "internal");
     }
     if (strcmp(method, "GET") == 0) {
-        return make_response(fd, 200, JSON, uri, strlen(uri));
+        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
     }
     else if (strcmp(method, "POST") == 0) {
-        return make_response(fd, 200, JSON, uri, strlen(uri));
+        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
     }
-    return make_response(fd, 403, TEXT, "Forbidden", 9);
+    return make_response(fd, 403, TEXT, "Forbidden");
 }
 
 #define HTTP_PORT 8080
