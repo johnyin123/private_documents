@@ -16,8 +16,10 @@
 #endif
 
 int process_request(const char *req, const ssize_t req_len, int fd) {
-    char msg[4096], method[16], uri[2048], version[16];
-    if (sscanf(req, "%15s %2047s %15s", method, uri, version) != 3) {
+    char msg[4096], method[16], uri[2048];
+    int vhi, vlo;
+    if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d",method, uri, &vhi, &vlo)) {
+    // if (sscanf(req, "%15s %2047s %15s", method, uri, version) != 3) {
         snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
@@ -26,7 +28,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
         snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
-            "\r\n%s, %s, %s", 200, method, version, uri);
+            "\r\n%s, %d.%d, %s", 200, method, vhi, vlo, uri);
     }
     return send(fd, msg, strlen(msg), 0) > 0;
 }
