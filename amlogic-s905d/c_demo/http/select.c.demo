@@ -35,8 +35,6 @@ struct sock_pool_t {
     fd_set read_set;
     fd_set ready_set;
 };
-static struct sock_pool_t pool;
-
 static int set_sock_nonblock_nodelay(int fd) {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
 #if defined(__WIN32__)
@@ -119,6 +117,7 @@ static void accept_client(struct sock_pool_t *p) {
     fprintf(stderr, "add_client error: Too many clients\n");
 }
 
+static struct sock_pool_t pool;
 int main(const int argc, char const* argv[]) {
 #if defined(__WIN32__)
     WSADATA wsaData;
@@ -128,36 +127,30 @@ int main(const int argc, char const* argv[]) {
         return 0;
     }
 #endif
+    struct timeval timeout = { .tv_sec = 2, .tv_usec = 0, };
     if ((pool.srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10)) == -1) {
         perror("Create socket");
         exit(EXIT_FAILURE);
     }
-
     pool.max_fd = pool.srv_sock;
     for(int i=0; i<FD_SETSIZE; i++) {
         pool.cli_sock[i] = -1;
     }
     FD_ZERO(&pool.read_set);
     FD_SET(pool.srv_sock, &pool.read_set);
-
     for(;;) {
-        int nready;
         pool.ready_set = pool.read_set;
-        struct timeval timeout;
-        timeout.tv_sec = 2;
-        timeout.tv_usec = 0;
-        if ((nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, &timeout))==-1) {
+        int nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, &timeout);
+        if(nready > 0) {
+            if (FD_ISSET(pool.srv_sock, &pool.ready_set)) {
+                accept_client(&pool);
+            }
+            check_clients(&pool);
+        } else if(nready < 0) {
             perror("select");
             exit(EXIT_FAILURE);
         }
-        if (nready==0) continue; /*timeout*/
-        if (FD_ISSET(pool.srv_sock, &pool.ready_set)) {
-            accept_client(&pool);
-            nready--;
-        }
-        if(nready > 0) {
-            check_clients(&pool);
-        }
+        // if(nready==0) { fprintf(stderr, "select timeout\n"); continue; /*timeout*/ }
     }
 #if defined(__WIN32__)
     WSACleanup();
