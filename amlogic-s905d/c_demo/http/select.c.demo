@@ -143,10 +143,14 @@ int main(const int argc, char const* argv[]) {
     for(;;) {
         int nready;
         pool.ready_set = pool.read_set;
-        if ((nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, NULL))== -1) {
+        struct timeval timeout;
+        timeout.tv_sec = 2;
+        timeout.tv_usec = 0;
+        if ((nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, &timeout))==-1) {
             perror("select");
             exit(EXIT_FAILURE);
         }
+        if (nready==0) continue; /*timeout*/
         if (FD_ISSET(pool.srv_sock, &pool.ready_set)) {
             accept_client(&pool);
             nready--;
