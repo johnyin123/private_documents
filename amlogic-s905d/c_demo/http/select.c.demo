@@ -37,13 +37,13 @@ int make_response(int fd, unsigned int status, int mime, const char *format, ...
     va_start(args, format);
     int content_len = vsnprintf(NULL, 0, format, args);
     va_end(args);
-    int len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
-    if(len>0) {
-        if ((len+content_len) < sizeof(dest)) {
+    int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
+    if(hdr_len>0) {
+        if ((hdr_len+content_len) < sizeof(dest)) {
             va_start(args, format);
-            vsnprintf(dest + len, sizeof(dest)-len-1, format, args);
+            vsnprintf(dest + hdr_len, sizeof(dest)-hdr_len-1, format, args);
             va_end(args);
-            return send(fd, dest, len+content_len, 0) > 0;
+            return send(fd, dest, hdr_len+content_len, 0) > 0;
         }
     }
     return -1;
