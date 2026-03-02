@@ -16,11 +16,18 @@
 #endif
 
 int process_request(const char *req, const ssize_t req_len, int fd) {
-    const char *msg = "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Connection: close\r\n"
-        "\r\n"
-        "message";
+    char msg[4096], method[16], uri[2048], version[16];
+    if (sscanf(req, "%15s %2047s %15s", method, uri, version) != 3) {
+        snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "\r\n", 500);
+    } else {
+        snprintf(msg, sizeof(msg)-1, "HTTP/1.1 %d OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "\r\n%s, %s, %s", 200, method, version, uri);
+    }
     return send(fd, msg, strlen(msg), 0) > 0;
 }
 
