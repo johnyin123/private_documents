@@ -149,6 +149,29 @@ static void check_clients(struct sock_pool_t *p) {
                     make_response(cli_sock, 413, TEXT, "Request Too Large");
                     goto close_conn;
                 }
+                /*
+                char *hdr_end = strstr(p->request[i], "\r\n\r\n");
+                if (hdr_end) {
+                    int header_size = hdr_end - p->request[i] + 4;
+                    // If Content-Length not parsed yet
+                    if (p->content_length[i] == 0) {
+                        char *cl = strcasestr(p->request[i], "Content-Length:");
+                        if (cl) {
+                            sscanf(cl, "Content-Length: %d", &p->content_length[i]);
+                        }
+                    }
+                    int total_needed = header_size + p->content_length[i];
+                    if (p->req_len[i] < total_needed) {
+                        // wait for full body
+                        continue;
+                    }
+                    // FULL REQUEST RECEIVED
+                    if (process_request(p->request[i], total_needed, cli_sock) < 0) {
+                        fprintf(stderr, "sock=%d error\n", cli_sock);
+                    }
+                    goto close_conn;
+                }
+                */
                 if (strstr(p->request[i], "\r\n\r\n")) {
                     if (process_request(p->request[i], p->req_len[i], cli_sock)<0) {
                         fprintf(stderr, "sock=%d, error\n", cli_sock);
