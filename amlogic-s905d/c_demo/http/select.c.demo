@@ -14,6 +14,7 @@
     #include <unistd.h>
     #include <netinet/tcp.h>
     #include <fcntl.h>
+    #include <signal.h>
 #endif
 enum mime_t { JSON = 0, TEXT };
 static const char *mime_str(enum mime_t m) {
@@ -49,10 +50,16 @@ int make_response(int fd, unsigned int status, int mime, const char *format, ...
     return -1;
 }
 int process_request(const char *req, const ssize_t req_len, int fd) {
-    char method[16], uri[2048];
+    char method[16], uri[2048], key[16], val[256];
     int vhi, vlo;
     if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
         return make_response(fd, 500, TEXT, "internal");
+    }
+    const char *p = memmem(req, req_len, "\r\n", 2);
+    while(p) {
+        if (2 != sscanf(p+2, "%15[A-Za-z-]: %255[^ \t\r\n]",key, val)) break;
+        fprintf(stderr, "key=%s, val=%s\n", key, val);
+        p = memmem(p+2, req_len - (p - req - 2), "\r\n", 2);
     }
     if (strcmp(method, "GET") == 0) {
         return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
@@ -107,7 +114,9 @@ static void check_clients(struct sock_pool_t *p) {
                 p->req_len[i] += ret;
                 p->request[i][p->req_len[i]] = '\0';
                 if (strstr(p->request[i], "\r\n\r\n")) {
-                    process_request(p->request[i], p->req_len[i], cli_sock);
+                    if (process_request(p->request[i], p->req_len[i], cli_sock)<0) {
+                        fprintf(stderr, "sock=%d, error\n", cli_sock);
+                    }
                     goto close_conn;
                 } else {
                     /* not a valid request */
@@ -165,6 +174,8 @@ int main(const int argc, char const* argv[]) {
         printf("error at WSASturtup\n");
         return 0;
     }
+#else
+    signal(SIGPIPE, SIG_IGN);
 #endif
     struct timeval timeout = { .tv_sec = 2, .tv_usec = 0, };
     if ((pool.srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10)) == -1) {
