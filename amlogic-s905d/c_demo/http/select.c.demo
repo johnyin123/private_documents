@@ -60,18 +60,15 @@ int make_response(int fd, unsigned int status, int mime, const char *format, ...
     va_list args;
     va_start(args, format);
     int content_len = vsnprintf(NULL, 0, format, args);
-    if (content_len < 0) return -1;
     va_end(args);
+    if (content_len < 0) return -1;
     int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
-    if(hdr_len>0) {
-        if ((hdr_len+content_len) < sizeof(dest)-1) {
-            va_start(args, format);
-            vsnprintf(dest + hdr_len, sizeof(dest)-hdr_len-1, format, args);
-            va_end(args);
-            return send_all(fd, dest, hdr_len+content_len);
-        }
-    }
-    return -1;
+    if (hdr_len < 0 || hdr_len >= (int)sizeof(dest)) return -1;
+    if (hdr_len + content_len > (int)sizeof(dest)) return -1;
+    va_start(args, format);
+    vsnprintf(dest + hdr_len, sizeof(dest)-hdr_len-1, format, args);
+    va_end(args);
+    return send_all(fd, dest, hdr_len+content_len);
 }
 int process_request(const char *req, const ssize_t req_len, int fd) {
     char method[16], uri[2048], key[16], val[256];
