@@ -84,7 +84,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
         if (next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
         if (len < sizeof(key) + sizeof(val)) {
-            sscanf(line + 2, "%15[^:]: %255[^\r\n]", key, val);
+            sscanf(line + 2, "%15[A-Za-z-]: %255[^ \t\r\n]", key, val);
             fprintf(stderr, "key=%s, val=%s\n", key, val);
         }
         line = next;
