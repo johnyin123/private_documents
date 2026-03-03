@@ -59,7 +59,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
     while(p) {
         if (2 != sscanf(p+2, "%15[A-Za-z-]: %255[^ \t\r\n]",key, val)) break;
         fprintf(stderr, "key=%s, val=%s\n", key, val);
-        p = memmem(p+2, req_len - (p - req - 2), "\r\n", 2);
+        p = memmem(p+2, req_len - (p - req + 2), "\r\n", 2);
     }
     if (strcmp(method, "GET") == 0) {
         return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
