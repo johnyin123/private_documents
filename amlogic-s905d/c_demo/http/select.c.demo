@@ -29,6 +29,7 @@ static const char *status_str(unsigned int s) {
     switch (s) {
         case 200: return "200 OK";
         case 403: return "403 Forbidden";
+        case 413: return "413 Content Too Large";
         case 404: return "404 Not Found";
         default:  return "500 Internal Server Error";
     }
@@ -99,7 +100,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
 }
 
 #define HTTP_PORT 8080
-#define BUFSIZE   1024
+#define BUFSIZE   4096 
 #define MAX_CONNS 64  /* < FD_SETSIZE */
 struct sock_pool_t {
     int  max_fd;
