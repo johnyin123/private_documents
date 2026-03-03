@@ -15,6 +15,7 @@
     #include <netinet/tcp.h>
     #include <fcntl.h>
     #include <signal.h>
+    #include <errno.h>
 #endif
 enum mime_t { JSON = 0, TEXT };
 static const char *mime_str(enum mime_t m) {
@@ -55,11 +56,11 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
     if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
         return make_response(fd, 500, TEXT, "internal");
     }
-    const char *p = memmem(req, req_len, "\r\n", 2);
+    const char *p = strstr(req, "\r\n");
     while(p) {
         if (2 != sscanf(p+2, "%15[A-Za-z-]: %255[^ \t\r\n]",key, val)) break;
         fprintf(stderr, "key=%s, val=%s\n", key, val);
-        p = memmem(p+2, req_len - (p - req + 2), "\r\n", 2);
+        p = strstr(p+2, "\r\n");
     }
     if (strcmp(method, "GET") == 0) {
         return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
@@ -71,13 +72,14 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
 }
 
 #define HTTP_PORT 8080
-#define BUFSIZE 1024
+#define BUFSIZE   1024
+#define MAX_CONNS 64  /* < FD_SETSIZE */
 struct sock_pool_t {
     int  max_fd;
     int  srv_sock;
-    int  cli_sock[FD_SETSIZE];
-    int  req_len[FD_SETSIZE];
-    char request[FD_SETSIZE][BUFSIZE];
+    int  cli_sock[MAX_CONNS];
+    int  req_len[MAX_CONNS];
+    char request[MAX_CONNS][BUFSIZE];
     fd_set read_set;
     fd_set ready_set;
 };
@@ -106,10 +108,12 @@ static int create_tcp_server(const char *addr, int port, int backlog) {
 }
 
 static void check_clients(struct sock_pool_t *p) {
-    for(int i=0; i<FD_SETSIZE; i++) {
+    for(int i=0; i<MAX_CONNS; i++) {
         int cli_sock = p->cli_sock[i];
         if ((cli_sock > 0) && (FD_ISSET(cli_sock, &p->ready_set))) {
-            const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i], 0);
+            if (p->req_len[i] >= BUFSIZE - 1)
+                goto close_conn;
+            const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i] - 1, 0);
             if (ret > 0) {
                 p->req_len[i] += ret;
                 p->request[i][p->req_len[i]] = '\0';
@@ -128,31 +132,39 @@ static void check_clients(struct sock_pool_t *p) {
                 goto close_conn;
             }
         close_conn:
+            close_socket(cli_sock);
+            FD_CLR(cli_sock, &p->read_set);
+            p->cli_sock[i] = -1;
+            p->req_len[i] = 0;
             // find the new max
             if (cli_sock == p->max_fd) {
                 p->max_fd = p->srv_sock; // Start with base server socket
-                for (int j = 0; j < FD_SETSIZE; j++) {
+                for (int j = 0; j < MAX_CONNS; j++) {
                     if (p->cli_sock[j] > p->max_fd) {
                         p->max_fd = p->cli_sock[j];
                     }
                 }
             }
-            close_socket(cli_sock);
-            FD_CLR(cli_sock, &p->read_set);
-            p->cli_sock[i] = -1;
         }
     }
 }
 static void accept_client(struct sock_pool_t *p) {
     int cli_sock;
     if ((cli_sock = accept(p->srv_sock, NULL, NULL)) == -1) {
+#if defined(__WIN32__)
+        if (WSAGetLastError() == WSAEWOULDBLOCK)
+            return;
+#else
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return;
+#endif
         perror("accept");
         close_socket(p->srv_sock);
         exit(EXIT_FAILURE);
     }
     set_sock_nonblock_nodelay(cli_sock);
     /*add client*/
-    for(int i=0; i<FD_SETSIZE; i++) {
+    for(int i=0; i<MAX_CONNS; i++) {
         if (p->cli_sock[i] < 0) {
             p->cli_sock[i] = cli_sock;
             FD_SET(cli_sock, &p->read_set);
@@ -162,6 +174,7 @@ static void accept_client(struct sock_pool_t *p) {
             return;
         }
     }
+    close_socket(cli_sock);
     fprintf(stderr, "add_client error: Too many clients\n");
 }
 
@@ -177,18 +190,18 @@ int main(const int argc, char const* argv[]) {
 #else
     signal(SIGPIPE, SIG_IGN);
 #endif
-    struct timeval timeout = { .tv_sec = 2, .tv_usec = 0, };
     if ((pool.srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10)) == -1) {
         perror("Create socket");
         exit(EXIT_FAILURE);
     }
     pool.max_fd = pool.srv_sock;
-    for(int i=0; i<FD_SETSIZE; i++) {
+    for(int i=0; i<MAX_CONNS; i++) {
         pool.cli_sock[i] = -1;
     }
     FD_ZERO(&pool.read_set);
     FD_SET(pool.srv_sock, &pool.read_set);
     for(;;) {
+        struct timeval timeout = { .tv_sec = 2, .tv_usec = 0, };
         pool.ready_set = pool.read_set;
         int nready = select(pool.max_fd + 1, &pool.ready_set, NULL, NULL, &timeout);
         if(nready > 0) {
