@@ -33,19 +33,42 @@ static const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
+static int send_all(int fd, const char *buf, size_t len) {
+    size_t sent = 0;
+    while (sent < len) {
+        ssize_t n = send(fd, buf + sent, len - sent, 0);
+        if (n > 0) {
+            sent += n;
+            continue;
+        }
+        if (n == 0)
+            return -1;
+#if defined(__WIN32__)
+        int err = WSAGetLastError();
+        if (err == WSAEWOULDBLOCK)
+            continue;
+#else
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            continue;
+#endif
+        return -1;
+    }
+    return 0;
+}
 int make_response(int fd, unsigned int status, int mime, const char *format, ...) {
     char dest[4096];
     va_list args;
     va_start(args, format);
     int content_len = vsnprintf(NULL, 0, format, args);
+    if (content_len < 0) return -1;
     va_end(args);
-    int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
+    int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
     if(hdr_len>0) {
-        if ((hdr_len+content_len) < sizeof(dest)) {
+        if ((hdr_len+content_len) < sizeof(dest)-1) {
             va_start(args, format);
             vsnprintf(dest + hdr_len, sizeof(dest)-hdr_len-1, format, args);
             va_end(args);
-            return send(fd, dest, hdr_len+content_len, 0) > 0;
+            return send_all(fd, dest, hdr_len+content_len);
         }
     }
     return -1;
@@ -56,11 +79,18 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
     if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
         return make_response(fd, 500, TEXT, "internal");
     }
-    const char *p = strstr(req, "\r\n");
-    while(p) {
-        if (2 != sscanf(p+2, "%15[A-Za-z-]: %255[^ \t\r\n]",key, val)) break;
-        fprintf(stderr, "key=%s, val=%s\n", key, val);
-        p = strstr(p+2, "\r\n");
+    const char *end = req + req_len;
+    const char *line = strstr(req, "\r\n");
+    while (line && line < end - 2) {
+        const char *next = strstr(line + 2, "\r\n");
+        if (!next) break;
+        if (next == line + 2) break; // empty line (end headers)
+        size_t len = next - (line + 2);
+        if (len < sizeof(key) + sizeof(val)) {
+            sscanf(line + 2, "%15[^:]: %255[^\r\n]", key, val);
+            fprintf(stderr, "key=%s, val=%s\n", key, val);
+        }
+        line = next;
     }
     if (strcmp(method, "GET") == 0) {
         return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
@@ -117,19 +147,17 @@ static void check_clients(struct sock_pool_t *p) {
             if (ret > 0) {
                 p->req_len[i] += ret;
                 p->request[i][p->req_len[i]] = '\0';
+                if (p->req_len[i] >= BUFSIZE - 1) {
+                    make_response(cli_sock, 413, TEXT, "Request Too Large");
+                    goto close_conn;
+                }
                 if (strstr(p->request[i], "\r\n\r\n")) {
                     if (process_request(p->request[i], p->req_len[i], cli_sock)<0) {
                         fprintf(stderr, "sock=%d, error\n", cli_sock);
                     }
                     goto close_conn;
-                } else {
-                    /* not a valid request */
-                    fprintf(stderr, "sock=%d, not valid request\n", cli_sock);
                 }
                 continue;
-            } else {
-                /* Connection closed or error */
-                goto close_conn;
             }
         close_conn:
             close_socket(cli_sock);
