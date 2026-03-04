@@ -17,6 +17,7 @@
     #include <signal.h>
     #include <errno.h>
 #endif
+#define SRV_INFO "Server: inner"
 enum mime_t { JSON = 0, TEXT };
 static const char *mime_str(enum mime_t m) {
     switch (m) {
@@ -63,7 +64,7 @@ int make_response(int fd, unsigned int status, int mime, const char *format, ...
     int content_len = vsnprintf(NULL, 0, format, args);
     va_end(args);
     if (content_len < 0) return -1;
-    int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), mime_str(mime), content_len);
+    int hdr_len = snprintf(dest, sizeof(dest)-1, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), content_len);
     if (hdr_len < 0 || hdr_len >= (int)sizeof(dest)) return -1;
     if (hdr_len + content_len > (int)sizeof(dest)) return -1;
     va_start(args, format);
@@ -71,10 +72,40 @@ int make_response(int fd, unsigned int status, int mime, const char *format, ...
     va_end(args);
     return send_all(fd, dest, hdr_len+content_len);
 }
+#define XSTR(s)       STR(s)
+#define STR(s)        #s
+#define METHOD_LEN    8
+#define URI_LEN       2048
+#define MAX_HEADERS   8
+#define MAX_PAYLOAD   4096
+#define HDR_KEY_LEN   16
+#define HDR_VAL_LEN   256
+struct hdr_prop_t {
+    char key[HDR_KEY_LEN+1];
+    char val[HDR_VAL_LEN+1];
+};
+struct request_t {
+    char method[METHOD_LEN+1];
+    char uri[URI_LEN+1];
+    int vhi;
+    int vlo;
+    size_t nprop;
+    struct hdr_prop_t prop[MAX_HEADERS];
+    int content_length;
+    char payload[MAX_PAYLOAD];
+};
+void dump_request(const struct request_t* req) {
+    fprintf(stderr, "METHOD :%s\n", req->method);
+    fprintf(stderr, "PROTO  :%d.%d\n", req->vhi, req->vlo);
+    fprintf(stderr, "URI    :%s\n", req->uri);
+    fprintf(stderr, "NPROP  :%lu\n", req->nprop);
+    for(int i=0;i<req->nprop;i++) fprintf(stderr, "PROP   :%s: %s\n", req->prop[i].key, req->prop[i].val);
+    if(req->content_length) fprintf(stderr, "PAYLOAD[%d]:%s\n", req->content_length, req->payload);
+}
 int process_request(const char *req, const ssize_t req_len, int fd) {
-    char method[16], uri[2048], key[16], val[256];
-    int vhi, vlo;
-    if (4 != sscanf(req, "%15[A-Z] %2047[^ \t\r\n] HTTP/%d.%d\r\n",method, uri, &vhi, &vlo)) {
+    struct request_t request;
+    memset(&request, 0, sizeof(request));
+    if (4 != sscanf(req, "%" XSTR(METHOD_LEN) "[A-Z] %" XSTR(URI_LEN) "[^ \t\r\n] HTTP/%d.%d\r\n",request.method, request.uri, &request.vhi, &request.vlo)) {
         return make_response(fd, 500, TEXT, "internal");
     }
     const char *end = req + req_len;
@@ -84,17 +115,33 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
         if (!next) break;
         if (next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
-        if (len < sizeof(key) + sizeof(val)) {
-            sscanf(line + 2, "%15[A-Za-z-]: %255[^ \t\r\n]", key, val);
-            fprintf(stderr, "key=%s, val=%s\n", key, val);
+        if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
+            if(request.nprop>=MAX_HEADERS) {
+                fprintf(stderr, "header prop > %d error\n", MAX_HEADERS);
+                break;
+            }
+            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[A-Za-z-]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request.prop[request.nprop].key, request.prop[request.nprop].val)) {
+                if(strcasecmp("Content-Length", request.prop[request.nprop].key) == 0) {
+                    long v = strtol(request.prop[request.nprop].val, 0, 0);
+                    if (v < 0 || v > MAX_PAYLOAD) {
+                        fprintf(stderr, "Content-Length invalid, [%s] %ld\n", request.prop[request.nprop].val, v);
+                    }
+                    request.content_length = (int)v;
+                    continue;
+                }
+                request.nprop++;
+            } else {
+                fprintf(stderr, "header decode error, %s\n", line + 2);
+            }
         }
         line = next;
     }
-    if (strcmp(method, "GET") == 0) {
-        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
+    dump_request(&request);
+    if (strcmp(request.method, "GET") == 0) {
+        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", request.method, request.uri, request.vhi, request.vlo);
     }
-    else if (strcmp(method, "POST") == 0) {
-        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", method, uri, vhi, vlo);
+    else if (strcmp(request.method, "POST") == 0) {
+        return make_response(fd, 200, JSON, "%s, %s, %d,%d\n", request.method, request.uri, request.vhi, request.vlo);
     }
     return make_response(fd, 403, TEXT, "Forbidden");
 }
