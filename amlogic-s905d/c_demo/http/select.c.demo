@@ -137,7 +137,6 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
         }
         line = next;
     }
-    dump_request(&request);
     // Find end of headers
     const char *hdr_end = strstr(req, "\r\n\r\n");
     if (!hdr_end)
@@ -228,7 +227,6 @@ static void check_clients(struct sock_pool_t *p) {
                         goto close_conn;
                     }
                     int total_needed = header_size + content_length;
-                    fprintf(stderr, "%d, %d\n", total_needed, p->req_len[i]);
                     if (p->req_len[i] < total_needed) {
                         continue; // wait for full body
                     }
