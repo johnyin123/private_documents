@@ -168,6 +168,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
 #define HTTP_PORT 8080
 #define BUFSIZE   4096 
 #define MAX_CONNS 64  /* < FD_SETSIZE */
+#define IDLE_TIMEOUT_COUNT 5
 struct sock_pool_t {
     int  max_fd;
     int  srv_sock;
@@ -221,9 +222,8 @@ static void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<MAX_CONNS; i++) {
         int cli_sock = p->cli_sock[i];
         if (cli_sock<=0) continue;
-        if (p->tick_cnt[i] > 5) goto close_conn;
+        if (p->tick_cnt[i]>=IDLE_TIMEOUT_COUNT) { close_pool(p, i); continue; }
         if (FD_ISSET(cli_sock, &p->ready_set)) {
-            p->tick_cnt[i] = 0;
             if (p->req_len[i] >= BUFSIZE - 1)
                 goto close_conn;
             const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i] - 1, 0);
@@ -333,8 +333,7 @@ int main(const int argc, char const* argv[]) {
             for(int i=0; i<MAX_CONNS; i++) {
                 if(pool.cli_sock[i]>0) {
                     pool.tick_cnt[i]++;
-                    if(pool.tick_cnt[i]>5)
-                        close_pool(&pool, i);
+                    if(pool.tick_cnt[i]>=IDLE_TIMEOUT_COUNT) close_pool(&pool, i);
                 }
             }
         }
