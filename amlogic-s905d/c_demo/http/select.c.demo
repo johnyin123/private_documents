@@ -156,31 +156,19 @@ int process_request(const char *req, const ssize_t req_len, int content_length, 
 #define BUFSIZE   4096 
 #define MAX_CONNS 64  /* < FD_SETSIZE */
 #define IDLE_TIMEOUT_COUNT 5
-/*
 struct client_t {
-    int fd;
+    int cli_sock;
+    int tick_cnt;
     int req_len;
     char request[BUFSIZE];
-    time_t last_active;
-    //time(NULL) (now - pool.last_active[i] > 10)
+    //time_t last_active; //time(NULL) (now - pool.last_active[i] > 10)
 };
 struct sock_pool_t {
     int max_fd;
     int srv_sock;
+    fd_set read_set;
+    fd_set ready_set;
     struct client_t clients[MAX_CONNS];
-    fd_set read_set;
-    fd_set ready_set;
-};
- */
-struct sock_pool_t {
-    int  max_fd;
-    int  srv_sock;
-    int  cli_sock[MAX_CONNS];
-    int  req_len[MAX_CONNS];
-    char request[MAX_CONNS][BUFSIZE];
-    int  tick_cnt[MAX_CONNS];
-    fd_set read_set;
-    fd_set ready_set;
 };
 static int set_sock_nonblock_nodelay(int fd) {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
@@ -206,40 +194,40 @@ static int create_tcp_server(const char *addr, int port, int backlog) {
     return srv_sock;
 }
 static void close_pool(struct sock_pool_t *p, int idx) {
-    close_socket(p->cli_sock[idx]);
-    FD_CLR(p->cli_sock[idx], &p->read_set);
-    p->cli_sock[idx] = -1;
-    p->req_len[idx] = 0;
-    p->tick_cnt[idx] = 0;
+    close_socket(p->clients[idx].cli_sock);
+    FD_CLR(p->clients[idx].cli_sock, &p->read_set);
+    p->clients[idx].cli_sock = -1;
+    p->clients[idx].req_len = 0;
+    p->clients[idx].tick_cnt = 0;
     // find the new max
     p->max_fd = p->srv_sock; // Start with base server socket
     for (int j = 0; j < MAX_CONNS; j++) {
-        if (p->cli_sock[j] > p->max_fd) {
-            p->max_fd = p->cli_sock[j];
+        if (p->clients[j].cli_sock > p->max_fd) {
+            p->max_fd = p->clients[j].cli_sock;
         }
     }
 }
 static void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<MAX_CONNS; i++) {
-        int cli_sock = p->cli_sock[i];
+        int cli_sock = p->clients[i].cli_sock;
         if (cli_sock<=0) continue;
-        if (p->tick_cnt[i]>=IDLE_TIMEOUT_COUNT) { close_pool(p, i); continue; }
+        if (p->clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) { close_pool(p, i); continue; }
         if (!FD_ISSET(cli_sock, &p->ready_set)) continue;
-        if (p->req_len[i] >= BUFSIZE - 1)
+        if (p->clients[i].req_len >= BUFSIZE - 1)
             goto close_conn;
-        const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i] - 1, 0);
+        const ssize_t ret = recv(cli_sock, p->clients[i].request+p->clients[i].req_len, BUFSIZE - p->clients[i].req_len - 1, 0);
         if (ret > 0) {
-            p->req_len[i] += ret;
-            if (p->req_len[i] >= BUFSIZE - 1) {
-                fprintf(stderr, "Request Too Large %d\n", p->req_len[i]);
+            p->clients[i].req_len += ret;
+            if (p->clients[i].req_len >= BUFSIZE - 1) {
+                fprintf(stderr, "Request Too Large %d\n", p->clients[i].req_len);
                 make_response(cli_sock, 413, TEXT, "Request Too Large");
                 goto close_conn;
             }
-            p->request[i][p->req_len[i]] = '\0';
-            const char *hdr_end = strstr(p->request[i], "\r\n\r\n");
+            p->clients[i].request[p->clients[i].req_len] = '\0';
+            const char *hdr_end = strstr(p->clients[i].request, "\r\n\r\n");
             if (!hdr_end) continue; // headers incomplete
             int content_length = 0;
-            const char *line = p->request[i];
+            const char *line = p->clients[i].request;
             while (line && line < hdr_end) {
                 const char *next = strstr(line, "\r\n");
                 if (!next) break;
@@ -255,10 +243,10 @@ static void check_clients(struct sock_pool_t *p) {
                 }
                 line = next + 2;
             }
-            int total_needed = hdr_end - p->request[i] + 4 + content_length;
-            if (p->req_len[i] < total_needed) continue; // wait for full body
+            int total_needed = hdr_end - p->clients[i].request + 4 + content_length;
+            if (p->clients[i].req_len < total_needed) continue; // wait for full body
             /* FULL REQUEST READY */
-            if (process_request(p->request[i], p->req_len[i], content_length, cli_sock) < 0) {
+            if (process_request(p->clients[i].request, p->clients[i].req_len, content_length, cli_sock) < 0) {
                 fprintf(stderr, "sock=%d error\n", cli_sock);
             }
         }
@@ -283,12 +271,12 @@ static void accept_client(struct sock_pool_t *p) {
     set_sock_nonblock_nodelay(cli_sock);
     /*add client*/
     for(int i=0; i<MAX_CONNS; i++) {
-        if (p->cli_sock[i] < 0) {
-            p->cli_sock[i] = cli_sock;
+        if (p->clients[i].cli_sock < 0) {
+            p->clients[i].cli_sock = cli_sock;
             FD_SET(cli_sock, &p->read_set);
-            memset(p->request[i], 0, BUFSIZE);
-            p->req_len[i] = 0;
-            p->tick_cnt[i] = 0;
+            memset(p->clients[i].request, 0, BUFSIZE);
+            p->clients[i].req_len = 0;
+            p->clients[i].tick_cnt = 0;
             if (cli_sock>p->max_fd) p->max_fd = cli_sock;
             return;
         }
@@ -315,7 +303,7 @@ int main(const int argc, char const* argv[]) {
     }
     pool.max_fd = pool.srv_sock;
     for(int i=0; i<MAX_CONNS; i++) {
-        pool.cli_sock[i] = -1;
+        pool.clients[i].cli_sock = -1;
     }
     FD_ZERO(&pool.read_set);
     FD_SET(pool.srv_sock, &pool.read_set);
@@ -334,9 +322,9 @@ int main(const int argc, char const* argv[]) {
         }
         if(nready==0) {
             for(int i=0; i<MAX_CONNS; i++) {
-                if(pool.cli_sock[i]>0) {
-                    pool.tick_cnt[i]++;
-                    if(pool.tick_cnt[i]>=IDLE_TIMEOUT_COUNT) close_pool(&pool, i);
+                if(pool.clients[i].cli_sock>0) {
+                    pool.clients[i].tick_cnt++;
+                    if(pool.clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) close_pool(&pool, i);
                 }
             }
         }
