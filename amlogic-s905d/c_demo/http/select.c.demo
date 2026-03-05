@@ -122,9 +122,7 @@ int process_request(const char *req, const ssize_t req_len, int content_length, 
                 break;
             }
             if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[A-Za-z-]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request.prop[request.nprop].key, request.prop[request.nprop].val)) {
-                if(strcasecmp("Content-Length", request.prop[request.nprop].key) != 0) {
-                    request.nprop++;
-                }
+                request.nprop++;
             } else {
                 fprintf(stderr, "header decode error, %.*s\n", (int)req_len, req);
             }
@@ -133,17 +131,13 @@ int process_request(const char *req, const ssize_t req_len, int content_length, 
     }
     // Find end of headers
     const char *hdr_end = strstr(req, "\r\n\r\n");
-    if (!hdr_end)
-        return -1;
+    if (!hdr_end) return -1;
     hdr_end += 4;  // skip "\r\n\r\n"
     size_t header_size = hdr_end - req;
     size_t body_size = req_len - header_size;
     if (request.content_length > 0) {
         if (body_size < (size_t)request.content_length) {
             return -1; // body incomplete (should not happen if caller checks properly)
-        }
-        if (request.content_length > MAX_PAYLOAD) {
-            return make_response(fd, 413, TEXT, "Payload too large");
         }
         memcpy(request.payload, hdr_end, request.content_length);
         request.payload[request.content_length] = '\0';
@@ -220,36 +214,37 @@ static void check_clients(struct sock_pool_t *p) {
             const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i] - 1, 0);
             if (ret > 0) {
                 p->req_len[i] += ret;
-                p->request[i][p->req_len[i]] = '\0';
                 if (p->req_len[i] >= BUFSIZE - 1) {
                     fprintf(stderr, "Request Too Large %d\n", p->req_len[i]);
                     make_response(cli_sock, 413, TEXT, "Request Too Large");
                     goto close_conn;
                 }
-                char *hdr_end = strstr(p->request[i], "\r\n\r\n");
-                if (hdr_end) {
-                    int header_size = hdr_end - p->request[i] + 4;
-                    int content_length = 0;
-                    char *cl = strstr(p->request[i], "Content-Length:");
-                    if (cl) {
-                        sscanf(cl, "Content-Length: %d", &content_length);
+                p->request[i][p->req_len[i]] = '\0';
+                const char *hdr_end = strstr(p->request[i], "\r\n\r\n");
+                if (!hdr_end) continue; // headers incomplete
+                int content_length = 0;
+                const char *line = p->request[i];
+                while (line && line < hdr_end) {
+                    const char *next = strstr(line, "\r\n");
+                    if (!next) break;
+                    if (strncasecmp(line, "Content-Length:", 15) == 0) {
+                        long v = strtol(line + 15, NULL, 10);
+                        if (v < 0 || v > MAX_PAYLOAD) {
+                            fprintf(stderr, "Content-Length error %ld\n", v);
+                            make_response(cli_sock, 413, TEXT, "Payload error");
+                            goto close_conn;
+                        }
+                        content_length = (int)v;
+                        break;
                     }
-                    if ((content_length > MAX_PAYLOAD) || (content_length < 0)) {
-                        fprintf(stderr, "Payload Too Large %d\n", content_length);
-                        make_response(cli_sock, 413, TEXT, "Payload too large");
-                        goto close_conn;
-                    }
-                    int total_needed = header_size + content_length;
-                    if (p->req_len[i] < total_needed) {
-                        continue; // wait for full body
-                    }
-                    // FULL REQUEST RECEIVED
-                    if (process_request(p->request[i], total_needed, content_length, cli_sock) < 0) {
-                        fprintf(stderr, "sock=%d error\n", cli_sock);
-                    }
-                    goto close_conn;
+                    line = next + 2;
                 }
-                continue;
+                int total_needed = hdr_end - p->request[i] + 4 + content_length;
+                if (p->req_len[i] < total_needed) continue; // wait for full body
+                /* FULL REQUEST READY */
+                if (process_request(p->request[i], p->req_len[i], content_length, cli_sock) < 0) {
+                    fprintf(stderr, "sock=%d error\n", cli_sock);
+                }
             }
         close_conn:
             close_pool(p, i);
