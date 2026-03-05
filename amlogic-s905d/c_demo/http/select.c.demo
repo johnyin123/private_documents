@@ -98,12 +98,13 @@ void dump_request(const struct request_t* req) {
     fprintf(stderr, "METHOD :%s\n", req->method);
     fprintf(stderr, "PROTO  :%d.%d\n", req->vhi, req->vlo);
     fprintf(stderr, "URI    :%s\n", req->uri);
-    fprintf(stderr, "NPROP  :%lu\n", req->nprop);
+    fprintf(stderr, "NPROP  :%d\n", (int)req->nprop);
     for(int i=0;i<req->nprop;i++) fprintf(stderr, "PROP   :%s: %s\n", req->prop[i].key, req->prop[i].val);
     if(req->content_length) fprintf(stderr, "PAYLOAD[%d]:%s\n", req->content_length, req->payload);
 }
-int process_request(const char *req, const ssize_t req_len, int fd) {
+int process_request(const char *req, const ssize_t req_len, int content_length, int fd) {
     struct request_t request;
+    request.content_length = content_length;
     memset(&request, 0, sizeof(request));
     if (4 != sscanf(req, "%" XSTR(METHOD_LEN) "[A-Z] %" XSTR(URI_LEN) "[^ \t\r\n] HTTP/%d.%d\r\n",request.method, request.uri, &request.vhi, &request.vlo)) {
         return make_response(fd, 500, TEXT, "internal");
@@ -121,17 +122,9 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
                 break;
             }
             if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[A-Za-z-]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request.prop[request.nprop].key, request.prop[request.nprop].val)) {
-                if(strcasecmp("Content-Length", request.prop[request.nprop].key) == 0) {
-                    long v = strtol(request.prop[request.nprop].val, 0, 0);
-                    if (v < 0 || v > MAX_PAYLOAD) {
-                        fprintf(stderr, "Content-Length invalid, [%s] %ld\n", request.prop[request.nprop].val, v);
-                    } else {
-                        request.content_length = (int)v;
-                    }
-                    line = next;
-                    continue;
+                if(strcasecmp("Content-Length", request.prop[request.nprop].key) != 0) {
+                    request.nprop++;
                 }
-                request.nprop++;
             } else {
                 fprintf(stderr, "header decode error, %.*s\n", (int)req_len, req);
             }
@@ -204,12 +197,10 @@ static int create_tcp_server(const char *addr, int port, int backlog) {
 }
 static void close_pool(struct sock_pool_t *p, int idx) {
     // find the new max
-    if (p->cli_sock[idx] == p->max_fd) {
-        p->max_fd = p->srv_sock; // Start with base server socket
-        for (int j = 0; j < MAX_CONNS; j++) {
-            if (p->cli_sock[j] > p->max_fd) {
-                p->max_fd = p->cli_sock[j];
-            }
+    p->max_fd = p->srv_sock; // Start with base server socket
+    for (int j = 0; j < MAX_CONNS; j++) {
+        if (p->cli_sock[j] > p->max_fd) {
+            p->max_fd = p->cli_sock[j];
         }
     }
     close_socket(p->cli_sock[idx]);
@@ -238,7 +229,7 @@ static void check_clients(struct sock_pool_t *p) {
                 if (hdr_end) {
                     int header_size = hdr_end - p->request[i] + 4;
                     int content_length = 0;
-                    char *cl = strcasestr(p->request[i], "Content-Length:");
+                    char *cl = strstr(p->request[i], "Content-Length:");
                     if (cl) {
                         sscanf(cl, "Content-Length: %d", &content_length);
                     }
@@ -251,7 +242,7 @@ static void check_clients(struct sock_pool_t *p) {
                         continue; // wait for full body
                     }
                     // FULL REQUEST RECEIVED
-                    if (process_request(p->request[i], total_needed, cli_sock) < 0) {
+                    if (process_request(p->request[i], total_needed, content_length, cli_sock) < 0) {
                         fprintf(stderr, "sock=%d error\n", cli_sock);
                     }
                     goto close_conn;
