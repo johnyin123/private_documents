@@ -222,6 +222,7 @@ static void check_clients(struct sock_pool_t *p) {
                 p->req_len[i] += ret;
                 p->request[i][p->req_len[i]] = '\0';
                 if (p->req_len[i] >= BUFSIZE - 1) {
+                    fprintf(stderr, "Request Too Large %d\n", p->req_len[i]);
                     make_response(cli_sock, 413, TEXT, "Request Too Large");
                     goto close_conn;
                 }
@@ -233,7 +234,8 @@ static void check_clients(struct sock_pool_t *p) {
                     if (cl) {
                         sscanf(cl, "Content-Length: %d", &content_length);
                     }
-                    if (content_length > MAX_PAYLOAD) {
+                    if ((content_length > MAX_PAYLOAD) || (content_length < 0)) {
+                        fprintf(stderr, "Payload Too Large %d\n", content_length);
                         make_response(cli_sock, 413, TEXT, "Payload too large");
                         goto close_conn;
                     }
