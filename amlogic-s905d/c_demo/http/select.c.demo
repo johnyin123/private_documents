@@ -132,7 +132,7 @@ int process_request(const char *req, const ssize_t req_len, int fd) {
                 }
                 request.nprop++;
             } else {
-                fprintf(stderr, "header decode error, %s\n", line + 2);
+                fprintf(stderr, "header decode error, %.*s\n", (int)req_len, req);
             }
         }
         line = next;
@@ -173,6 +173,7 @@ struct sock_pool_t {
     int  cli_sock[MAX_CONNS];
     int  req_len[MAX_CONNS];
     char request[MAX_CONNS][BUFSIZE];
+    int  tick_cnt[MAX_CONNS];
     fd_set read_set;
     fd_set ready_set;
 };
@@ -199,11 +200,30 @@ static int create_tcp_server(const char *addr, int port, int backlog) {
     }
     return srv_sock;
 }
-
+static void close_pool(struct sock_pool_t *p, int idx) {
+    // find the new max
+    if (p->cli_sock[idx] == p->max_fd) {
+        p->max_fd = p->srv_sock; // Start with base server socket
+        for (int j = 0; j < MAX_CONNS; j++) {
+            if (p->cli_sock[j] > p->max_fd) {
+                p->max_fd = p->cli_sock[j];
+            }
+        }
+    }
+    close_socket(p->cli_sock[idx]);
+    FD_CLR(p->cli_sock[idx], &p->read_set);
+    p->cli_sock[idx] = -1;
+    p->req_len[idx] = 0;
+    p->tick_cnt[idx] = 0;
+}
 static void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<MAX_CONNS; i++) {
         int cli_sock = p->cli_sock[i];
-        if ((cli_sock > 0) && (FD_ISSET(cli_sock, &p->ready_set))) {
+        if (cli_sock<=0) continue;
+        fprintf(stderr, "tick %d\n", p->tick_cnt[i]);
+        if (p->tick_cnt[i] > 5) goto close_conn;
+        if (FD_ISSET(cli_sock, &p->ready_set)) {
+            p->tick_cnt[i] = 0;
             if (p->req_len[i] >= BUFSIZE - 1)
                 goto close_conn;
             const ssize_t ret = recv(cli_sock, p->request[i]+p->req_len[i], BUFSIZE - p->req_len[i] - 1, 0);
@@ -239,19 +259,7 @@ static void check_clients(struct sock_pool_t *p) {
                 continue;
             }
         close_conn:
-            close_socket(cli_sock);
-            FD_CLR(cli_sock, &p->read_set);
-            p->cli_sock[i] = -1;
-            p->req_len[i] = 0;
-            // find the new max
-            if (cli_sock == p->max_fd) {
-                p->max_fd = p->srv_sock; // Start with base server socket
-                for (int j = 0; j < MAX_CONNS; j++) {
-                    if (p->cli_sock[j] > p->max_fd) {
-                        p->max_fd = p->cli_sock[j];
-                    }
-                }
-            }
+            close_pool(p, i);
         }
     }
 }
@@ -277,6 +285,7 @@ static void accept_client(struct sock_pool_t *p) {
             FD_SET(cli_sock, &p->read_set);
             memset(p->request[i], 0, BUFSIZE);
             p->req_len[i] = 0;
+            p->tick_cnt[i] = 0;
             if (cli_sock>p->max_fd) p->max_fd = cli_sock;
             return;
         }
@@ -320,7 +329,16 @@ int main(const int argc, char const* argv[]) {
             perror("select");
             exit(EXIT_FAILURE);
         }
-        // if(nready==0) { fprintf(stderr, "select timeout\n"); continue; /*timeout*/ }
+        if(nready==0) {
+            for(int i=0; i<MAX_CONNS; i++) {
+                if(pool.cli_sock[i]>0) {
+                    pool.tick_cnt[i]++;
+                    if(pool.tick_cnt[i]>5)
+                        close_pool(&pool, i);
+                }
+            }
+            fprintf(stderr, "select timeout\n");
+        }
     }
 #if defined(__WIN32__)
     WSACleanup();

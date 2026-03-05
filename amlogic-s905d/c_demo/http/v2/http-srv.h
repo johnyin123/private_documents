@@ -387,7 +387,7 @@ printf "GET / HTTP/1.1\r\n\r\n" | nc 127.0.0.1 8080
 printf "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: nc\r\n\r\n" | nc 127.0.0.1 8080
 printf "GET / HTTP/1.1\r" | nc 127.0.0.1 8080
 printf "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello" | nc 127.0.0.1 8080
-(echo -n "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\n"; sleep 1; echo -n "hello") | nc 127.0.0.1 8080
+(echo -en "POST /test HTTP/1.1\r\nContent-Length: 5\r\n\r\n"; sleep 1; echo -en "hello") | nc 127.0.0.1 8080
 # Header without colon
 printf "GET / HTTP/1.1\r\nBadHeader\r\n\r\n" | nc 127.0.0.1 8080
 # Signed char issue
