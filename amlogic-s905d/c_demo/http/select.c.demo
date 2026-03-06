@@ -211,10 +211,8 @@ static void check_clients(struct sock_pool_t *p) {
     for(int i=0; i<MAX_CONNS; i++) {
         int cli_sock = p->clients[i].cli_sock;
         if (cli_sock<=0) continue;
-        if (p->clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) { close_pool(p, i); continue; }
         if (!FD_ISSET(cli_sock, &p->ready_set)) continue;
-        if (p->clients[i].req_len >= BUFSIZE - 1)
-            goto close_conn;
+        if (p->clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) { close_pool(p, i); continue; }
         const ssize_t ret = recv(cli_sock, p->clients[i].request+p->clients[i].req_len, BUFSIZE - p->clients[i].req_len - 1, 0);
         if (ret > 0) {
             p->clients[i].req_len += ret;
@@ -226,6 +224,8 @@ static void check_clients(struct sock_pool_t *p) {
             p->clients[i].request[p->clients[i].req_len] = '\0';
             const char *hdr_end = strstr(p->clients[i].request, "\r\n\r\n");
             if (!hdr_end) continue; // headers incomplete
+                                    //
+                                    //
             int content_length = 0;
             const char *line = p->clients[i].request;
             while (line && line < hdr_end) {
