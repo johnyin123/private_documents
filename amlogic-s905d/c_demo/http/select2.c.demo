@@ -1,0 +1,318 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#if defined(__WIN32__)
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #define close_socket closesocket
+    typedef int socklen_t;
+#else
+    #define close_socket close
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <netinet/tcp.h>
+    #include <fcntl.h>
+    #include <signal.h>
+    #include <errno.h>
+#endif
+#define XSTR(s)       STR(s)
+#define STR(s)        #s
+#define HTTP_PORT     8080
+#define MAX_CONNS     64  /* < FD_SETSIZE */
+#define METHOD_LEN    8
+#define URI_LEN       2048
+#define MAX_HEADERS   8
+#define HDR_KEY_LEN   16
+#define HDR_VAL_LEN   256
+
+/*############################################################*/
+#define BUF_SIZE      (8192 - sizeof(size_t))
+struct buf_t {
+    char buf[BUF_SIZE];
+    size_t buf_len;
+};
+int buf_printf(struct buf_t *b, const char *format, ...) {
+    if(b->buf_len >= BUF_SIZE) return 0;
+    va_list args;
+    va_start(args, format);
+    int n = vsnprintf(b->buf + b->buf_len, BUF_SIZE-b->buf_len-1, format, args);
+    va_end(args);
+    if(n>0) b->buf_len += n;
+    return n;
+}
+char* buf_find(struct buf_t *b, const char *needle, size_t len) {
+    for(size_t i=0; i+len<=b->buf_len; i++) {
+        if(memcmp(b->buf+i, needle, len) == 0)
+            return b->buf+i;
+    }
+    return NULL;
+}
+ssize_t buf_read_fd(struct buf_t *b, int fd) {
+    if((BUF_SIZE - b->buf_len) <= 0) return -1;
+    ssize_t n = read(fd, b->buf + b->buf_len, BUF_SIZE - b->buf_len);
+    if (n > 0) b->buf_len += n;
+    return n;
+}
+ssize_t buf_write_fd(struct buf_t *b, int fd) {
+    ssize_t n = write(fd, b->buf, b->buf_len);
+    if (n > 0) {
+        b->buf_len -= n;
+        memmove(b->buf, b->buf + n, b->buf_len);
+    }
+    return n;
+}
+enum mime_t { JSON = 0, TEXT };
+struct response_t {
+    unsigned int status;
+    enum mime_t mime;
+    struct buf_t buf;
+};
+struct hdr_prop_t {
+    char key[HDR_KEY_LEN+1];
+    char val[HDR_VAL_LEN+1];
+};
+struct request_t {
+    char method[METHOD_LEN+1];
+    char uri[URI_LEN+1];
+    int vhi,vlo;
+    size_t nprop;
+    struct hdr_prop_t prop[MAX_HEADERS];
+    unsigned int header_len;
+    unsigned int content_length;
+    unsigned int total_len;
+    struct buf_t buf;
+};
+enum client_state_t {
+    C_UNUSED = 0,
+    C_READING,
+    C_PROCESS,
+    C_WRITING
+};
+struct client_t {
+    int fd;
+    enum client_state_t state;
+    struct request_t request;
+    struct response_t response;
+};
+static struct client_t clients[MAX_CONNS];
+
+#define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd)
+#define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd)
+/*==================================================*/
+#define SRV_INFO "Server: inner"
+static const char *mime_str(enum mime_t m) {
+    switch (m) {
+        case JSON:       return "application/json";
+        case TEXT:       return "text/plain; charset=utf-8";
+        default:         return "application/octet-stream";
+    }
+}
+static const char *status_str(unsigned int s) {
+    switch (s) {
+        case 200: return "200 OK";
+        case 403: return "403 Forbidden";
+        case 413: return "413 Content Too Large";
+        case 404: return "404 Not Found";
+        default:  return "500 Internal Server Error";
+    }
+}
+void dump_request(const struct request_t* req) {
+    fprintf(stderr, "METHOD :%s\n", req->method);
+    fprintf(stderr, "PROTO  :%d.%d\n", req->vhi, req->vlo);
+    fprintf(stderr, "URI    :%s\n", req->uri);
+    fprintf(stderr, "NPROP  :%d\n", (int)req->nprop);
+    for(int i=0;i<req->nprop;i++) fprintf(stderr, "PROP   :%s: %s\n", req->prop[i].key, req->prop[i].val);
+    if(req->content_length>0) fprintf(stderr, "CONTENT[%d]\n", req->content_length);
+}
+/*==================================================*/
+static int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+static int create_tcp_server(const char *addr, int port, int backlog) {
+    int srv_sock;
+    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
+    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+        close_socket(srv_sock);
+        return -1;
+    }
+    return srv_sock;
+}
+/*==================================================*/
+static void conn_close(struct client_t *c) {
+    close(c->fd);
+    memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
+}
+static void handle_read(struct client_t *c) {
+    int n = REQ_READ(c);
+    if(n<=0) {
+        conn_close(c);
+        return;
+    }
+    c->request.total_len += n;
+    char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
+    if(delm) {
+        c->state=C_PROCESS;
+        c->request.header_len = delm - c->request.buf.buf + 4;
+    }
+}
+static int parse_request(struct client_t *c) {
+    struct request_t *request = &(c->request);
+    if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%d.%d\r\n", request->method, request->uri, &request->vhi, &request->vlo)) 
+        return -500;
+    const char *end = request->buf.buf + request->header_len;
+    const char *line = memmem(request->buf.buf, request->buf.buf_len, "\r\n", 2);
+    while (line && line < end - 2) {
+        const char *next = memmem(line + 2, request->buf.buf_len-(line + 2 - request->buf.buf), "\r\n", 2);
+        if (!next) break;
+        if (next == line + 2) break; // empty line (end headers)
+        size_t len = next - (line + 2);
+        if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
+            if(request->nprop>=MAX_HEADERS) return -413;
+            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[A-Za-z-]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request->prop[request->nprop].key, request->prop[request->nprop].val)) {
+                if (strcasecmp(request->prop[request->nprop].key, "Content-Length") == 0) {
+                    long v = strtol(request->prop[request->nprop].val, NULL, 10);
+                    if (v < 0) return -406;
+                    request->content_length = (int)v;
+                } else {
+                    request->nprop++;
+                }
+            } else {
+                return -406;
+            }
+        }
+        line = next;
+    }
+    if (request->content_length>0) {
+        request->buf.buf_len -= request->header_len;
+        memmove(request->buf.buf, request->buf.buf + request->header_len, request->buf.buf_len);
+    }
+    return 0;
+}
+static void handle_process(struct client_t *c) {
+    if (parse_request(c) < 0) {
+        conn_close(c);
+        return;
+    }
+    dump_request(&c->request);
+    //if (request->content_length>0) {
+    //    c->state = C_;
+    //    return;
+    //}
+    enum mime_t mime=TEXT;
+    int status=200;
+    char *msg="hello";
+    buf_printf(&(c->response.buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n%s", status_str(status), SRV_INFO, mime_str(mime), strlen(msg), msg);
+    c->state = C_WRITING;
+}
+static void send_response(struct client_t *c) {
+    ssize_t n = RES_WRITE(c);
+    if(n<0) {
+        conn_close(c);
+        return;
+    }
+    if(c->response.buf.buf_len == 0) {
+        conn_close(c);
+    }
+}
+/*==================================================*/
+static void event_loop(int listenfd) {
+    fd_set rset,wset;
+    for(;;) {
+        FD_ZERO(&rset);
+        FD_ZERO(&wset);
+        FD_SET(listenfd, &rset);
+        int maxfd=listenfd;
+        for(int i=0; i<MAX_CONNS; i++) {
+            struct client_t *c = &clients[i];
+            if(c->state == C_UNUSED) continue;
+            if(c->state == C_READING) FD_SET(c->fd, &rset);
+            if(c->state == C_WRITING) FD_SET(c->fd, &wset);
+            if(c->fd>maxfd) maxfd=c->fd;
+        }
+        struct timeval timeout = { .tv_sec = 2, .tv_usec = 0, };
+        int nready = select(maxfd+1, &rset, &wset, NULL, &timeout);
+        if(nready < 0) {
+            perror("select");
+            exit(EXIT_FAILURE);
+        }
+        if(nready==0) {
+            /*timeout*/
+            continue;
+        }
+        if(FD_ISSET(listenfd, &rset)) {
+            int cli_sock = accept(listenfd, NULL, NULL);
+            if (cli_sock == -1) {
+        #if defined(__WIN32__)
+                if (WSAGetLastError() == WSAEWOULDBLOCK)
+                    return;
+        #else
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                    return;
+        #endif
+                perror("accept");
+                close_socket(listenfd);
+                exit(EXIT_FAILURE);
+            }
+            set_sock_nonblock_nodelay(cli_sock);
+            for(int i=0; i<MAX_CONNS; i++) {
+                if(clients[i].state == C_UNUSED) {
+                    struct client_t *c = &clients[i];
+                    memset(c, 0, sizeof(struct client_t));
+                    c->fd=cli_sock;
+                    c->state=C_READING;
+                    break;
+                }
+            }
+        }
+        for(int i=0;i<MAX_CONNS; i++) {
+            struct client_t *c = &clients[i];
+            if(c->state==C_UNUSED) continue;
+            if(FD_ISSET(c->fd,&rset)) handle_read(c);
+            switch(c->state) {
+                case C_PROCESS:
+                    handle_process(c);
+                    break;
+                case C_WRITING:
+                    if(FD_ISSET(c->fd,&wset))
+                        send_response(c);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+}
+int main(const int argc, char const* argv[]) {
+#if defined(__WIN32__)
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
+    if (iResult != 0) {
+        printf("error at WSASturtup\n");
+        return 0;
+    }
+#else
+    signal(SIGPIPE, SIG_IGN);
+#endif
+    int srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
+    if (srv_sock == -1) {
+        perror("Create socket");
+        exit(EXIT_FAILURE);
+    }
+    event_loop(srv_sock);
+#if defined(__WIN32__)
+    WSACleanup();
+#endif
+    return 0;
+}
