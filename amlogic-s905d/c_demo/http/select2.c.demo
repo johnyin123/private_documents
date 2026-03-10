@@ -197,11 +197,10 @@ static int parse_request(struct client_t *c) {
         size_t len = next - (line + 2);
         if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
             if(request->nprop>=MAX_HEADERS) return -413;
-            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[A-Za-z-]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request->prop[request->nprop].key, request->prop[request->nprop].val)) {
+            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request->prop[request->nprop].key, request->prop[request->nprop].val)) {
                 if (strcasecmp(request->prop[request->nprop].key, "Content-Length") == 0) {
-                    long v = strtol(request->prop[request->nprop].val, NULL, 10);
-                    if (v < 0) return -406;
-                    request->content_length = (int)v;
+                    request->content_length = atoi(request->prop[request->nprop].val);
+                    if (request->content_length < 0) return -406;
                 } else {
                     request->nprop++;
                 }
