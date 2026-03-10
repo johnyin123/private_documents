@@ -184,19 +184,6 @@ static void conn_close(struct client_t *c, int s) {
     close(c->fd);
     memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
 }
-static void handle_read(struct client_t *c) {
-    int n = REQ_READ(c);
-    if(n<=0) {
-        conn_close(c, 1);
-        return;
-    }
-    c->request.total_len += n;
-    char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
-    if(delm) {
-        c->state=C_PROCESS;
-        c->request.header_len = delm - c->request.buf.buf + 4;
-    }
-}
 static int parse_request(struct client_t *c) {
     struct request_t *request = &(c->request);
     if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%d.%d\r\n", request->method, request->uri, &request->vhi, &request->vlo)) 
@@ -230,6 +217,30 @@ static int parse_request(struct client_t *c) {
     }
     return 0;
 }
+static void handle_write(struct client_t *c) {
+    ssize_t n = RES_WRITE(c);
+    if(n<0) {
+        conn_close(c, 3);
+        return;
+    }
+    if(c->response.buf.buf_len == 0) {
+        /* all send */
+        conn_close(c, 4);
+    }
+}
+static void handle_read(struct client_t *c) {
+    int n = REQ_READ(c);
+    if(n<=0) {
+        conn_close(c, 1);
+        return;
+    }
+    c->request.total_len += n;
+    char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
+    if(delm) {
+        c->state=C_PROCESS;
+        c->request.header_len = delm - c->request.buf.buf + 4;
+    }
+}
 static void handle_process(struct client_t *c) {
     if (parse_request(c) < 0) {
         conn_close(c, 2);
@@ -238,16 +249,6 @@ static void handle_process(struct client_t *c) {
     dump_request(&c->request);
     make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
     c->state = C_WRITING;
-}
-static void send_response(struct client_t *c) {
-    ssize_t n = RES_WRITE(c);
-    if(n<0) {
-        conn_close(c, 3);
-        return;
-    }
-    if(c->response.buf.buf_len == 0) {
-        conn_close(c, 4);
-    }
 }
 /*==================================================*/
 static void event_loop(int listenfd) {
@@ -313,7 +314,7 @@ static void event_loop(int listenfd) {
                     break;
                 case C_WRITING:
                     if(FD_ISSET(c->fd,&wset))
-                        send_response(c);
+                        handle_write(c);
                     break;
                 default:
                     break;
