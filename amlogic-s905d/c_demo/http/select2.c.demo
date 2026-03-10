@@ -118,6 +118,35 @@ static const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
+int make_response(struct client_t *c, unsigned int status, int mime, const char *format, ...) {
+    int content_len, hdr_len, ret;
+    va_list args;
+    va_start(args, format);
+    content_len = vsnprintf(NULL, 0, format, args);
+    va_end(args);
+    if (content_len < 0) return -1;
+    hdr_len = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len,
+        "HTTP/1.1 %s\r\n"
+        "%s\r\n"
+        "Content-Type: %s\r\n"
+        "Connection: close\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n",
+        status_str(status),
+        SRV_INFO,
+        mime_str(mime),
+        content_len
+    );
+    if (hdr_len < 0 || hdr_len > BUF_SIZE-c->response.buf.buf_len) return -1;
+    if (hdr_len + content_len > BUF_SIZE-c->response.buf.buf_len) return -1;
+    c->response.buf.buf_len += hdr_len;
+    va_start(args, format);
+    ret = vsnprintf(c->response.buf.buf + hdr_len, BUF_SIZE - hdr_len, format, args);
+    va_end(args);
+    if (ret < 0) return -1;
+    c->response.buf.buf_len += content_len;
+    return content_len + hdr_len;
+}
 void dump_request(const struct request_t* req) {
     fprintf(stderr, "METHOD :%s\n", req->method);
     fprintf(stderr, "PROTO  :%d.%d\n", req->vhi, req->vlo);
@@ -206,14 +235,7 @@ static void handle_process(struct client_t *c) {
         return;
     }
     dump_request(&c->request);
-    //if (request->content_length>0) {
-    //    c->state = C_;
-    //    return;
-    //}
-    enum mime_t mime=TEXT;
-    int status=200;
-    char *msg="hello";
-    buf_printf(&(c->response.buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n%s", status_str(status), SRV_INFO, mime_str(mime), strlen(msg), msg);
+    make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
     c->state = C_WRITING;
 }
 static void send_response(struct client_t *c) {
