@@ -67,6 +67,8 @@ enum mime_t { JSON = 0, TEXT };
 struct response_t {
     unsigned int status;
     enum mime_t mime;
+    unsigned int content_length;
+    unsigned int header_len;
     struct buf_t buf;
 };
 struct hdr_prop_t {
@@ -92,6 +94,7 @@ enum client_state_t {
 };
 struct client_t {
     int fd;
+    void *ctx;
     enum client_state_t state;
     struct request_t request;
     struct response_t response;
@@ -119,13 +122,13 @@ static const char *status_str(unsigned int s) {
     }
 }
 int make_response(struct client_t *c, unsigned int status, int mime, const char *format, ...) {
-    int content_len, hdr_len, ret;
+    int ret;
     va_list args;
     va_start(args, format);
-    content_len = vsnprintf(NULL, 0, format, args);
+    c->response.content_length = vsnprintf(NULL, 0, format, args);
     va_end(args);
-    if (content_len < 0) return -1;
-    hdr_len = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len,
+    if (c->response.content_length < 0) return -1;
+    c->response.header_len = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len,
         "HTTP/1.1 %s\r\n"
         "%s\r\n"
         "Content-Type: %s\r\n"
@@ -135,17 +138,17 @@ int make_response(struct client_t *c, unsigned int status, int mime, const char 
         status_str(status),
         SRV_INFO,
         mime_str(mime),
-        content_len
+        c->response.content_length
     );
-    if (hdr_len < 0 || hdr_len > BUF_SIZE-c->response.buf.buf_len) return -1;
-    if (hdr_len + content_len > BUF_SIZE-c->response.buf.buf_len) return -1;
-    c->response.buf.buf_len += hdr_len;
+    if (c->response.header_len < 0 || c->response.header_len > BUF_SIZE-c->response.buf.buf_len) return -1;
+    if (c->response.header_len + c->response.content_length > BUF_SIZE-c->response.buf.buf_len) return -1;
+    c->response.buf.buf_len += c->response.header_len;
     va_start(args, format);
-    ret = vsnprintf(c->response.buf.buf + hdr_len, BUF_SIZE - hdr_len, format, args);
+    ret = vsnprintf(c->response.buf.buf + c->response.header_len, BUF_SIZE - c->response.header_len, format, args);
     va_end(args);
     if (ret < 0) return -1;
-    c->response.buf.buf_len += content_len;
-    return content_len + hdr_len;
+    c->response.buf.buf_len += c->response.content_length;
+    return c->response.content_length + c->response.header_len;
 }
 void dump_request(const struct request_t* req) {
     fprintf(stderr, "METHOD :%s\n", req->method);
@@ -234,20 +237,26 @@ static void handle_read(struct client_t *c) {
         return;
     }
     c->request.total_len += n;
+    c->state=C_PROCESS;
+    if(c->request.header_len>0) return;
     char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
     if(delm) {
-        c->state=C_PROCESS;
         c->request.header_len = delm - c->request.buf.buf + 4;
+        if(parse_request(c)<0) conn_close(c, 2);
     }
 }
 static void handle_process(struct client_t *c) {
-    if (parse_request(c) < 0) {
-        conn_close(c, 2);
-        return;
+    if((c->request.content_length>0) && (c->request.content_length > (c->request.total_len - c->request.header_len))) {
+        c->state = C_READING;
+        fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
+        c->request.buf.buf_len = 0;
+    } else {
+        fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
+        c->request.buf.buf_len = 0;
+        make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
+        c->state = C_WRITING;
+        dump_request(&c->request);
     }
-    dump_request(&c->request);
-    make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
-    c->state = C_WRITING;
 }
 /*==================================================*/
 static void event_loop(int listenfd) {
@@ -277,13 +286,13 @@ static void event_loop(int listenfd) {
         if(FD_ISSET(listenfd, &rset)) {
             int cli_sock = accept(listenfd, NULL, NULL);
             if (cli_sock == -1) {
-        #if defined(__WIN32__)
+#if defined(__WIN32__)
                 if (WSAGetLastError() == WSAEWOULDBLOCK)
                     continue;
-        #else
+#else
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                     continue;
-        #endif
+#endif
                 perror("accept");
                 close_socket(listenfd);
                 exit(EXIT_FAILURE);
