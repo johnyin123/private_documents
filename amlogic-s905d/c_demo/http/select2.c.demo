@@ -193,16 +193,11 @@ void dump_request(const struct request_t* req) {
 }
 /*==================================================*/
 #include <sys/stat.h>
-/*function to get size of the file.*/
-long int fsize(const char* file_name) {
-    struct stat st; /*declare stat variable*/
-    /*get the size using stat()*/
-    if (stat(file_name, &st) == 0)
-        return (st.st_size);
-    else
-        return -1;
+static long int fsize(const char* file_name) {
+    struct stat st;
+    if (stat(file_name, &st) == 0) return (st.st_size);
+    else return -1;
 }
-
 void handle_process(struct client_t *c) {
     if(c->state == C_READING && c->request.content_length>0 && strcasecmp(c->request.method, "POST") == 0) {
         if(!c->ctx) {
@@ -237,6 +232,7 @@ void handle_process(struct client_t *c) {
         return;
     }
     fclose((FILE *)c->ctx);
+    c->ctx = NULL;
     //make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
 }
 static void conn_close(struct client_t *c) {
