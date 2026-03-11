@@ -5,10 +5,14 @@
 #if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
-    #define close_socket closesocket
     typedef int socklen_t;
+    #define close_socket closesocket
+    #define sock_read(a,b,c)  recv(a,b,c,0)
+    #define sock_write(a,b,c) send(a,b,c,0)
 #else
     #define close_socket close
+    #define sock_read(a,b,c)  read(a,b,c)
+    #define sock_write(a,b,c) write(a,b,c)
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <unistd.h>
@@ -26,7 +30,16 @@
 #define MAX_HEADERS   8
 #define HDR_KEY_LEN   16
 #define HDR_VAL_LEN   256
-
+/*############################################################*/
+#if defined(__WIN32__)
+void* memmem(const void* haystack, size_t haystacklen, const void* needle, size_t needlelen) {
+    if (!needlelen) return (void*)haystack;
+    for (size_t i = 0; i + needlelen <= haystacklen; i++) {
+        if (!memcmp((char*)haystack + i, needle, needlelen)) return (char*)haystack + i;
+    }
+    return NULL;
+}
+#endif
 /*############################################################*/
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
@@ -51,12 +64,12 @@ char* buf_find(struct buf_t *b, const char *needle, size_t len) {
 }
 ssize_t buf_read_fd(struct buf_t *b, int fd) {
     if((BUF_SIZE - b->buf_len) <= 0) return -1;
-    ssize_t n = read(fd, b->buf + b->buf_len, BUF_SIZE - b->buf_len);
+    ssize_t n = sock_read(fd, b->buf + b->buf_len, BUF_SIZE - b->buf_len);
     if (n > 0) b->buf_len += n;
     return n;
 }
 ssize_t buf_write_fd(struct buf_t *b, int fd) {
-    ssize_t n = write(fd, b->buf, b->buf_len);
+    ssize_t n = sock_write(fd, b->buf, b->buf_len);
     if (n > 0) {
         b->buf_len -= n;
         memmove(b->buf, b->buf + n, b->buf_len);
@@ -184,7 +197,7 @@ static int create_tcp_server(const char *addr, int port, int backlog) {
 /*==================================================*/
 static void conn_close(struct client_t *c, int s) {
     fprintf(stderr, "%d closed %d\n", c->fd, s);
-    close(c->fd);
+    close_socket(c->fd);
     memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
 }
 static int parse_request(struct client_t *c) {
