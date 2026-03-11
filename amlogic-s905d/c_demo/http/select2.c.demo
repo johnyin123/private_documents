@@ -40,6 +40,28 @@ void* memmem(const void* haystack, size_t haystacklen, const void* needle, size_
     return NULL;
 }
 #endif
+static int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+static int create_tcp_server(const char *addr, int port, int backlog) {
+    int srv_sock;
+    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
+    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+        close_socket(srv_sock);
+        return -1;
+    }
+    return srv_sock;
+}
 /*############################################################*/
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
@@ -172,33 +194,28 @@ void dump_request(const struct request_t* req) {
     if(req->content_length>0) fprintf(stderr, "CONTENT[%d]\n", req->content_length);
 }
 /*==================================================*/
-static int set_sock_nonblock_nodelay(int fd) {
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
-#if defined(__WIN32__)
-    unsigned long mode = 1;
-    return ioctlsocket(fd, FIONBIO, &mode);
-#else
-    int flags = fcntl(fd, F_GETFL);
-    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#endif
-}
-static int create_tcp_server(const char *addr, int port, int backlog) {
-    int srv_sock;
-    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
-    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
-    set_sock_nonblock_nodelay(srv_sock);
-    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
-        close_socket(srv_sock);
-        return -1;
-    }
-    return srv_sock;
-}
-/*==================================================*/
 static void conn_close(struct client_t *c, int s) {
     fprintf(stderr, "%d closed %d\n", c->fd, s);
     close_socket(c->fd);
     memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
+}
+static struct client_t *conn_open(int cli_sock) {
+    struct client_t *c = NULL;
+    set_sock_nonblock_nodelay(cli_sock);
+    for(int i=0; i<MAX_CONNS; i++) {
+        if(clients[i].state == C_UNUSED) {
+            c = &clients[i];
+            memset(c, 0, sizeof(struct client_t));
+            c->fd=cli_sock;
+            c->state=C_READING;
+            break;
+        }
+    }
+    if(c==NULL) {
+        fprintf(stderr, "No free slot found close %d\n", cli_sock);
+        close_socket(cli_sock);
+    }
+    return c;
 }
 static int parse_request(struct client_t *c) {
     struct request_t *request = &(c->request);
@@ -310,20 +327,7 @@ static void event_loop(int listenfd) {
                 close_socket(listenfd);
                 exit(EXIT_FAILURE);
             }
-            set_sock_nonblock_nodelay(cli_sock);
-            int inserted = 0;
-            for(int i=0; i<MAX_CONNS; i++) {
-                if(clients[i].state == C_UNUSED) {
-                    struct client_t *c = &clients[i];
-                    memset(c, 0, sizeof(struct client_t));
-                    c->fd=cli_sock;
-                    c->state=C_READING;
-                    inserted = 1;
-                    break;
-                }
-            }
-            if(!inserted)
-                close_socket(cli_sock);
+            conn_open(cli_sock);
         }
         for(int i=0;i<MAX_CONNS; i++) {
             struct client_t *c = &clients[i];
