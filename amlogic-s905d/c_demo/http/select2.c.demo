@@ -104,6 +104,7 @@ struct response_t {
     enum mime_t mime;
     unsigned int content_length;
     unsigned int header_len;
+    unsigned int total_len;
     struct buf_t buf;
 };
 struct hdr_prop_t {
@@ -200,22 +201,17 @@ static void conn_close(struct client_t *c, int s) {
     memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
 }
 static struct client_t *conn_open(int cli_sock) {
-    struct client_t *c = NULL;
     set_sock_nonblock_nodelay(cli_sock);
     for(int i=0; i<MAX_CONNS; i++) {
         if(clients[i].state == C_UNUSED) {
-            c = &clients[i];
-            memset(c, 0, sizeof(struct client_t));
-            c->fd=cli_sock;
-            c->state=C_READING;
-            break;
+            memset(&clients[i], 0, sizeof(struct client_t));
+            clients[i].fd=cli_sock;
+            clients[i].state=C_READING;
+            return &clients[i];
         }
     }
-    if(c==NULL) {
-        fprintf(stderr, "No free slot found close %d\n", cli_sock);
-        close_socket(cli_sock);
-    }
-    return c;
+    close_socket(cli_sock);
+    return NULL;
 }
 static int parse_request(struct client_t *c) {
     struct request_t *request = &(c->request);
@@ -252,9 +248,12 @@ static int parse_request(struct client_t *c) {
 static void handle_write(struct client_t *c) {
     ssize_t n = RES_WRITE(c);
     if(n<0) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK)
+            return;
         conn_close(c, 3);
         return;
     }
+    c->response.total_len += n;
     if(c->response.buf.buf_len == 0) {
         /* all send */
         conn_close(c, 4);
@@ -262,8 +261,14 @@ static void handle_write(struct client_t *c) {
 }
 static void handle_read(struct client_t *c) {
     int n = REQ_READ(c);
-    if(n<=0) {
+    if(n==0) {
         conn_close(c, 1);
+        return;
+    }
+    if(n < 0) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK)
+            return;
+        conn_close(c, 2);
         return;
     }
     c->request.total_len += n;
@@ -281,8 +286,10 @@ static void handle_process(struct client_t *c) {
         fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
         c->request.buf.buf_len = 0;
     } else {
-        fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
-        c->request.buf.buf_len = 0;
+        if(c->request.content_length>0){
+            fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
+            c->request.buf.buf_len = 0;
+        }
         make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
         c->state = C_WRITING;
         dump_request(&c->request);
