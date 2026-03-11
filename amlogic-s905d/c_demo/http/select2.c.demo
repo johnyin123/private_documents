@@ -84,16 +84,20 @@ char* buf_find(struct buf_t *b, const char *needle, size_t len) {
     }
     return NULL;
 }
-ssize_t buf_read_fd(struct buf_t *b, int fd) {
+ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
     if((BUF_SIZE - b->buf_len) <= 0) return -1;
     ssize_t n = sock_read(fd, b->buf + b->buf_len, BUF_SIZE - b->buf_len);
-    if (n > 0) b->buf_len += n;
+    if (n > 0) {
+        b->buf_len += n;
+        if(total) *total += n;
+    }
     return n;
 }
-ssize_t buf_write_fd(struct buf_t *b, int fd) {
+ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total) {
     ssize_t n = sock_write(fd, b->buf, b->buf_len);
     if (n > 0) {
         b->buf_len -= n;
+        if(total) *total += n;
         memmove(b->buf, b->buf + n, b->buf_len);
     }
     return n;
@@ -102,8 +106,8 @@ enum mime_t { JSON = 0, TEXT };
 struct response_t {
     unsigned int status;
     enum mime_t mime;
-    unsigned int content_length;
     unsigned int header_len;
+    unsigned int content_length;
     unsigned int total_len;
     struct buf_t buf;
 };
@@ -122,12 +126,7 @@ struct request_t {
     unsigned int total_len;
     struct buf_t buf;
 };
-enum client_state_t {
-    C_UNUSED = 0,
-    C_READING,
-    C_PROCESS,
-    C_WRITING
-};
+enum client_state_t { C_UNUSED = 0, C_READING, C_WRITING, };
 struct client_t {
     int fd;
     void *ctx;
@@ -137,8 +136,8 @@ struct client_t {
 };
 static struct client_t clients[MAX_CONNS];
 
-#define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd)
-#define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd)
+#define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd, &(c->request.total_len))
+#define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
 /*==================================================*/
 #define SRV_INFO "Server: inner"
 static const char *mime_str(enum mime_t m) {
@@ -157,35 +156,33 @@ static const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
+int make_header(struct client_t *c, unsigned int status, int mime, unsigned int content_length) {
+    c->response.content_length = content_length;
+    if (c->response.content_length <= 0) return -1;
+    int ret  = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), c->response.content_length);
+    if (ret<=0 || c->response.header_len > BUF_SIZE-c->response.buf.buf_len) return -2;
+    c->response.header_len = ret;
+    c->response.buf.buf_len += ret;
+    return c->response.header_len;
+}
 int make_response(struct client_t *c, unsigned int status, int mime, const char *format, ...) {
     int ret;
     va_list args;
     va_start(args, format);
-    c->response.content_length = vsnprintf(NULL, 0, format, args);
+    ret = vsnprintf(NULL, 0, format, args);
     va_end(args);
-    if (c->response.content_length < 0) return -1;
-    c->response.header_len = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len,
-        "HTTP/1.1 %s\r\n"
-        "%s\r\n"
-        "Content-Type: %s\r\n"
-        "Connection: close\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n",
-        status_str(status),
-        SRV_INFO,
-        mime_str(mime),
-        c->response.content_length
-    );
-    if (c->response.header_len < 0 || c->response.header_len > BUF_SIZE-c->response.buf.buf_len) return -1;
-    if (c->response.header_len + c->response.content_length > BUF_SIZE-c->response.buf.buf_len) return -1;
-    c->response.buf.buf_len += c->response.header_len;
+    if(ret<=0) return -3;
+    ret = make_header(c, status, mime, ret);
+    if(ret<=0) return ret;
+    if (c->response.header_len + c->response.content_length > BUF_SIZE-c->response.buf.buf_len) return -4;
     va_start(args, format);
-    ret = vsnprintf(c->response.buf.buf + c->response.header_len, BUF_SIZE - c->response.header_len, format, args);
+    ret = vsnprintf(c->response.buf.buf + c->response.buf.buf_len, BUF_SIZE - c->response.buf.buf_len, format, args);
     va_end(args);
-    if (ret < 0) return -1;
-    c->response.buf.buf_len += c->response.content_length;
+    if (ret<=0) return -5;
+    c->response.buf.buf_len += ret;
     return c->response.content_length + c->response.header_len;
 }
+
 void dump_request(const struct request_t* req) {
     fprintf(stderr, "METHOD :%s\n", req->method);
     fprintf(stderr, "PROTO  :%d.%d\n", req->vhi, req->vlo);
@@ -195,8 +192,55 @@ void dump_request(const struct request_t* req) {
     if(req->content_length>0) fprintf(stderr, "CONTENT[%d]\n", req->content_length);
 }
 /*==================================================*/
-static void conn_close(struct client_t *c, int s) {
-    fprintf(stderr, "%d closed %d\n", c->fd, s);
+#include <sys/stat.h>
+/*function to get size of the file.*/
+long int fsize(const char* file_name) {
+    struct stat st; /*declare stat variable*/
+    /*get the size using stat()*/
+    if (stat(file_name, &st) == 0)
+        return (st.st_size);
+    else
+        return -1;
+}
+
+void handle_process(struct client_t *c) {
+    if(c->state == C_READING && c->request.content_length>0 && strcasecmp(c->request.method, "POST") == 0) {
+        if(!c->ctx) {
+            fprintf(stderr, "firtst pkgs, set ctx\n");
+            c->ctx = fopen("output.txt", "w+");
+        }
+        fwrite(c->request.buf.buf, 1, c->request.buf.buf_len, (FILE *)c->ctx);
+        c->request.buf.buf_len = 0;
+        if ((c->request.content_length + c->request.header_len) > c->request.total_len) {
+            c->state = C_READING;
+            return;
+        }
+        fclose((FILE *)c->ctx);
+        c->ctx = NULL;
+        fprintf(stderr, "close post ctx\n");
+    }
+    /*c->response.content_length = xxx, ...*/
+    if(!c->ctx) {
+        fprintf(stderr, "firtst output pkgs, set ctx\n");
+        c->ctx = fopen("output.txt", "r");
+        make_header(c, 200, JSON, fsize("output.txt"));
+        dump_request(&c->request);
+        c->state = C_WRITING;
+    }
+    fprintf(stderr, "HDR:%d,CONTENT_LEN:%d,TOTAL:%d\n", c->response.header_len, c->response.content_length, c->response.total_len);
+    if((c->response.header_len+c->response.content_length)>c->response.total_len) {
+        int ret = fread(c->response.buf.buf+c->response.buf.buf_len, 1, BUF_SIZE-c->response.buf.buf_len, (FILE *)c->ctx);
+       fprintf(stderr, "ret:%d,buflen:%ld\n", ret, c->response.buf.buf_len);
+        if(ret>0) {
+            c->response.buf.buf_len += ret;
+        }
+        return;
+    }
+    fclose((FILE *)c->ctx);
+    //make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
+}
+static void conn_close(struct client_t *c) {
+    fprintf(stderr, "conn %d closed\n", c->fd);
     close_socket(c->fd);
     memset(c, 0, sizeof(struct client_t)); /* C_UNUSED */
 }
@@ -250,50 +294,37 @@ static void handle_write(struct client_t *c) {
     if(n<0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK)
             return;
-        conn_close(c, 3);
+        conn_close(c);
         return;
     }
-    c->response.total_len += n;
-    if(c->response.buf.buf_len == 0) {
+    if(c->response.total_len == (c->response.content_length + c->response.header_len)) {
         /* all send */
-        conn_close(c, 4);
+        conn_close(c);
+    } else if(c->response.buf.buf_len<=0) {
+        /* buf empty */
+        handle_process(c);
     }
 }
 static void handle_read(struct client_t *c) {
     int n = REQ_READ(c);
     if(n==0) {
-        conn_close(c, 1);
+        conn_close(c);
         return;
     }
     if(n < 0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK)
             return;
-        conn_close(c, 2);
+        conn_close(c);
         return;
     }
-    c->request.total_len += n;
-    c->state=C_PROCESS;
-    if(c->request.header_len>0) return;
-    char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
-    if(delm) {
-        c->request.header_len = delm - c->request.buf.buf + 4;
-        if(parse_request(c)<0) conn_close(c, 2);
-    }
-}
-static void handle_process(struct client_t *c) {
-    if((c->request.content_length>0) && (c->request.content_length > (c->request.total_len - c->request.header_len))) {
-        c->state = C_READING;
-        fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
-        c->request.buf.buf_len = 0;
-    } else {
-        if(c->request.content_length>0){
-            fprintf(stderr, "%.*s", (int)c->request.buf.buf_len, c->request.buf.buf);
-            c->request.buf.buf_len = 0;
+    if(c->request.header_len<=0) {
+        char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
+        if(delm) {
+            c->request.header_len = delm - c->request.buf.buf + 4;
+            if(parse_request(c)<0) conn_close(c);
         }
-        make_response(c, 200, JSON, "%s, %s, %d,%d\n", c->request.method, c->request.uri, c->request.vhi, c->request.vlo);
-        c->state = C_WRITING;
-        dump_request(&c->request);
     }
+    handle_process(c);
 }
 /*==================================================*/
 static void event_loop(int listenfd) {
@@ -316,8 +347,7 @@ static void event_loop(int listenfd) {
             perror("select");
             exit(EXIT_FAILURE);
         }
-        if(nready==0) {
-            /*timeout*/
+        if(nready==0) { /*timeout*/
             continue;
         }
         if(FD_ISSET(listenfd, &rset)) {
@@ -336,21 +366,10 @@ static void event_loop(int listenfd) {
             }
             conn_open(cli_sock);
         }
-        for(int i=0;i<MAX_CONNS; i++) {
-            struct client_t *c = &clients[i];
-            if(c->state==C_UNUSED) continue;
-            if(FD_ISSET(c->fd,&rset)) handle_read(c);
-            switch(c->state) {
-                case C_PROCESS:
-                    handle_process(c);
-                    break;
-                case C_WRITING:
-                    if(FD_ISSET(c->fd,&wset))
-                        handle_write(c);
-                    break;
-                default:
-                    break;
-            }
+        for(int i=0;i<MAX_CONNS;i++) {
+            if(clients[i].state==C_UNUSED) continue;
+            if(FD_ISSET(clients[i].fd,&rset)) handle_read(&clients[i]);
+            if(FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
         }
     }
 }
@@ -359,7 +378,7 @@ int main(const int argc, char const* argv[]) {
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
     if (iResult != 0) {
-        printf("error at WSASturtup\n");
+        fprintf(stderr, "error at WSASturtup %d\n", iResult);
         return 0;
     }
 #else
