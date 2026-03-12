@@ -137,6 +137,7 @@ struct client_t {
     int fd;
     void *ctx;
     int tick_cnt;
+    int keep_alive;
     enum client_state_t state;
     struct request_t request;
     struct response_t response;
@@ -145,7 +146,7 @@ struct client_t {
 #define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
 static void dump_client(const struct client_t* c) {
     const char *state[]={"ST_UNUSED", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
-    fprintf(stderr, "socket %d %s ctx=%p, ticket count %d\n", c->fd, state[c->state], (void *)c->ctx, c->tick_cnt);
+    fprintf(stderr, "socket %d %s keepalive=%d ctx=%p, ticket count %d\n", c->fd, state[c->state], c->keep_alive, (void *)c->ctx, c->tick_cnt);
     fprintf(stderr, "  %s HTTP(%d.%d) %s\n", c->request.method, c->request.vhi, c->request.vlo, c->request.uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].key, c->request.prop[i].val);
     fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
@@ -176,7 +177,7 @@ static inline int make_header(struct client_t *c, unsigned int status, int mime,
     c->response.mime = mime;
     c->response.content_len = content_len;
     if (c->response.content_len <= 0) return -1;
-    int ret  = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), c->response.content_len);
+    int ret  = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), c->keep_alive ? "keep-alive" : "close", c->response.content_len);
     if (ret<=0 || ret > BUF_SIZE-c->response.buf.buf_len) return -2;
     c->response.header_len = ret;
     c->response.buf.buf_len += ret;
@@ -203,7 +204,7 @@ static inline int make_response(struct client_t *c, unsigned int status, int mim
 #define conn_close(c) conn_close_line(c, __LINE__)
 static inline void conn_close_line(struct client_t *c, int line) {
     ((void)line);
-    debugln("conn %d closed @%d", c->fd, line);
+    debugln("conn_close %d @%d", c->fd, line);
     close_socket(c->fd);
     memset(c, 0, sizeof(struct client_t)); /* ST_UNUSED */
 }
@@ -233,7 +234,8 @@ static inline void keep_alive(struct client_t *c) {
 void response_complete(struct client_t *c) {
     if(c->ctx) fclose((FILE *)c->ctx);
     dump_client(c);
-    conn_close(c); //keep_alive(c);
+    if(c->keep_alive) keep_alive(c);
+    else conn_close(c);
 }
 void body_start(struct client_t *c) {
     c->ctx = fopen("output.txt", "w");
@@ -251,6 +253,7 @@ static int parse_header(struct client_t *c) {
     struct request_t *request = &(c->request);
     if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%d.%d\r\n", request->method, request->uri, &request->vhi, &request->vlo)) 
         return -500;
+    if(request->vhi == 1 && request->vlo == 1) c->keep_alive = 1;
     const char *end = request->buf.buf + request->header_len;
     const char *line = memmem(request->buf.buf, request->buf.buf_len, "\r\n", 2);
     while (line && line < end - 2) {
@@ -264,6 +267,9 @@ static int parse_header(struct client_t *c) {
                 if (strcasecmp(request->prop[request->nprop].key, "Content-Length") == 0) {
                     request->content_len = atoi(request->prop[request->nprop].val);
                     if (request->content_len < 0) return -406;
+                } else if(strcasecmp(request->prop[request->nprop].key, "Connection")==0) {
+                    if(strcasecmp(request->prop[request->nprop].val, "keep-alive")==0)
+                        c->keep_alive = 1;
                 } else {
                     request->nprop++;
                 }
@@ -288,10 +294,10 @@ static void handle_write(struct client_t *c) {
         return;
     }
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
-        debugln("response_complete");
+        debugln("response_complete %d", c->fd);
         response_complete(c); /* all send */
     } else if(c->response.buf.buf_len==0) {
-        debugln("response_chunk");
+        debugln("response_chunk %d", c->fd);
         response_chunk(c); /* buf empty */
     }
 }
@@ -320,22 +326,22 @@ static void handle_head(struct client_t *c) {
     if(parse_header(c)<0) conn_close(c);
     if(c->request.content_len>0){
         c->state=ST_BODY;
-        debugln("body_start");
+        debugln("body_start %d", c->fd);
         body_start(c);
     } else {
         c->state=ST_WRITE;
-        debugln("response_start");
+        debugln("response_start %d", c->fd);
         response_start(c);
     }
 }
 static void handle_body(struct client_t *c) {
-    debugln("body_chunk");
+    debugln("body_chunk %d", c->fd);
     body_chunk(c);
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
-        debugln("body_complete");
+        debugln("body_complete %d", c->fd);
         body_complete(c);
         c->state=ST_WRITE;
-        debugln("response_start");
+        debugln("response_start %d", c->fd);
         response_start(c);
     }
 }
