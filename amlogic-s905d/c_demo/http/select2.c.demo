@@ -108,6 +108,8 @@ static inline ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total)
     return n;
 }
 enum mime_t { JSON = 0, TEXT };
+enum method_t { NONE = 0, GET, POST };
+enum client_state_t { ST_START = 0, ST_READ, ST_HEAD, ST_BODY, ST_WRITE, };
 struct response_t {
     unsigned int status;
     enum mime_t mime;
@@ -120,7 +122,6 @@ struct hdr_prop_t {
     char key[HDR_KEY_LEN+1];
     char val[HDR_VAL_LEN+1];
 };
-enum method_t { UNKNOWN = 0, GET, POST };
 struct request_t {
     enum method_t method;
     char uri[URI_LEN+1];
@@ -133,7 +134,6 @@ struct request_t {
     struct buf_t buf;
 };
 #define IDLE_TIMEOUT_COUNT 5
-enum client_state_t { ST_UNUSED = 0, ST_READ, ST_HEAD, ST_BODY, ST_WRITE, };
 struct client_t {
     int fd;
     void *ctx;
@@ -146,8 +146,8 @@ struct client_t {
 #define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd, &(c->request.total_len))
 #define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
 static void dump_client(const struct client_t* c) {
-    const char *state[]={"ST_UNUSED", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
-    const char *method[]={"UNKNOWN", "GET", "POST"};
+    const char *state[]={"ST_START", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
+    const char *method[]={"NONE", "GET", "POST"};
     fprintf(stderr, "socket %d %s keepalive=%d ctx=%p, ticket count %d\n", c->fd, state[c->state], c->keep_alive, (void *)c->ctx, c->tick_cnt);
     fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].key, c->request.prop[i].val);
@@ -159,12 +159,12 @@ static void dump_client(const struct client_t* c) {
 /*==================================================*/
 #define SRV_INFO "Server: inner"
 static inline enum method_t http_method(const char *req) {
-    if (!req) return UNKNOWN;
+    if (!req) return NONE;
     if (strcmp(req, "GET") == 0)
         return GET;
     if (strcmp(req, "POST"))
         return POST;
-    return UNKNOWN;
+    return NONE;
 }
 static inline const char *mime_str(enum mime_t m) {
     switch (m) {
@@ -216,7 +216,7 @@ static inline void conn_close_line(struct client_t *c, int line) {
     ((void)line);
     debugln("conn_close %d @%d", c->fd, line);
     close_socket(c->fd);
-    memset(c, 0, sizeof(struct client_t)); /* ST_UNUSED */
+    memset(c, 0, sizeof(struct client_t)); /* ST_START */
 }
 /*==================================================*/
 /*==================================================*/
@@ -365,7 +365,7 @@ static struct client_t clients[MAX_CONNS];
 static struct client_t *conn_open(int cli_sock) {
     set_sock_nonblock_nodelay(cli_sock);
     for(int i=0; i<MAX_CONNS; i++) {
-        if(clients[i].state == ST_UNUSED) {
+        if(clients[i].state == ST_START) {
             memset(&clients[i], 0, sizeof(struct client_t));
             clients[i].fd=cli_sock;
             clients[i].state=ST_READ;
@@ -387,7 +387,7 @@ static void event_loop(int listenfd) {
         for(int i=0; i<MAX_CONNS; i++) {
             struct client_t *c = &clients[i];
             switch (c->state) {
-                case ST_UNUSED: continue;
+                case ST_START: continue;
                 case ST_READ:
                 case ST_HEAD:
                 case ST_BODY:    FD_SET(c->fd, &rset); break;
@@ -403,7 +403,7 @@ static void event_loop(int listenfd) {
         }
         if(nready==0) { /*timeout*/
             for(int i=0; i<MAX_CONNS; i++) {
-                if(clients[i].state==ST_UNUSED) continue;
+                if(clients[i].state==ST_START) continue;
                 if(++clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) conn_close(&clients[i]);
             }
             continue;
@@ -425,7 +425,7 @@ static void event_loop(int listenfd) {
             conn_open(cli_sock);
         }
         for(int i=0;i<MAX_CONNS;i++) {
-            if(clients[i].state==ST_UNUSED) continue;
+            if(clients[i].state==ST_START) continue;
             if (clients[i].tick_cnt>=IDLE_TIMEOUT_COUNT) { conn_close(&clients[i]); continue; }
             clients[i].tick_cnt = 0; /*reset tick count*/
             if(FD_ISSET(clients[i].fd,&rset)) {
@@ -433,7 +433,7 @@ static void event_loop(int listenfd) {
                 if(clients[i].state==ST_HEAD) handle_head(&clients[i]);
                 if(clients[i].state==ST_BODY) handle_body(&clients[i]);
             }
-            if(clients[i].state!=ST_UNUSED && FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
+            if(clients[i].state!=ST_START && FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
         }
     }
 }
