@@ -226,10 +226,10 @@ void response_chunk(struct client_t *c) {
     if(ret>0) c->response.buf.buf_len += ret;
 }
 static inline void keep_alive(struct client_t *c) {
-    int fd=c->fd;
-    memset(c, 0, sizeof(struct client_t));
-    c->fd=fd;
-    c->state=ST_READ;
+    c->state = ST_READ;
+    c->tick_cnt = 0;
+    memset(&c->request,0,sizeof(c->request));
+    memset(&c->response,0,sizeof(c->response));
 }
 void response_complete(struct client_t *c) {
     if(c->ctx) fclose((FILE *)c->ctx);
