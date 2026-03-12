@@ -120,11 +120,12 @@ struct hdr_prop_t {
     char key[HDR_KEY_LEN+1];
     char val[HDR_VAL_LEN+1];
 };
+enum method_t { UNKNOWN = 0, GET, POST };
 struct request_t {
-    char method[METHOD_LEN+1];
+    enum method_t method;
     char uri[URI_LEN+1];
-    int vhi,vlo;
-    size_t nprop;
+    unsigned int vhi:4,vlo:4;
+    size_t nprop:8;
     struct hdr_prop_t prop[MAX_HEADERS];
     unsigned int header_len;
     unsigned int content_len;
@@ -136,8 +137,8 @@ enum client_state_t { ST_UNUSED = 0, ST_READ, ST_HEAD, ST_BODY, ST_WRITE, };
 struct client_t {
     int fd;
     void *ctx;
-    int tick_cnt;
-    int keep_alive;
+    unsigned int tick_cnt:7;
+    unsigned int keep_alive:1;
     enum client_state_t state;
     struct request_t request;
     struct response_t response;
@@ -146,8 +147,9 @@ struct client_t {
 #define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
 static void dump_client(const struct client_t* c) {
     const char *state[]={"ST_UNUSED", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
+    const char *method[]={"UNKNOWN", "GET", "POST"};
     fprintf(stderr, "socket %d %s keepalive=%d ctx=%p, ticket count %d\n", c->fd, state[c->state], c->keep_alive, (void *)c->ctx, c->tick_cnt);
-    fprintf(stderr, "  %s HTTP(%d.%d) %s\n", c->request.method, c->request.vhi, c->request.vlo, c->request.uri);
+    fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].key, c->request.prop[i].val);
     fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
     fprintf(stderr, "    REQ BUFFER: %ld\n", (long int)c->request.buf.buf_len);
@@ -156,14 +158,22 @@ static void dump_client(const struct client_t* c) {
 }
 /*==================================================*/
 #define SRV_INFO "Server: inner"
-static const char *mime_str(enum mime_t m) {
+static inline enum method_t http_method(const char *req) {
+    if (!req) return UNKNOWN;
+    if (strcmp(req, "GET") == 0)
+        return GET;
+    if (strcmp(req, "POST"))
+        return POST;
+    return UNKNOWN;
+}
+static inline const char *mime_str(enum mime_t m) {
     switch (m) {
         case JSON:       return "application/json";
         case TEXT:       return "text/plain; charset=utf-8";
         default:         return "application/octet-stream";
     }
 }
-static const char *status_str(unsigned int s) {
+static inline const char *status_str(unsigned int s) {
     switch (s) {
         case 200: return "200 OK";
         case 403: return "403 Forbidden";
@@ -251,8 +261,12 @@ void body_complete(struct client_t *c) {
 /*==================================================*/
 static int parse_header(struct client_t *c) {
     struct request_t *request = &(c->request);
-    if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%d.%d\r\n", request->method, request->uri, &request->vhi, &request->vlo)) 
-        return -500;
+    char method[METHOD_LEN+1];
+    unsigned int vhi, vlo;
+    if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, request->uri, &vhi, &vlo)) return -500;
+    request->method = http_method(method);
+    request->vhi = vhi;
+    request->vlo = vlo;
     if(request->vhi == 1 && request->vlo == 1) c->keep_alive = 1;
     const char *end = request->buf.buf + request->header_len;
     const char *line = memmem(request->buf.buf, request->buf.buf_len, "\r\n", 2);
@@ -323,8 +337,9 @@ static void handle_read(struct client_t *c) {
     }
 }
 static void handle_head(struct client_t *c) {
-    if(parse_header(c)<0) conn_close(c);
+    if(parse_header(c)<0) { conn_close(c); return; }
     if(c->request.content_len>0){
+        if(c->request.method != POST) { conn_close(c); return; }
         c->state=ST_BODY;
         debugln("body_start %d", c->fd);
         body_start(c);
