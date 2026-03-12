@@ -172,6 +172,8 @@ static const char *status_str(unsigned int s) {
     }
 }
 static inline int make_header(struct client_t *c, unsigned int status, int mime, unsigned int content_len) {
+    c->response.status = status;
+    c->response.mime = mime;
     c->response.content_len = content_len;
     if (c->response.content_len <= 0) return -1;
     int ret  = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), c->response.content_len);
@@ -229,7 +231,7 @@ static inline void keep_alive(struct client_t *c) {
     c->state=ST_READ;
 }
 void response_complete(struct client_t *c) {
-    fclose((FILE *)c->ctx);
+    if(c->ctx) fclose((FILE *)c->ctx);
     dump_client(c);
     conn_close(c); //keep_alive(c);
 }
