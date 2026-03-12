@@ -175,7 +175,7 @@ static inline int make_header(struct client_t *c, unsigned int status, int mime,
     c->response.content_len = content_len;
     if (c->response.content_len <= 0) return -1;
     int ret  = snprintf(c->response.buf.buf+c->response.buf.buf_len, BUF_SIZE-c->response.buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: close\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), c->response.content_len);
-    if (ret<=0 || c->response.header_len > BUF_SIZE-c->response.buf.buf_len) return -2;
+    if (ret<=0 || ret > BUF_SIZE-c->response.buf.buf_len) return -2;
     c->response.header_len = ret;
     c->response.buf.buf_len += ret;
     return c->response.header_len;
@@ -211,7 +211,10 @@ static inline void conn_close_line(struct client_t *c, int line) {
 void response_start(struct client_t *c) {
     struct stat st;
     const char *fname="output.txt";
-    stat(fname, &st);
+    if(stat(fname, &st) < 0) {
+        make_response(c, 404, TEXT, "file not found\n");
+        return;
+    }
     c->ctx = fopen(fname, "r");
     make_header(c, 200, JSON, st.st_size);
 }
@@ -351,6 +354,7 @@ static struct client_t *conn_open(int cli_sock) {
     return NULL;
 }
 static void event_loop(int listenfd) {
+    memset(clients,0,sizeof(clients));
     fd_set rset,wset;
     for(;;) {
         FD_ZERO(&rset);
