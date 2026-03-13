@@ -172,7 +172,7 @@ static inline void dump_client_line(const struct client_t* c, const char *f, int
     fprintf(stderr, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
     fprintf(stderr, "    RES BUFFER: %ld\n", (long int)c->response.buf.buf_len);
 }
-/*==================================================*/
+/*############################################################*/
 static inline enum method_t http_method(const char *req) {
     if (!req) return NONE;
     if (strcmp(req, "GET")==0)
@@ -225,41 +225,14 @@ static inline int make_response(struct response_t *resp, unsigned int keep_alive
     resp->buf.buf_len += ret;
     return resp->content_len + resp->header_len;
 }
-/*==================================================*/
-/*==================================================*/
-#include <sys/stat.h>
-void response_start(struct client_t *c) {
-    struct stat st;
-    const char *fname="output.txt";
-    if(stat(fname, &st) < 0) {
-        make_response(&(c->response), c->request.keep_alive, 404, TEXT, "file not found\n");
-        return;
-    }
-    c->request.ctx = fopen(fname, "r");
-    make_header(&(c->response), c->request.keep_alive, 200, JSON, st.st_size);
-}
-void response_chunk(struct client_t *c) {
-    int ret = fread(c->response.buf.buf+c->response.buf.buf_len, 1, BUF_SIZE-c->response.buf.buf_len, (FILE *)c->request.ctx);
-    if(ret>0) c->response.buf.buf_len += ret;
-}
-void response_complete(struct client_t *c) {
-    if(c->request.ctx) fclose((FILE *)c->request.ctx);
-    dump_client(c);
-    if(c->request.keep_alive) conn_keep_alive(c);
-    else conn_close(c);
-}
-void body_start(struct client_t *c) {
-    c->request.ctx = fopen("output.txt", "w");
-}
-void body_chunk(struct client_t *c) {
-    fwrite(c->request.buf.buf, 1, c->request.buf.buf_len, (FILE *)c->request.ctx);
-    c->request.buf.buf_len = 0;
-}
-void body_complete(struct client_t *c) {
-    fclose((FILE *)c->request.ctx);
-}
-/*==================================================*/
-/*==================================================*/
+/*############################################################*/
+void response_start(struct client_t *c);
+void response_chunk(struct client_t *c);
+void response_complete(struct client_t *c);
+void body_start(struct client_t *c);
+void body_chunk(struct client_t *c);
+void body_complete(struct client_t *c);
+/*############################################################*/
 static int parse_header(struct client_t *c) {
     struct request_t *request = &(c->request);
     char method[METHOD_LEN+1];
@@ -363,7 +336,7 @@ static void handle_body(struct client_t *c) {
         response_start(c);
     }
 }
-/*==================================================*/
+/*############################################################*/
 static struct client_t clients[MAX_CONNS];
 static struct client_t *conn_open(int cli_sock) {
     set_sock_nonblock_nodelay(cli_sock);
@@ -456,4 +429,36 @@ int main(const int argc, char const* argv[]) {
     WSACleanup();
 #endif
     return 0;
+}
+/*############################################################*/
+#include <sys/stat.h>
+void response_start(struct client_t *c) {
+    struct stat st;
+    const char *fname="output.txt";
+    if(stat(fname, &st) < 0) {
+        make_response(&(c->response), c->request.keep_alive, 404, TEXT, "file not found\n");
+        return;
+    }
+    c->request.ctx = fopen(fname, "r");
+    make_header(&(c->response), c->request.keep_alive, 200, JSON, st.st_size);
+}
+void response_chunk(struct client_t *c) {
+    int ret = fread(c->response.buf.buf+c->response.buf.buf_len, 1, BUF_SIZE-c->response.buf.buf_len, (FILE *)c->request.ctx);
+    if(ret>0) c->response.buf.buf_len += ret;
+}
+void response_complete(struct client_t *c) {
+    if(c->request.ctx) fclose((FILE *)c->request.ctx);
+    dump_client(c);
+    if(c->request.keep_alive) conn_keep_alive(c);
+    else conn_close(c);
+}
+void body_start(struct client_t *c) {
+    c->request.ctx = fopen("output.txt", "w");
+}
+void body_chunk(struct client_t *c) {
+    fwrite(c->request.buf.buf, 1, c->request.buf.buf_len, (FILE *)c->request.ctx);
+    c->request.buf.buf_len = 0;
+}
+void body_complete(struct client_t *c) {
+    fclose((FILE *)c->request.ctx);
 }
