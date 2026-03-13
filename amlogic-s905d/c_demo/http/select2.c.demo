@@ -454,6 +454,10 @@ void response_complete(struct client_t *c) {
 }
 void body_start(struct client_t *c) {
     c->request.ctx = fopen("output.txt", "w");
+    if(c->request.ctx==NULL) {
+        make_response(&(c->response), c->request.keep_alive, 403, TEXT, "access deny\n");
+        c->state=ST_WRITE;
+    }
 }
 void body_chunk(struct client_t *c) {
     fwrite(c->request.buf.buf, 1, c->request.buf.buf_len, (FILE *)c->request.ctx);
