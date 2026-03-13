@@ -77,12 +77,12 @@ struct buf_t {
     size_t buf_len;
 };
 static inline int buf_printf(struct buf_t *b, const char *format, ...) {
-    if(b->buf_len >= BUF_SIZE) return 0;
+    if(b->buf_len>=BUF_SIZE) return 0;
     va_list args;
     va_start(args, format);
-    int n = vsnprintf(b->buf + b->buf_len, BUF_SIZE-b->buf_len-1, format, args);
+    int n = vsnprintf(b->buf+b->buf_len, BUF_SIZE-b->buf_len-1, format, args);
     va_end(args);
-    if(n>0) b->buf_len += n;
+    if(n>0) b->buf_len+=n;
     return n;
 }
 static inline char* buf_find(struct buf_t *b, const char *needle, size_t len) {
@@ -147,6 +147,31 @@ struct client_t {
 };
 #define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd, &(c->request.total_len))
 #define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
+#define conn_close(c)   conn_close_line(c, __FILE__, __LINE__)
+static inline void conn_close_line(struct client_t *c, const char *f, int line) {
+    ((void)f); ((void)line);
+    debugln("conn_close %d %s@%d", c->fd, f, line);
+    close_socket(c->fd);
+    memset(c, 0, sizeof(struct client_t)); /* ST_START */
+}
+static inline void conn_keep_alive(struct client_t *c) {
+    int fd=c->fd;
+    memset(c, 0, sizeof(struct client_t));
+    c->fd=fd;
+    c->state=ST_READ;
+}
+#define dump_client(c)   dump_client_line(c, __FILE__, __LINE__)
+static inline void dump_client_line(const struct client_t* c, const char *f, int line) {
+    const char *state[]={"ST_START", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
+    const char *method[]={"NONE", "GET", "POST"};
+    fprintf(stderr, "%s@%d, socket=%d, %s, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
+    fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
+    for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
+    fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
+    fprintf(stderr, "    REQ BUFFER: %ld\n", (long int)c->request.buf.buf_len);
+    fprintf(stderr, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
+    fprintf(stderr, "    RES BUFFER: %ld\n", (long int)c->response.buf.buf_len);
+}
 /*==================================================*/
 static inline enum method_t http_method(const char *req) {
     if (!req) return NONE;
@@ -158,9 +183,9 @@ static inline enum method_t http_method(const char *req) {
 }
 static inline const char *mime_str(enum mime_t m) {
     switch (m) {
-        case JSON:       return "application/json";
-        case TEXT:       return "text/plain; charset=utf-8";
-        default:         return "application/octet-stream";
+        case JSON: return "application/json";
+        case TEXT: return "text/plain; charset=utf-8";
+        default:   return "application/octet-stream";
     }
 }
 static inline const char *status_str(unsigned int s) {
@@ -199,32 +224,6 @@ static inline int make_response(struct response_t *resp, unsigned int keep_alive
     if(ret<=0) return -5;
     resp->buf.buf_len += ret;
     return resp->content_len + resp->header_len;
-}
-/*==================================================*/
-#define conn_close(c)   conn_close_line(c, __FILE__, __LINE__)
-static inline void conn_close_line(struct client_t *c, const char *f, int line) {
-    ((void)f); ((void)line);
-    debugln("conn_close %d %s@%d", c->fd, f, line);
-    close_socket(c->fd);
-    memset(c, 0, sizeof(struct client_t)); /* ST_START */
-}
-static inline void conn_keep_alive(struct client_t *c) {
-    int fd=c->fd;
-    memset(c, 0, sizeof(struct client_t));
-    c->fd=fd;
-    c->state=ST_READ;
-}
-#define dump_client(c)   dump_client_line(c, __FILE__, __LINE__)
-static inline void dump_client_line(const struct client_t* c, const char *f, int line) {
-    const char *state[]={"ST_START", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
-    const char *method[]={"NONE", "GET", "POST"};
-    fprintf(stderr, "%s@%d, socket=%d, %s, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
-    fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
-    for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
-    fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
-    fprintf(stderr, "    REQ BUFFER: %ld\n", (long int)c->request.buf.buf_len);
-    fprintf(stderr, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
-    fprintf(stderr, "    RES BUFFER: %ld\n", (long int)c->response.buf.buf_len);
 }
 /*==================================================*/
 /*==================================================*/
