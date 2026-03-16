@@ -181,15 +181,15 @@ static inline void conn_keep_alive(struct client_t *c) {
     c->fd=fd;
     c->state=ST_READ;
 }
-#define dump_client(c)   dump_client_line(c, __FILE__, __LINE__)
-static inline void dump_client_line(const struct client_t* c, const char *f, int line) {
+#define dump_client(c)   dump_client_line(stderr, c, __FILE__, __LINE__)
+static inline void dump_client_line(FILE *fp, const struct client_t* c, const char *f, int line) {
     const char *state[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP"};
     const char *method[]={"NONE", "GET", "POST"};
-    fprintf(stderr, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
-    fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
-    for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
-    fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
-    fprintf(stderr, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
+    fprintf(fp, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
+    for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
+    fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
+    fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
 }
 /*############################################################*/
 static inline enum method_t http_method(const char *req) {
