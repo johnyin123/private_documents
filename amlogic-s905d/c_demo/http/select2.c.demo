@@ -74,52 +74,55 @@ static inline int create_tcp_server(const char *addr, int port, int backlog) {
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
     char buf[BUF_SIZE];
-    size_t buf_len;
+    size_t len;
 };
+static inline int buf_vprintf(struct buf_t *b, const char *format, va_list args) {
+    if(b->len>=BUF_SIZE) return 0;
+    int n = vsnprintf(b->buf+b->len, BUF_SIZE-b->len-1, format, args);
+    if(n>0) b->len+=n;
+    return n;
+}
 static inline int buf_printf(struct buf_t *b, const char *format, ...) {
-    if(b->buf_len>=BUF_SIZE) return 0;
     va_list args;
     va_start(args, format);
-    int n = vsnprintf(b->buf+b->buf_len, BUF_SIZE-b->buf_len-1, format, args);
+    int n = buf_vprintf(b, format, args);
     va_end(args);
-    if(n>0) b->buf_len+=n;
     return n;
 }
 static inline char* buf_find(struct buf_t *b, const char *needle, size_t len) {
-    for(size_t i=0; i+len<=b->buf_len; i++) {
+    for(size_t i=0; i+len<=b->len; i++) {
         if(memcmp(b->buf+i, needle, len) == 0)
             return b->buf+i;
     }
     return NULL;
 }
 static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
-    if((BUF_SIZE - b->buf_len) <= 0) return -1;
-    ssize_t n = sock_read(fd, b->buf + b->buf_len, BUF_SIZE - b->buf_len);
+    if((BUF_SIZE - b->len) <= 0) return -1;
+    ssize_t n = sock_read(fd, b->buf + b->len, BUF_SIZE - b->len);
     if (n > 0) {
-        b->buf_len += n;
+        b->len += n;
         if(total) *total += n;
     }
     return n;
 }
 static inline ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total) {
-    ssize_t n = sock_write(fd, b->buf, b->buf_len);
+    ssize_t n = sock_write(fd, b->buf, b->len);
     if (n > 0) {
-        b->buf_len -= n;
+        b->len -= n;
         if(total) *total += n;
-        if(b->buf_len>0) memmove(b->buf, b->buf + n, b->buf_len);
+        if(b->len>0) memmove(b->buf, b->buf + n, b->len);
     }
     return n;
 }
 enum mime_t { JSON = 0, TEXT };
 enum method_t { NONE = 0, GET, POST };
-enum client_state_t { ST_START = 0, ST_READ, ST_HEAD, ST_BODY, ST_WRITE, };
+enum client_state_t { ST_NONE = 0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, };
 struct response_t {
-    unsigned int status;
+    unsigned int status:16;
     enum mime_t mime;
     unsigned int header_len;
     unsigned int content_len;
     unsigned int total_len;
-    struct buf_t buf;
 };
 struct hdr_prop_t {
     char s_key[HDR_KEY_LEN+1];
@@ -130,29 +133,29 @@ struct request_t {
     char s_uri[URI_LEN+1];
     unsigned int vhi:4,vlo:4;
     void *ctx;
-    size_t nprop:8;
     struct hdr_prop_t prop[MAX_HEADERS];
-    unsigned int keep_alive;
+    size_t nprop:7;
+    unsigned int keep_alive:1;
     unsigned int header_len;
     unsigned int content_len;
     unsigned int total_len;
-    struct buf_t buf;
 };
 struct client_t {
     int fd;
-    unsigned int tick_cnt;
-    enum client_state_t state;
+    unsigned int tick_cnt:4;
+    enum client_state_t state:4;
     struct request_t request;
     struct response_t response;
+    struct buf_t buf;
 };
-#define REQ_READ(c)     buf_read_fd(&(c->request.buf), c->fd, &(c->request.total_len))
-#define RES_WRITE(c)    buf_write_fd(&(c->response.buf), c->fd, &(c->response.total_len))
+#define REQ_READ(c)     buf_read_fd(&(c->buf), c->fd, &(c->request.total_len))
+#define RES_WRITE(c)    buf_write_fd(&(c->buf), c->fd, &(c->response.total_len))
 #define conn_close(c)   conn_close_line(c, __FILE__, __LINE__)
 static inline void conn_close_line(struct client_t *c, const char *f, int line) {
     ((void)f); ((void)line);
     debugln("conn_close %d %s@%d", c->fd, f, line);
     close_socket(c->fd);
-    memset(c, 0, sizeof(struct client_t)); /* ST_START */
+    memset(c, 0, sizeof(struct client_t)); /* ST_NONE */
 }
 static inline void conn_keep_alive(struct client_t *c) {
     int fd=c->fd;
@@ -162,15 +165,14 @@ static inline void conn_keep_alive(struct client_t *c) {
 }
 #define dump_client(c)   dump_client_line(c, __FILE__, __LINE__)
 static inline void dump_client_line(const struct client_t* c, const char *f, int line) {
-    const char *state[]={"ST_START", "ST_READ", "ST_HEAD", "ST_BODY", "ST_WRITE"};
+    const char *state[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP"};
     const char *method[]={"NONE", "GET", "POST"};
     fprintf(stderr, "%s@%d, socket=%d, %s, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
     fprintf(stderr, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(stderr, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(stderr, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
-    fprintf(stderr, "    REQ BUFFER: %ld\n", (long int)c->request.buf.buf_len);
     fprintf(stderr, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
-    fprintf(stderr, "    RES BUFFER: %ld\n", (long int)c->response.buf.buf_len);
+    fprintf(stderr, "    BUFFER: %ld\n", (long int)c->buf.len);
 }
 /*############################################################*/
 static inline enum method_t http_method(const char *req) {
@@ -197,33 +199,28 @@ static inline const char *status_str(unsigned int s) {
         default:  return "500 Internal Server Error";
     }
 }
-static inline int make_header(struct response_t *resp, unsigned int keep_alive, unsigned int status, int mime, unsigned int content_len) {
-    resp->status = status;
-    resp->mime = mime;
-    resp->content_len = content_len;
-    if(resp->content_len<0) return -1;
-    int ret = snprintf(resp->buf.buf+resp->buf.buf_len, BUF_SIZE-resp->buf.buf_len, "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(status), SRV_INFO, mime_str(mime), keep_alive ? "keep-alive" : "close", resp->content_len);
-    if(ret<=0||ret>BUF_SIZE-resp->buf.buf_len) return -2;
-    resp->header_len = ret;
-    resp->buf.buf_len += ret;
-    return resp->header_len;
+static inline int make_header(struct client_t *c, unsigned int status, int mime, unsigned int content_len) {
+    c->response.status = status;
+    c->response.mime = mime;
+    c->response.content_len = content_len;
+    int ret = buf_printf(&(c->buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(c->response.status), SRV_INFO, mime_str(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
+    if(ret>0)
+        c->response.header_len = ret;
+    return ret;
 }
-static inline int make_response(struct response_t *resp, unsigned int keep_alive, unsigned int status, int mime, const char *format, ...) {
-    int ret;
+static inline int make_response(struct client_t *c, unsigned int status, int mime, const char *format, ...) {
     va_list args;
     va_start(args, format);
-    ret = vsnprintf(NULL, 0, format, args);
+    int ret = vsnprintf(NULL, 0, format, args);
     va_end(args);
-    if(ret<=0) return -3;
-    ret = make_header(resp, keep_alive, status, mime, ret);
+    if(ret<0) return -1; /*format = ""*/
+    ret = make_header(c, status, mime, ret);
     if(ret<=0) return ret;
-    if(resp->header_len + resp->content_len > BUF_SIZE-resp->buf.buf_len) return -4;
     va_start(args, format);
-    ret = vsnprintf(resp->buf.buf + resp->buf.buf_len, BUF_SIZE - resp->buf.buf_len, format, args);
+    ret = buf_vprintf(&(c->buf), format, args);
     va_end(args);
-    if(ret<=0) return -5;
-    resp->buf.buf_len += ret;
-    return resp->content_len + resp->header_len;
+    if(ret<0) return -2; /*format = ""*/
+    return ret + c->response.header_len;
 }
 /*############################################################*/
 void response_start(struct client_t *c);
@@ -237,15 +234,15 @@ static int parse_header(struct client_t *c) {
     struct request_t *request = &(c->request);
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if (4 != sscanf(request->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, request->s_uri, &vhi, &vlo)) return -500;
+    if (4 != sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, request->s_uri, &vhi, &vlo)) return -500;
     request->method = http_method(method);
     request->vhi = vhi;
     request->vlo = vlo;
-    if(request->vhi == 1 && request->vlo == 1) c->request.keep_alive = 1;
-    const char *end = request->buf.buf + request->header_len;
-    const char *line = memmem(request->buf.buf, request->buf.buf_len, "\r\n", 2);
+    if(request->vhi==1 && request->vlo==1) c->request.keep_alive=1;
+    const char *end = c->buf.buf + request->header_len;
+    const char *line = memmem(c->buf.buf, c->buf.len, "\r\n", 2);
     while (line && line < end - 2) {
-        const char *next = memmem(line + 2, request->buf.buf_len-(line + 2 - request->buf.buf), "\r\n", 2);
+        const char *next = memmem(line + 2, c->buf.len-(line + 2 - c->buf.buf), "\r\n", 2);
         if (!next) break;
         if (next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
@@ -267,10 +264,13 @@ static int parse_header(struct client_t *c) {
         }
         line = next;
     }
+    c->buf.len -= request->header_len;
     if (request->content_len>0) {
-        if(request->buf.buf_len>request->header_len) {
-            request->buf.buf_len -= request->header_len;
-            memmove(request->buf.buf, request->buf.buf + request->header_len, request->buf.buf_len);
+        if(c->buf.len>0) memmove(c->buf.buf, c->buf.buf + request->header_len, c->buf.len);
+    } else {
+        if(c->buf.len>0) {
+            debugln("header ok but, buf.len left %d", (int)c->buf.len);
+            c->buf.len=0;
         }
     }
     return 0;
@@ -286,7 +286,7 @@ static void handle_write(struct client_t *c) {
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
         debugln("response_complete %d", c->fd);
         response_complete(c); /* all send */
-    } else if(c->response.buf.buf_len==0) {
+    } else if(c->buf.len==0) {
         debugln("response_chunk %d", c->fd);
         response_chunk(c); /* buf empty */
     }
@@ -305,9 +305,9 @@ static void handle_read(struct client_t *c) {
         return;
     }
     if(c->request.header_len<=0) {
-        char *delm = buf_find(&(c->request.buf), "\r\n\r\n", 4);
+        char *delm = buf_find(&(c->buf), "\r\n\r\n", 4);
         if(delm) {
-            c->request.header_len = delm - c->request.buf.buf + 4;
+            c->request.header_len = delm - c->buf.buf + 4;
             c->state=ST_HEAD;
         }
     }
@@ -320,7 +320,7 @@ static void handle_head(struct client_t *c) {
         debugln("body_start %d", c->fd);
         body_start(c);
     } else {
-        c->state=ST_WRITE;
+        c->state=ST_RESP;
         debugln("response_start %d", c->fd);
         response_start(c);
     }
@@ -331,7 +331,7 @@ static void handle_body(struct client_t *c) {
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
         debugln("body_complete %d", c->fd);
         body_complete(c);
-        c->state=ST_WRITE;
+        c->state=ST_RESP;
         debugln("response_start %d", c->fd);
         response_start(c);
     }
@@ -341,7 +341,7 @@ static struct client_t clients[MAX_CONNS];
 static struct client_t *conn_open(int cli_sock) {
     set_sock_nonblock_nodelay(cli_sock);
     for(int i=0; i<MAX_CONNS; i++) {
-        if(clients[i].state == ST_START) {
+        if(clients[i].state == ST_NONE) {
             memset(&clients[i], 0, sizeof(struct client_t));
             clients[i].fd=cli_sock;
             clients[i].state=ST_READ;
@@ -363,11 +363,11 @@ static void event_loop(int listenfd) {
         for(int i=0; i<MAX_CONNS; i++) {
             struct client_t *c = &clients[i];
             switch (c->state) {
-                case ST_START: continue;
+                case ST_NONE: continue;
                 case ST_READ:
                 case ST_HEAD:
                 case ST_BODY:  FD_SET(c->fd, &rset); break;
-                case ST_WRITE: FD_SET(c->fd, &wset); break;
+                case ST_RESP: FD_SET(c->fd, &wset); break;
             }
             if(c->fd>maxfd) maxfd=c->fd;
         }
@@ -379,7 +379,7 @@ static void event_loop(int listenfd) {
         }
         if(nready==0) { /*timeout*/
             for(int i=0; i<MAX_CONNS; i++) {
-                if(clients[i].state==ST_START) continue;
+                if(clients[i].state==ST_NONE) continue;
                 if(++clients[i].tick_cnt>=IDEL_TICK) conn_close(&clients[i]);
             }
             continue;
@@ -399,7 +399,7 @@ static void event_loop(int listenfd) {
             conn_open(cli_sock);
         }
         for(int i=0;i<MAX_CONNS;i++) {
-            if(clients[i].state==ST_START) continue;
+            if(clients[i].state==ST_NONE) continue;
             if (clients[i].tick_cnt>=IDEL_TICK) { conn_close(&clients[i]); continue; }
             clients[i].tick_cnt = 0; /*reset tick count*/
             if(FD_ISSET(clients[i].fd,&rset)) {
@@ -407,7 +407,7 @@ static void event_loop(int listenfd) {
                 if(clients[i].state==ST_HEAD) handle_head(&clients[i]);
                 if(clients[i].state==ST_BODY) handle_body(&clients[i]);
             }
-            if(clients[i].state!=ST_START && FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
+            if(clients[i].state!=ST_NONE && FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
         }
     }
 }
@@ -436,15 +436,15 @@ void response_start(struct client_t *c) {
     struct stat st;
     const char *fname="output.txt";
     if(stat(fname, &st) < 0) {
-        make_response(&(c->response), c->request.keep_alive, 404, TEXT, "file not found\n");
+        make_response(c, 404, TEXT, "file not found");
         return;
     }
     c->request.ctx = fopen(fname, "r");
-    make_header(&(c->response), c->request.keep_alive, 200, JSON, st.st_size);
+    make_header(c, 200, JSON, st.st_size);
 }
 void response_chunk(struct client_t *c) {
-    int ret = fread(c->response.buf.buf+c->response.buf.buf_len, 1, BUF_SIZE-c->response.buf.buf_len, (FILE *)c->request.ctx);
-    if(ret>0) c->response.buf.buf_len += ret;
+    int ret = fread(c->buf.buf+c->buf.len, 1, BUF_SIZE-c->buf.len, (FILE *)c->request.ctx);
+    if(ret>0) c->buf.len += ret;
 }
 void response_complete(struct client_t *c) {
     if(c->request.ctx) fclose((FILE *)c->request.ctx);
@@ -455,13 +455,13 @@ void response_complete(struct client_t *c) {
 void body_start(struct client_t *c) {
     c->request.ctx = fopen("output.txt", "w");
     if(c->request.ctx==NULL) {
-        make_response(&(c->response), c->request.keep_alive, 403, TEXT, "access deny\n");
-        c->state=ST_WRITE;
+        make_response(c, 403, TEXT, "access deny");
+        c->state=ST_RESP;
     }
 }
 void body_chunk(struct client_t *c) {
-    fwrite(c->request.buf.buf, 1, c->request.buf.buf_len, (FILE *)c->request.ctx);
-    c->request.buf.buf_len = 0;
+    fwrite(c->buf.buf, 1, c->buf.len, (FILE *)c->request.ctx);
+    c->buf.len = 0;
 }
 void body_complete(struct client_t *c) {
     fclose((FILE *)c->request.ctx);
