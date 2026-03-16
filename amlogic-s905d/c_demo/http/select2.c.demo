@@ -332,6 +332,8 @@ static void handle_body(struct client_t *c) {
         debugln("body_complete %d", c->fd);
         body_complete(c);
         c->state=ST_RESP;
+        if(c->buf.len>0)
+            debugln("body ok but, buf.len left %d", (int)c->buf.len);
         debugln("response_start %d", c->fd);
         response_start(c);
     }
