@@ -114,6 +114,24 @@ static inline ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total)
     }
     return n;
 }
+static inline ssize_t buf_read_fp(struct buf_t *b, FILE *fp, unsigned int *total) {
+    if((BUF_SIZE - b->len) <= 0) return -1;
+    ssize_t n = fread(b->buf + b->len, 1, BUF_SIZE - b->len, fp);
+    if (n > 0) {
+        b->len += n;
+        if(total) *total += n;
+    }
+    return n;
+}
+static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *total) {
+    ssize_t n = fwrite(b->buf, 1, b->len, fp);
+    if (n > 0) {
+        b->len -= n;
+        if(total) *total += n;
+        if(b->len>0) memmove(b->buf, b->buf + n, b->len);
+    }
+    return n;
+}
 enum mime_t { JSON = 0, TEXT };
 enum method_t { NONE = 0, GET, POST };
 enum client_state_t { ST_NONE = 0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, };
@@ -276,6 +294,11 @@ static int parse_header(struct client_t *c) {
 }
 static void handle_write(struct client_t *c) {
     ssize_t n = RES_WRITE(c);
+    if(n==0) {
+        /*peer shutdown*/
+        conn_close(c);
+        return;
+    }
     if(n<0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK)
             return;
@@ -433,19 +456,18 @@ int main(const int argc, char const* argv[]) {
 }
 /*############################################################*/
 #include <sys/stat.h>
+static const char *fname="output.txt";
 void response_start(struct client_t *c) {
     struct stat st;
-    const char *fname="output.txt";
     if(stat(fname, &st) < 0) {
         make_response(c, 404, TEXT, "file not found");
         return;
     }
-    c->request.ctx = fopen(fname, "r");
+    c->request.ctx = fopen(fname, "rb");
     make_header(c, 200, JSON, st.st_size);
 }
 void response_chunk(struct client_t *c) {
-    int ret = fread(c->buf.buf+c->buf.len, 1, BUF_SIZE-c->buf.len, (FILE *)c->request.ctx);
-    if(ret>0) c->buf.len += ret;
+    buf_read_fp(&(c->buf), (FILE *)c->request.ctx, NULL);
 }
 void response_complete(struct client_t *c) {
     if(c->request.ctx) fclose((FILE *)c->request.ctx);
@@ -454,15 +476,14 @@ void response_complete(struct client_t *c) {
     else conn_close(c);
 }
 void body_start(struct client_t *c) {
-    c->request.ctx = fopen("output.txt", "w");
+    c->request.ctx = fopen(fname, "wb");
     if(c->request.ctx==NULL) {
         make_response(c, 403, TEXT, "access deny");
         c->state=ST_RESP;
     }
 }
 void body_chunk(struct client_t *c) {
-    fwrite(c->buf.buf, 1, c->buf.len, (FILE *)c->request.ctx);
-    c->buf.len = 0;
+    buf_write_fp(&(c->buf), (FILE *)c->request.ctx, NULL);
 }
 void body_complete(struct client_t *c) {
     fclose((FILE *)c->request.ctx);
