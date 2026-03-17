@@ -134,7 +134,7 @@ static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *tota
 }
 enum mime_t { JSON = 0, TEXT };
 enum method_t { NONE = 0, GET, POST };
-enum client_state_t { ST_NONE = 0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, };
+enum client_state_t { ST_NONE = 0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, ST_ALIVE, ST_CLOSE };
 struct response_t {
     unsigned int status:16;
     enum mime_t mime;
@@ -168,22 +168,9 @@ struct client_t {
 };
 #define REQ_READ(c)     buf_read_fd(&(c->buf), c->fd, &(c->request.total_len))
 #define RES_WRITE(c)    buf_write_fd(&(c->buf), c->fd, &(c->response.total_len))
-#define conn_close(c)   conn_close_line(c, __FILE__, __LINE__)
-static inline void conn_close_line(struct client_t *c, const char *f, int line) {
-    ((void)f); ((void)line);
-    debugln("conn_close %d %s@%d", c->fd, f, line);
-    close_socket(c->fd);
-    memset(c, 0, sizeof(struct client_t)); /* ST_NONE */
-}
-static inline void conn_keep_alive(struct client_t *c) {
-    int fd=c->fd;
-    memset(c, 0, sizeof(struct client_t));
-    c->fd=fd;
-    c->state=ST_READ;
-}
 #define dump_client(c)   dump_client_line(stderr, c, __FILE__, __LINE__)
 static inline void dump_client_line(FILE *fp, const struct client_t* c, const char *f, int line) {
-    const char *state[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP"};
+    const char *state[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP", "ST_ALIVE", "ST_CLOSE"};
     const char *method[]={"NONE", "GET", "POST"};
     fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, state[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
     fprintf(fp, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
@@ -255,7 +242,6 @@ static int parse_header(struct client_t *c) {
     request->method = http_method(method);
     request->vhi = vhi;
     request->vlo = vlo;
-    if(request->vhi==1 && request->vlo==1) c->request.keep_alive=1;
     const char *end = c->buf.buf + request->header_len;
     const char *line = memmem(c->buf.buf, c->buf.len, "\r\n", 2);
     while (line && line < end - 2) {
@@ -270,8 +256,7 @@ static int parse_header(struct client_t *c) {
                     request->content_len = atoi(request->prop[request->nprop].s_val);
                     if (request->content_len < 0) return -406;
                 } else if(strcasecmp(request->prop[request->nprop].s_key, "Connection")==0) {
-                    if(strcasecmp(request->prop[request->nprop].s_val, "keep-alive")==0)
-                        c->request.keep_alive = 1;
+                    if(strcasecmp(request->prop[request->nprop].s_val, "keep-alive")==0 && request->vhi==1 && request->vlo==1) c->request.keep_alive=1;
                 } else {
                     request->nprop++;
                 }
@@ -296,13 +281,13 @@ static void handle_write(struct client_t *c) {
     ssize_t n = RES_WRITE(c);
     if(n==0) {
         /*peer shutdown*/
-        conn_close(c);
+        c->state=ST_CLOSE;
         return;
     }
     if(n<0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK)
             return;
-        conn_close(c);
+        c->state=ST_CLOSE;
         return;
     }
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
@@ -317,13 +302,13 @@ static void handle_read(struct client_t *c) {
     int n = REQ_READ(c);
     if(n==0) {
         /*peer shutdown*/
-        conn_close(c);
+        c->state=ST_CLOSE;
         return;
     }
     if(n < 0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK)
             return;
-        conn_close(c);
+        c->state=ST_CLOSE;
         return;
     }
     if(c->request.header_len<=0) {
@@ -335,9 +320,9 @@ static void handle_read(struct client_t *c) {
     }
 }
 static void handle_head(struct client_t *c) {
-    if(parse_header(c)<0) { conn_close(c); return; }
+    if(parse_header(c)<0) { c->state=ST_CLOSE; return; }
     if(c->request.content_len>0){
-        if(c->request.method != POST) { conn_close(c); return; }
+        if(c->request.method != POST) { c->state=ST_CLOSE; return; }
         c->state=ST_BODY;
         debugln("body_start %d", c->fd);
         body_start(c);
@@ -359,6 +344,17 @@ static void handle_body(struct client_t *c) {
         debugln("response_start %d", c->fd);
         response_start(c);
     }
+}
+static void handle_close(struct client_t *c) {
+    debugln("handle_close %d", c->fd);
+    close_socket(c->fd);
+    memset(c, 0, sizeof(struct client_t)); /* ST_NONE */
+}
+static void handle_alive(struct client_t *c) {
+    int fd=c->fd;
+    memset(c, 0, sizeof(struct client_t));
+    c->fd=fd;
+    c->state=ST_READ;
 }
 /*############################################################*/
 static struct client_t clients[MAX_CONNS];
@@ -387,11 +383,11 @@ static void event_loop(int listenfd) {
         for(int i=0; i<MAX_CONNS; i++) {
             struct client_t *c = &clients[i];
             switch (c->state) {
-                case ST_NONE: continue;
                 case ST_READ:
                 case ST_HEAD:
-                case ST_BODY:  FD_SET(c->fd, &rset); break;
+                case ST_BODY: FD_SET(c->fd, &rset); break;
                 case ST_RESP: FD_SET(c->fd, &wset); break;
+                default     : continue;
             }
             if(c->fd>maxfd) maxfd=c->fd;
         }
@@ -404,7 +400,7 @@ static void event_loop(int listenfd) {
         if(nready==0) { /*timeout*/
             for(int i=0; i<MAX_CONNS; i++) {
                 if(clients[i].state==ST_NONE) continue;
-                if(++clients[i].tick_cnt>=IDEL_TICK) conn_close(&clients[i]);
+                if(++clients[i].tick_cnt>=IDEL_TICK) handle_close(&clients[i]);
             }
             continue;
         }
@@ -424,14 +420,14 @@ static void event_loop(int listenfd) {
         }
         for(int i=0;i<MAX_CONNS;i++) {
             if(clients[i].state==ST_NONE) continue;
-            if (clients[i].tick_cnt>=IDEL_TICK) { conn_close(&clients[i]); continue; }
+            if (clients[i].tick_cnt>=IDEL_TICK) { handle_close(&clients[i]); continue; }
             clients[i].tick_cnt = 0; /*reset tick count*/
-            if(FD_ISSET(clients[i].fd,&rset)) {
-                handle_read(&clients[i]); /* read state*/
-                if(clients[i].state==ST_HEAD) handle_head(&clients[i]);
-                if(clients[i].state==ST_BODY) handle_body(&clients[i]);
-            }
-            if(clients[i].state!=ST_NONE && FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
+            if(FD_ISSET(clients[i].fd,&rset)) handle_read(&clients[i]);
+            if(FD_ISSET(clients[i].fd,&wset)) handle_write(&clients[i]);
+            if(clients[i].state==ST_HEAD) handle_head(&clients[i]);
+            if(clients[i].state==ST_BODY) handle_body(&clients[i]);
+            if(clients[i].state==ST_ALIVE) handle_alive(&clients[i]);
+            if(clients[i].state==ST_CLOSE) handle_close(&clients[i]);
         }
     }
 }
@@ -471,9 +467,9 @@ void response_chunk(struct client_t *c) {
 }
 void response_complete(struct client_t *c) {
     if(c->request.ctx) fclose((FILE *)c->request.ctx);
+    if(c->request.keep_alive) c->state=ST_ALIVE;
+    else c->state=ST_CLOSE;
     dump_client(c);
-    if(c->request.keep_alive) conn_keep_alive(c);
-    else conn_close(c);
 }
 void body_start(struct client_t *c) {
     c->request.ctx = fopen(fname, "wb");
