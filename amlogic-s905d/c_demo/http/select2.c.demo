@@ -490,3 +490,72 @@ int body_chunk(struct buf_t *buf, void *ctx) {
 int body_complete(void *ctx) {
     return fclose((FILE *)ctx)==0?1:-1;
 }
+/*
+struct act_t;
+struct cb_t {
+    int (*start)(struct conn_t *c, struct act_t *ctx);
+    int (*chunk)(struct buf_t *buf, struct act_t *ctx);
+    int (*complete)(struct act_t *ctx);
+};
+struct act_t {
+    const enum method_t method;
+    const char *s_uri;
+    struct cb_t resp;
+    struct cb_t body;
+    void *act_ctx;
+};
+char *msg="test message";
+int big_start(struct conn_t *c, struct act_t *ctx){
+    ctx->act_ctx=msg;
+    return make_response(c, 200, JSON, "all ok");
+}
+int big_complete(struct act_t *ctx) {
+    char *info=ctx->act_ctx;
+    if(info) fprintf(stderr, "%s\n", info);
+    return 1;
+}
+static struct act_t actions[] = {
+    {.method=GET,  "/big",  {big_start,NULL,big_complete}, },
+    {.method=POST, "/big",  {big_start,NULL,big_complete}, },
+};
+static inline struct act_t *find_action(const enum method_t method, const char *s_uri) {
+    for(int i=0;i<ARRAY_LEN(actions);i++) {
+        if((method==actions[i].method)&&(strcmp(s_uri, actions[i].s_uri)==0))
+            return &actions[i];
+    }
+    return NULL;
+}
+int response_start(struct conn_t *c) {
+    struct act_t *act = find_action(c->request.method, c->request.s_uri);
+    c->request.ctx=act;
+    if((act)&&(act->resp.start)) return act->resp.start(c, act);
+    return make_response(c, 403, TEXT, "access deny");
+}
+int response_chunk(const struct request_t *req, struct buf_t *buf, void *ctx) {
+    struct act_t *act = ctx;
+    if((act)&&(act->resp.chunk)) return act->resp.chunk(buf, act);
+    return -1;
+}
+int response_complete(const struct request_t *req, void *ctx) {
+    struct act_t *act = ctx;
+    if((act)&&(act->resp.complete)) return act->resp.complete(act);
+    return 1;
+}
+int body_start(struct conn_t *c) {
+    struct act_t *act = find_action(c->request.method, c->request.s_uri);
+    c->request.ctx=act;
+    if((act)&&(act->body.start)) return act->body.start(c, act);
+    make_response(c, 403, TEXT, "access deny");
+    return -1;
+}
+int body_chunk(struct buf_t *buf, void *ctx) {
+    struct act_t *act = ctx;
+    if((act)&&(act->body.chunk)) return act->body.chunk(buf, act);
+    return -1;
+}
+int body_complete(void *ctx) {
+    struct act_t *act = ctx;
+    if((act)&&(act->body.complete)) return act->body.complete(act);
+    return 1;
+}
+*/
