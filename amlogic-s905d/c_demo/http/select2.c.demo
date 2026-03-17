@@ -137,11 +137,16 @@ static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *tota
     }
     return n;
 }
-enum mime_t { JSON = 0, TEXT };
-enum method_t { NONE = 0, GET, POST };
-static const char *method[]={"NONE", "GET", "POST"};
-enum conn_state_t { ST_NONE = 0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, ST_ALIVE, ST_CLOSE };
-static const char *conn_state[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP", "ST_ALIVE", "ST_CLOSE"};
+enum mime_t { BIN=0, JSON, TEXT };
+static const char *mime_map[]={
+    "application/octet-stream",
+    "application/json",
+    "text/plain; charset=utf-8",
+};
+enum method_t { NONE=0, GET, POST };
+static const char *method_map[]={"NONE", "GET", "POST"};
+enum conn_state_t { ST_NONE=0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, ST_ALIVE, ST_CLOSE };
+static const char *conn_state_map[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP", "ST_ALIVE", "ST_CLOSE"};
 struct response_t {
     unsigned int status:16;
     enum mime_t mime;
@@ -178,27 +183,21 @@ struct conn_t {
 #define RES_WRITE(c)      buf_write_fd(&(c->buf), c->fd, &(c->response.total_len))
 #define dump_conn(c)      dump_conn_line(stderr, c, __FILE__, __LINE__)
 static inline void dump_conn_line(FILE *fp, const struct conn_t* c, const char *f, int line) {
-    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
-    fprintf(fp, "  %s HTTP(%d.%d) %s\n", method[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state_map[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
+    fprintf(fp, "  %s HTTP(%d.%d) %s\n", method_map[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
     fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
 }
 /*############################################################*/
 static inline enum method_t http_method(const char *req) {
-    if (!req) return NONE;
-    if (strcmp(req, "GET")==0)
-        return GET;
-    if (strcmp(req, "POST")==0)
-        return POST;
+    for(int i=0;i<sizeof(method_map)/sizeof(method_map[0]);i++) {
+        if(strcmp(req, method_map[i])==0) return i;
+    }
     return NONE;
 }
 static inline const char *mime_str(enum mime_t m) {
-    switch (m) {
-        case JSON: return "application/json";
-        case TEXT: return "text/plain; charset=utf-8";
-        default:   return "application/octet-stream";
-    }
+    return mime_map[m];
 }
 static inline const char *status_str(unsigned int s) {
     switch (s) {
@@ -242,14 +241,13 @@ void body_chunk(struct conn_t *c);
 void body_complete(struct conn_t *c);
 /*############################################################*/
 static int parse_header(struct conn_t *c) {
-    struct request_t *request = &(c->request);
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if (4 != sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, request->s_uri, &vhi, &vlo)) return -500;
-    request->method = http_method(method);
-    request->vhi = vhi;
-    request->vlo = vlo;
-    const char *end = c->buf.buf + request->header_len;
+    if (4 != sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, c->request.s_uri, &vhi, &vlo)) return -500;
+    c->request.method = http_method(method);
+    c->request.vhi = vhi;
+    c->request.vlo = vlo;
+    const char *end = c->buf.buf + c->request.header_len;
     const char *line = memmem(c->buf.buf, c->buf.len, "\r\n", 2);
     while (line && line < end - 2) {
         const char *next = memmem(line + 2, c->buf.len-(line + 2 - c->buf.buf), "\r\n", 2);
@@ -257,15 +255,15 @@ static int parse_header(struct conn_t *c) {
         if (next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
         if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
-            if(request->nprop>=MAX_HEADERS) return -413;
-            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", request->prop[request->nprop].s_key, request->prop[request->nprop].s_val)) {
-                if (strcasecmp(request->prop[request->nprop].s_key, "Content-Length") == 0) {
-                    request->content_len = atoi(request->prop[request->nprop].s_val);
-                    if (request->content_len < 0) return -406;
-                } else if(strcasecmp(request->prop[request->nprop].s_key, "Connection")==0) {
-                    if(strcasecmp(request->prop[request->nprop].s_val, "keep-alive")==0 && request->vhi==1 && request->vlo==1) c->request.keep_alive=1;
+            if(c->request.nprop>=MAX_HEADERS) return -413;
+            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", c->request.prop[c->request.nprop].s_key, c->request.prop[c->request.nprop].s_val)) {
+                if (strcasecmp(c->request.prop[c->request.nprop].s_key, "Content-Length") == 0) {
+                    c->request.content_len = atoi(c->request.prop[c->request.nprop].s_val);
+                    if (c->request.content_len < 0) return -406;
+                } else if(strcasecmp(c->request.prop[c->request.nprop].s_key, "Connection")==0) {
+                    if(strcasecmp(c->request.prop[c->request.nprop].s_val, "keep-alive")==0 && c->request.vhi==1 && c->request.vlo==1) c->request.keep_alive=1;
                 } else {
-                    request->nprop++;
+                    c->request.nprop++;
                 }
             } else {
                 return -406;
@@ -273,9 +271,9 @@ static int parse_header(struct conn_t *c) {
         }
         line = next;
     }
-    c->buf.len -= request->header_len;
-    if (request->content_len>0) {
-        if(c->buf.len>0) memmove(c->buf.buf, c->buf.buf + request->header_len, c->buf.len);
+    c->buf.len -= c->request.header_len;
+    if (c->request.content_len>0) {
+        if(c->buf.len>0) memmove(c->buf.buf, c->buf.buf + c->request.header_len, c->buf.len);
     } else {
         if(c->buf.len>0) {
             debugln("header ok but, buf.len left %d", (int)c->buf.len);
