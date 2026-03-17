@@ -9,6 +9,12 @@
     #define close_socket closesocket
     #define sock_read(a,b,c)  recv(a,b,c,0)
     #define sock_write(a,b,c) send(a,b,c,0)
+    static inline void* memmem(const void* haystack, size_t haystacklen, const void* needle, size_t needlelen) { if(!needlelen) return (void*)haystack;
+        for(size_t i = 0; i + needlelen <= haystacklen; i++) {
+            if(!memcmp((char*)haystack + i, needle, needlelen)) return (char*)haystack + i;
+        }
+        return NULL;
+    }
 #else
     #define close_socket close
     #define sock_read(a,b,c)  read(a,b,c)
@@ -25,8 +31,8 @@
     #define debugln(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args)
     #define debug_conn(c, s)        dump_conn_line(stderr, s, c, __FILE__, __LINE__)
 #else
-    #define debug_conn(c, s)   do {} while (0)
-    #define debugln(...)       do {} while (0)
+    #define debugln(...)            do {} while (0)
+    #define debug_conn(c, s)        do {} while (0)
 #endif
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
@@ -41,23 +47,12 @@
 #define MAX_HEADERS   8
 #define HDR_KEY_LEN   16
 #define HDR_VAL_LEN   256
-/*############################################################*/
-#if defined(__WIN32__)
-static inline void* memmem(const void* haystack, size_t haystacklen, const void* needle, size_t needlelen) {
-    if(!needlelen) return (void*)haystack;
-    for(size_t i = 0; i + needlelen <= haystacklen; i++) {
-        if(!memcmp((char*)haystack + i, needle, needlelen)) return (char*)haystack + i;
-    }
-    return NULL;
-}
-#endif
-#define log_error(fmt,args...) fprintf(stderr, "%s:%d == "fmt"\n", __FILE__, __LINE__, ##args)
-/*############################################################*/
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
     char buf[BUF_SIZE];
     size_t len;
 };
+#define log_error(fmt,args...) fprintf(stderr, "%s:%d == "fmt"\n", __FILE__, __LINE__, ##args)
 static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
     memcpy(b->buf, src, len);
@@ -79,8 +74,7 @@ static inline int buf_printf(struct buf_t *b, const char *format, ...) {
 }
 static inline char* buf_find(struct buf_t *b, const char *needle, size_t len) {
     for(size_t i=0; i+len<=b->len; i++) {
-        if(memcmp(b->buf+i, needle, len) == 0)
-            return b->buf+i;
+        if(memcmp(b->buf+i, needle, len)==0) return b->buf+i;
     }
     return NULL;
 }
@@ -172,7 +166,6 @@ static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* 
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
     fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
 }
-/*############################################################*/
 static inline enum method_t http_method(const char *req) {
     for(int i=0;i<ARRAY_LEN(method_map);i++) {
         if(strcmp(req, method_map[i])==0) return i;
@@ -200,8 +193,7 @@ static inline int make_header(struct conn_t *c, unsigned int status, int mime, u
         c->buf.len=0;
     }
     int ret = buf_printf(&(c->buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(c->response.status), SRV_INFO, mime_str(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
-    if(ret>0)
-        c->response.header_len = ret;
+    if(ret>0) c->response.header_len = ret;
     return ret;
 }
 static inline int make_response(struct conn_t *c, unsigned int status, int mime, const char *format, ...) {
@@ -219,7 +211,6 @@ static inline int make_response(struct conn_t *c, unsigned int status, int mime,
     CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
 }
-/*############################################################*/
 /*ret>0 continue OK, <=0 error*/
 int response_start(struct conn_t *c);
 int response_chunk(struct buf_t *buf, void *ctx);
