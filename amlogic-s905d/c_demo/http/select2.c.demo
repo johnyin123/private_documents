@@ -155,7 +155,7 @@ struct conn_t {
     struct response_t response;
     struct buf_t buf;
 };
-#define CONN_STATE(c, st) { debugln("%s => %s", conn_state_map[(c)->state], conn_state_map[st]); (c)->state=st; }
+#define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, conn_state_map[(c)->state], conn_state_map[(st)]); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
@@ -208,7 +208,7 @@ static inline int make_response(struct conn_t *c, unsigned int status, int mime,
     ret = buf_vprintf(&(c->buf), format, args);
     va_end(args);
     if(ret<0) return -2; /*format = ""*/
-    CONN_STATE(c, ST_RESP);
+    if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
 }
 /*ret>0 continue OK, <=0 error*/
