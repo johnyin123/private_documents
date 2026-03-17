@@ -50,28 +50,7 @@ static inline void* memmem(const void* haystack, size_t haystacklen, const void*
     return NULL;
 }
 #endif
-static inline int set_sock_nonblock_nodelay(int fd) {
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
-#if defined(__WIN32__)
-    unsigned long mode = 1;
-    return ioctlsocket(fd, FIONBIO, &mode);
-#else
-    int flags = fcntl(fd, F_GETFL);
-    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#endif
-}
-static inline int create_tcp_server(const char *addr, int port, int backlog) {
-    int srv_sock;
-    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
-    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
-    set_sock_nonblock_nodelay(srv_sock);
-    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
-        close_socket(srv_sock);
-        return -1;
-    }
-    return srv_sock;
-}
+#define log_error(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args)
 /*############################################################*/
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
@@ -247,30 +226,30 @@ int body_start(struct conn_t *c);
 int body_chunk(struct buf_t *buf, void *ctx);
 int body_complete(void *ctx);
 /*############################################################*/
-static int parse_header(struct conn_t *c) {
+static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if (4!=sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, c->request.s_uri, &vhi, &vlo)) return -500;
-    c->request.method = http_method(method);
-    c->request.vhi = vhi;
-    c->request.vlo = vlo;
-    const char *end = c->buf.buf + c->request.header_len;
-    const char *line = memmem(c->buf.buf, c->buf.len, "\r\n", 2);
+    if (4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return -500;
+    req->method = http_method(method);
+    req->vhi = vhi;
+    req->vlo = vlo;
+    const char *end = buf->buf + req->header_len;
+    const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
     while (line && line < end - 2) {
-        const char *next = memmem(line + 2, c->buf.len-(line + 2 - c->buf.buf), "\r\n", 2);
+        const char *next = memmem(line + 2, buf->len-(line + 2 - buf->buf), "\r\n", 2);
         if (!next) break;
         if (next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
         if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
-            if(c->request.nprop>=MAX_HEADERS) return -413;
-            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", c->request.prop[c->request.nprop].s_key, c->request.prop[c->request.nprop].s_val)) {
-                if (strcasecmp(c->request.prop[c->request.nprop].s_key, "Content-Length") == 0) {
-                    c->request.content_len = atoi(c->request.prop[c->request.nprop].s_val);
-                    if (c->request.content_len < 0) return -406;
-                } else if(strcasecmp(c->request.prop[c->request.nprop].s_key, "Connection")==0) {
-                    if(strcasecmp(c->request.prop[c->request.nprop].s_val, "keep-alive")==0 && c->request.vhi==1 && c->request.vlo==1) c->request.keep_alive=1;
+            if(req->nprop>=MAX_HEADERS) return -413;
+            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
+                if (strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
+                    req->content_len = atoi(req->prop[req->nprop].s_val);
+                    if (req->content_len < 0) return -406;
+                } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
+                    if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->vhi==1 && req->vlo==1) req->keep_alive=1;
                 } else {
-                    c->request.nprop++;
+                    req->nprop++;
                 }
             } else {
                 return -406;
@@ -278,13 +257,13 @@ static int parse_header(struct conn_t *c) {
         }
         line = next;
     }
-    c->buf.len -= c->request.header_len;
-    if (c->request.content_len>0) {
-        if(c->buf.len>0) memmove(c->buf.buf, c->buf.buf + c->request.header_len, c->buf.len);
+    buf->len -= req->header_len;
+    if (req->content_len>0) {
+        if(buf->len>0) memmove(buf->buf, buf->buf + req->header_len, buf->len);
     } else {
-        if(c->buf.len>0) {
-            debugln("header ok but, buf.len left %d", (int)c->buf.len);
-            c->buf.len=0;
+        if(buf->len>0) {
+            log_error("header ok but, buf.len left %d", (int)buf->len);
+            buf->len=0;
         }
     }
     return 0;
@@ -334,7 +313,7 @@ static void handle_read(struct conn_t *c) {
     }
 }
 static void handle_head(struct conn_t *c) {
-    if(parse_header(c)<0) { CONN_STATE(c, ST_CLOSE); return; }
+    if(parse_header(&(c->buf), &(c->request))<0) { CONN_STATE(c, ST_CLOSE); return; }
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
@@ -357,7 +336,7 @@ static void handle_body(struct conn_t *c) {
         if(body_complete(c->request.ctx)<=0) return;
         CONN_STATE(c, ST_RESP);
         if(c->buf.len>0)
-            debugln("body ok but, buf.len left %d", (int)c->buf.len);
+            log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
         debug_conn(c, "response_start");
         if(response_start(c)<=0) { CONN_STATE(c, ST_CLOSE); }
     }
@@ -374,6 +353,28 @@ static void handle_alive(struct conn_t *c) {
     CONN_STATE(c, ST_READ);
 }
 /*############################################################*/
+static inline int set_sock_nonblock_nodelay(int fd) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
+#if defined(__WIN32__)
+    unsigned long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
+    int flags = fcntl(fd, F_GETFL);
+    return (flags < 0) ? -1 : fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+static inline int create_tcp_server(const char *addr, int port, int backlog) {
+    int srv_sock;
+    struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
+    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
+    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+        close_socket(srv_sock);
+        return -1;
+    }
+    return srv_sock;
+}
 static struct conn_t conns[MAX_CONNS];
 static struct conn_t *conn_open(int cli_sock) {
     set_sock_nonblock_nodelay(cli_sock);
@@ -386,7 +387,7 @@ static struct conn_t *conn_open(int cli_sock) {
         }
     }
     close_socket(cli_sock);
-    debugln("max connection %d exceed\n", MAX_CONNS);
+    log_error("max connection %d exceed\n", MAX_CONNS);
     return NULL;
 }
 static void event_loop(int srv_sock) {
@@ -441,10 +442,10 @@ static void event_loop(int srv_sock) {
             conns[i].tick_cnt = 0; /*reset tick count*/
             if(FD_ISSET(conns[i].fd,&rset)) handle_read(&conns[i]);
             if(FD_ISSET(conns[i].fd,&wset)) handle_write(&conns[i]);
-            if(conns[i].state==ST_HEAD) handle_head(&conns[i]);
-            if(conns[i].state==ST_BODY) handle_body(&conns[i]);
-            if(conns[i].state==ST_ALIVE) handle_alive(&conns[i]);
-            if(conns[i].state==ST_CLOSE) handle_close(&conns[i]);
+            if(conns[i].state==ST_HEAD)     handle_head(&conns[i]);
+            if(conns[i].state==ST_BODY)     handle_body(&conns[i]);
+            if(conns[i].state==ST_ALIVE)    handle_alive(&conns[i]);
+            if(conns[i].state==ST_CLOSE)    handle_close(&conns[i]);
         }
     }
 }
