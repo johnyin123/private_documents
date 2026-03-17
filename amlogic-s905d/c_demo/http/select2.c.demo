@@ -23,8 +23,10 @@
 #endif
 #ifdef DEBUG
     #define debugln(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args)
+    #define debug_conn(c, s)        dump_conn_line(stderr, s, c, __FILE__, __LINE__)
 #else
-    #define debugln(...) do {} while (0)
+    #define debug_conn(c, s)   do {} while (0)
+    #define debugln(...)       do {} while (0)
 #endif
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
@@ -178,12 +180,12 @@ struct conn_t {
     struct response_t response;
     struct buf_t buf;
 };
-#define CONN_STATE(c, st) { c->state=st; }
-#define REQ_READ(c)       buf_read_fd(&(c->buf), c->fd, &(c->request.total_len))
-#define RES_WRITE(c)      buf_write_fd(&(c->buf), c->fd, &(c->response.total_len))
-#define dump_conn(c)      dump_conn_line(stderr, c, __FILE__, __LINE__)
-static inline void dump_conn_line(FILE *fp, const struct conn_t* c, const char *f, int line) {
-    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state_map[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
+#define CONN_STATE(c, st) { debugln("%s => %s", conn_state_map[(c)->state], conn_state_map[st]); (c)->state=st; }
+#define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
+#define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
+static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
+    fprintf(fp, "%s:\n", s);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf.len=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state_map[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx, c->tick_cnt);
     fprintf(fp, "  %s HTTP(%d.%d) %s\n", method_map[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
@@ -212,6 +214,10 @@ static inline int make_header(struct conn_t *c, unsigned int status, int mime, u
     c->response.status = status;
     c->response.mime = mime;
     c->response.content_len = content_len;
+    if(c->buf.len!=0) { /*response header must first*/
+        debug_conn(c, "make_header warn!!");
+        c->buf.len=0;
+    }
     int ret = buf_printf(&(c->buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(c->response.status), SRV_INFO, mime_str(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
     if(ret>0)
         c->response.header_len = ret;
@@ -233,17 +239,18 @@ static inline int make_response(struct conn_t *c, unsigned int status, int mime,
     return ret + c->response.header_len;
 }
 /*############################################################*/
-void response_start(struct conn_t *c);
-void response_chunk(struct conn_t *c);
-void response_complete(struct conn_t *c);
-void body_start(struct conn_t *c);
-void body_chunk(struct conn_t *c);
-void body_complete(struct conn_t *c);
+/*ret>0 continue OK, <=0 error*/
+int response_start(struct conn_t *c);
+int response_chunk(struct buf_t *buf, void *ctx);
+void response_complete(void *ctx);
+int body_start(struct conn_t *c);
+int body_chunk(struct conn_t *c);
+int body_complete(struct conn_t *c);
 /*############################################################*/
 static int parse_header(struct conn_t *c) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if (4 != sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, c->request.s_uri, &vhi, &vlo)) return -500;
+    if (4!=sscanf(c->buf.buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, c->request.s_uri, &vhi, &vlo)) return -500;
     c->request.method = http_method(method);
     c->request.vhi = vhi;
     c->request.vlo = vlo;
@@ -284,8 +291,7 @@ static int parse_header(struct conn_t *c) {
 }
 static void handle_write(struct conn_t *c) {
     ssize_t n = RES_WRITE(c);
-    if(n==0) {
-        /*peer shutdown*/
+    if(n==0) { /*peer shutdown*/
         CONN_STATE(c, ST_CLOSE);
         return;
     }
@@ -296,13 +302,15 @@ static void handle_write(struct conn_t *c) {
         return;
     }
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
-        debugln("response_complete %d", c->fd);
-        response_complete(c); /* all send */
+        debug_conn(c, "response_complete");
+        response_complete(c->request.ctx); /* all send */
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
-        dump_conn(c);
+        debug_conn(c, "all complete");
     } else if(c->buf.len==0) {
-        debugln("response_chunk %d", c->fd);
-        response_chunk(c); /* buf empty */
+        debug_conn(c, "response_chunk");
+        if(response_chunk(&(c->buf), c->request.ctx)<=0) { /* buf empty */
+            CONN_STATE(c, ST_CLOSE);
+        }
     }
 }
 static void handle_read(struct conn_t *c) {
@@ -331,30 +339,30 @@ static void handle_head(struct conn_t *c) {
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
-        debugln("body_start %d", c->fd);
-        body_start(c);
+        debug_conn(c, "body_start");
+        if(body_start(c)<=0) return;
     } else {
         CONN_STATE(c, ST_RESP);
-        debugln("response_start %d", c->fd);
-        response_start(c);
+        debug_conn(c, "response_start");
+        if(response_start(c)<=0) { CONN_STATE(c, ST_CLOSE); }
     }
 }
 static void handle_body(struct conn_t *c) {
-    debugln("body_chunk %d", c->fd);
-    body_chunk(c);
+    debug_conn(c, "body_chunk");
+    if(body_chunk(c)<=0) return;
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
-        debugln("body_complete %d", c->fd);
-        body_complete(c);
+        debug_conn(c, "body_complete");
+        if(body_complete(c)<=0) return;
         CONN_STATE(c, ST_RESP);
         if(c->buf.len>0)
             debugln("body ok but, buf.len left %d", (int)c->buf.len);
-        debugln("response_start %d", c->fd);
-        response_start(c);
+        debug_conn(c, "response_start");
+        if(response_start(c)<=0) { CONN_STATE(c, ST_CLOSE); }
     }
 }
 static void handle_close(struct conn_t *c) {
-    debugln("handle_close %d", c->fd);
     close_socket(c->fd);
+    CONN_STATE(c, ST_NONE);
     memset(c, 0, sizeof(struct conn_t)); /* ST_NONE */
 }
 static void handle_alive(struct conn_t *c) {
@@ -371,7 +379,7 @@ static struct conn_t *conn_open(int cli_sock) {
         if(conns[i].state == ST_NONE) {
             memset(&conns[i], 0, sizeof(struct conn_t));
             conns[i].fd=cli_sock;
-            conns[i].state=ST_READ;
+            CONN_STATE(&conns[i], ST_READ);
             return &conns[i];
         }
     }
@@ -460,28 +468,28 @@ int main(const int argc, char const* argv[]) {
 /*############################################################*/
 #include <sys/stat.h>
 static const char *fname="output.txt";
-void response_start(struct conn_t *c) {
+int response_start(struct conn_t *c) {
     struct stat st;
     if(stat(fname, &st)) {
-        make_response(c, 404, TEXT, "file not found");
-        return;
+        return make_response(c, 404, TEXT, "file not found");
     }
     c->request.ctx = fopen(fname, "rb");
-    make_header(c, 200, JSON, st.st_size);
+    return make_header(c, 200, JSON, st.st_size);
 }
-void response_chunk(struct conn_t *c) {
-    buf_read_fp(&(c->buf), (FILE *)c->request.ctx, NULL);
+int response_chunk(struct buf_t *buf, void *ctx) {
+    return buf_read_fp(buf, (FILE *)ctx, NULL);
 }
-void response_complete(struct conn_t *c) {
-    if(c->request.ctx) fclose((FILE *)c->request.ctx);
+void response_complete(void *ctx) {
+    if(ctx) fclose((FILE *)ctx);
 }
-void body_start(struct conn_t *c) {
+int body_start(struct conn_t *c) {
     c->request.ctx = fopen(fname, "wb");
-    if(c->request.ctx==NULL) make_response(c, 403, TEXT, "access deny");
+    if(c->request.ctx==NULL) { make_response(c, 403, TEXT, "access deny"); return -1; }
+    return 1;
 }
-void body_chunk(struct conn_t *c) {
-    buf_write_fp(&(c->buf), (FILE *)c->request.ctx, NULL);
+int body_chunk(struct conn_t *c) {
+    return buf_write_fp(&(c->buf), (FILE *)c->request.ctx, NULL)>0?1:-1;
 }
-void body_complete(struct conn_t *c) {
-    fclose((FILE *)c->request.ctx);
+int body_complete(struct conn_t *c) {
+    return fclose((FILE *)c->request.ctx)==0?1:-1;
 }
