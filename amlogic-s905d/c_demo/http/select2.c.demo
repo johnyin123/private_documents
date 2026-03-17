@@ -242,10 +242,10 @@ static inline int make_response(struct conn_t *c, unsigned int status, int mime,
 /*ret>0 continue OK, <=0 error*/
 int response_start(struct conn_t *c);
 int response_chunk(struct buf_t *buf, void *ctx);
-void response_complete(void *ctx);
+int response_complete(void *ctx);
 int body_start(struct conn_t *c);
-int body_chunk(struct conn_t *c);
-int body_complete(struct conn_t *c);
+int body_chunk(struct buf_t *buf, void *ctx);
+int body_complete(void *ctx);
 /*############################################################*/
 static int parse_header(struct conn_t *c) {
     char method[METHOD_LEN+1];
@@ -303,7 +303,7 @@ static void handle_write(struct conn_t *c) {
     }
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
         debug_conn(c, "response_complete");
-        response_complete(c->request.ctx); /* all send */
+        if(response_complete(c->request.ctx)<=0) CONN_STATE(c, ST_CLOSE);
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
         debug_conn(c, "all complete");
     } else if(c->buf.len==0) {
@@ -314,9 +314,8 @@ static void handle_write(struct conn_t *c) {
     }
 }
 static void handle_read(struct conn_t *c) {
-    int n = REQ_READ(c);
-    if(n==0) {
-        /*peer shutdown*/
+    ssize_t n = REQ_READ(c);
+    if(n==0) { /*peer shutdown*/
         CONN_STATE(c, ST_CLOSE);
         return;
     }
@@ -349,10 +348,13 @@ static void handle_head(struct conn_t *c) {
 }
 static void handle_body(struct conn_t *c) {
     debug_conn(c, "body_chunk");
-    if(body_chunk(c)<=0) return;
+    if(body_chunk(&(c->buf), c->request.ctx)<=0) {
+        CONN_STATE(c, ST_CLOSE);
+        return;
+    }
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
         debug_conn(c, "body_complete");
-        if(body_complete(c)<=0) return;
+        if(body_complete(c->request.ctx)<=0) return;
         CONN_STATE(c, ST_RESP);
         if(c->buf.len>0)
             debugln("body ok but, buf.len left %d", (int)c->buf.len);
@@ -479,17 +481,18 @@ int response_start(struct conn_t *c) {
 int response_chunk(struct buf_t *buf, void *ctx) {
     return buf_read_fp(buf, (FILE *)ctx, NULL);
 }
-void response_complete(void *ctx) {
-    if(ctx) fclose((FILE *)ctx);
+int response_complete(void *ctx) {
+    if(ctx) return fclose((FILE *)ctx)==0?1:-1;
+    return -1;
 }
 int body_start(struct conn_t *c) {
     c->request.ctx = fopen(fname, "wb");
     if(c->request.ctx==NULL) { make_response(c, 403, TEXT, "access deny"); return -1; }
     return 1;
 }
-int body_chunk(struct conn_t *c) {
-    return buf_write_fp(&(c->buf), (FILE *)c->request.ctx, NULL)>0?1:-1;
+int body_chunk(struct buf_t *buf, void *ctx) {
+    return buf_write_fp(buf, (FILE *)ctx, NULL)>0?1:-1;
 }
-int body_complete(struct conn_t *c) {
-    return fclose((FILE *)c->request.ctx)==0?1:-1;
+int body_complete(void *ctx) {
+    return fclose((FILE *)ctx)==0?1:-1;
 }
