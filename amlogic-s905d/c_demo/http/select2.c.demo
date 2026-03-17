@@ -28,6 +28,7 @@
     #define debug_conn(c, s)   do {} while (0)
     #define debugln(...)       do {} while (0)
 #endif
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
 #define HTTP_PORT     8080
@@ -50,7 +51,7 @@ static inline void* memmem(const void* haystack, size_t haystacklen, const void*
     return NULL;
 }
 #endif
-#define log_error(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args)
+#define log_error(fmt,args...) fprintf(stderr, "%s:%d == "fmt"\n", __FILE__, __LINE__, ##args)
 /*############################################################*/
 #define BUF_SIZE      (8192 - sizeof(size_t))
 struct buf_t {
@@ -61,6 +62,7 @@ static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
     memcpy(b->buf, src, len);
     b->len+=len;
+    return len;
 }
 static inline int buf_vprintf(struct buf_t *b, const char *format, va_list args) {
     if(b->len>=BUF_SIZE) return -1;
@@ -172,7 +174,7 @@ static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* 
 }
 /*############################################################*/
 static inline enum method_t http_method(const char *req) {
-    for(int i=0;i<sizeof(method_map)/sizeof(method_map[0]);i++) {
+    for(int i=0;i<ARRAY_LEN(method_map);i++) {
         if(strcmp(req, method_map[i])==0) return i;
     }
     return NONE;
