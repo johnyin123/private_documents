@@ -212,7 +212,7 @@ static inline int make_response(struct conn_t *c, unsigned int status, int mime,
     if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
 }
-/*ret>0 continue OK, <=0 error*/
+/*0-EXIT_SUCCESS continue, EXIT_FAILURE nonzero  error*/
 void response_start(struct conn_t *c);
 int response_chunk(struct buf_t *buf, void *ctx);
 int response_complete(void *ctx);
@@ -260,7 +260,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
             buf->len=0;
         }
     }
-    return 1;
+    return EXIT_SUCCESS;
 }
 #define CHK_SOCK_OPER(c, n)                                         \
     if(n==0) { CONN_STATE(c, ST_CLOSE); return; } /*peer shutdown*/ \
@@ -271,7 +271,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     }
 #define CHECK_RC(call) ({ \
     int rc = (call); \
-    if (rc <= 0) { \
+    if (rc != EXIT_SUCCESS) { \
         log_error("Error: %s failed with code %d at %s:%d", #call, rc, __FILE__, __LINE__); \
         CONN_STATE(c, ST_CLOSE); \
         return; \
@@ -460,22 +460,22 @@ void response_start(struct conn_t *c) {
     }
 }
 int response_chunk(struct buf_t *buf, void *ctx) {
-    return buf_read_fp(buf, (FILE *)ctx, NULL);
+    return buf_read_fp(buf, (FILE *)ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
 }
 int response_complete(void *ctx) {
-    if(ctx) return fclose((FILE *)ctx)==0?1:-1;
-    return -1;
+    if(ctx) return fclose((FILE *)ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
+    return EXIT_FAILURE;
 }
 void body_start(struct conn_t *c) {
     c->request.ctx = fopen(fname, "wb");
     if(c->request.ctx==NULL) make_response(c, 403, TEXT, "access deny");
 }
 int body_chunk(struct buf_t *buf, void *ctx) {
-    return buf_write_fp(buf, (FILE *)ctx, NULL)>0?1:-1;
+    return buf_write_fp(buf, (FILE *)ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
 }
 int body_complete(void *ctx) {
-    if(ctx) return fclose((FILE *)ctx)==0?1:-1;
-    return -1;
+    if(ctx) return fclose((FILE *)ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
+    return EXIT_FAILURE;
 }
 /*
 struct act_t;
