@@ -139,6 +139,7 @@ struct hdr_prop_t {
 struct request_t {
     enum method_t method;
     char s_uri[URI_LEN+1];
+    char *s_arg;
     unsigned int vhi:4,vlo:4;
     void *ctx;
     struct hdr_prop_t prop[MAX_HEADERS];
@@ -165,6 +166,7 @@ static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* 
     fprintf(fp, "  %s HTTP(%d.%d) %s\n", method_map[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
+    if(c->request.s_arg) fprintf(fp, "     ARGS: %s\n", c->request.s_arg);
     fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
 }
 static inline enum method_t http_method(const char *req) {
@@ -227,6 +229,11 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     req->method = http_method(method);
     req->vhi = vhi;
     req->vlo = vlo;
+    req->s_arg = strchr(req->s_uri, '?');
+    if (req->s_arg) {
+        *(req->s_arg)='\0';
+        req->s_arg+=1;
+    }
     const char *end = buf->buf + req->header_len;
     const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
     while (line && line < end - 2) {
@@ -480,24 +487,24 @@ int body_complete(void *ctx) {
 /*
 struct act_t;
 struct cb_t {
-    int (*start)(struct conn_t *c, struct act_t *ctx);
-    int (*chunk)(struct buf_t *buf, struct act_t *ctx);
-    int (*complete)(struct act_t *ctx);
+    void (*start)(struct conn_t *c, struct act_t *act);
+    int (*chunk)(struct buf_t *buf, struct act_t *act);
+    int (*complete)(struct act_t *act);
 };
 struct act_t {
     const enum method_t method;
     const char *s_uri;
     struct cb_t resp;
     struct cb_t body;
-    void *act_ctx;
+    void *ctx;
 };
 char *msg="test message";
-int big_start(struct conn_t *c, struct act_t *ctx){
-    ctx->act_ctx=msg;
+int big_start(struct conn_t *c, struct act_t *act){
+    act->ctx=msg;
     return make_response(c, 200, JSON, "all ok");
 }
-int big_complete(struct act_t *ctx) {
-    char *info=ctx->act_ctx;
+int big_complete(struct act_t *act) {
+    char *info=act->ctx;
     if(info) fprintf(stderr, "%s\n", info);
     return 1;
 }
@@ -512,37 +519,37 @@ static inline struct act_t *find_action(const enum method_t method, const char *
     }
     return NULL;
 }
-int response_start(struct conn_t *c) {
-    struct act_t *act = find_action(c->request.method, c->request.s_uri);
-    c->request.ctx=act;
-    if((act)&&(act->resp.start)) return act->resp.start(c, act);
-    return make_response(c, 403, TEXT, "access deny");
+void response_start(struct conn_t *c) {
+    struct act_t *act = NULL;
+    if(c->request.ctx == NULL) c->request.ctx = find_action(c->request.method, c->request.s_uri);
+    act = c->request.ctx;
+    if((act)&&(act->resp.start)) act->resp.start(c, act);
+    else make_response(c, 403, TEXT, "access deny");
 }
 int response_chunk(const struct request_t *req, struct buf_t *buf, void *ctx) {
     struct act_t *act = ctx;
     if((act)&&(act->resp.chunk)) return act->resp.chunk(buf, act);
-    return -1;
+    return EXIT_FAILURE;
 }
 int response_complete(const struct request_t *req, void *ctx) {
     struct act_t *act = ctx;
     if((act)&&(act->resp.complete)) return act->resp.complete(act);
-    return 1;
+    return EXIT_SUCCESS;
 }
-int body_start(struct conn_t *c) {
+void body_start(struct conn_t *c) {
     struct act_t *act = find_action(c->request.method, c->request.s_uri);
     c->request.ctx=act;
-    if((act)&&(act->body.start)) return act->body.start(c, act);
-    make_response(c, 403, TEXT, "access deny");
-    return -1;
+    if((act)&&(act->body.start)) act->body.start(c, act);
+    else make_response(c, 403, TEXT, "access deny");
 }
 int body_chunk(struct buf_t *buf, void *ctx) {
     struct act_t *act = ctx;
     if((act)&&(act->body.chunk)) return act->body.chunk(buf, act);
-    return -1;
+    return EXIT_FAILURE;
 }
 int body_complete(void *ctx) {
     struct act_t *act = ctx;
     if((act)&&(act->body.complete)) return act->body.complete(act);
-    return 1;
+    return EXIT_SUCCESS;
 }
 */
