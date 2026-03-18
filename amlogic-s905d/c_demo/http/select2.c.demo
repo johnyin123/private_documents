@@ -30,8 +30,8 @@
 #endif
 
 static int trace_level = 0;
-#define debugln(format,args...) { if(trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
-#define debug_conn(c, s)        { if(trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
+#define debugln(format,args...) { if(trace_level>0) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
+#define debug_conn(c, s)        { if(trace_level>1) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
