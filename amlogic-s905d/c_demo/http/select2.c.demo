@@ -148,8 +148,8 @@ struct request_t {
 };
 struct conn_t {
     int fd;
-    unsigned int tick_cnt:4;
-    enum conn_state_t state:4;
+    uint8_t tick_cnt;
+    enum conn_state_t state;
     struct request_t request;
     struct response_t response;
     struct buf_t buf;
