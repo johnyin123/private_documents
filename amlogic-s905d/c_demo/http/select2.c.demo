@@ -230,10 +230,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     req->vhi = vhi;
     req->vlo = vlo;
     req->s_arg = strchr(req->s_uri, '?');
-    if (req->s_arg) {
-        *(req->s_arg)='\0';
-        req->s_arg+=1;
-    }
+    if (req->s_arg) *(req->s_arg++)='\0';
     const char *end = buf->buf + req->header_len;
     const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
     while (line && line < end - 2) {
