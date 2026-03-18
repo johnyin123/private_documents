@@ -28,13 +28,10 @@
     #include <signal.h>
     #include <errno.h>
 #endif
-#ifdef DEBUG
-    #define debugln(format,args...) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args)
-    #define debug_conn(c, s)        dump_conn_line(stderr, s, c, __FILE__, __LINE__)
-#else
-    #define debugln(...)            do {} while (0)
-    #define debug_conn(c, s)        do {} while (0)
-#endif
+
+static int trace_level = 0;
+#define debugln(format,args...) { if(trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
+#define debug_conn(c, s)        { if(trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
@@ -53,7 +50,7 @@ struct buf_t {
     char buf[BUF_SIZE];
     size_t len;
 };
-#define log_error(fmt,args...) fprintf(stderr, "%s:%d == "fmt"\n", __FILE__, __LINE__, ##args)
+#define log_error(fmt,args...) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args)
 static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
     memcpy(b->buf, src, len);
@@ -286,10 +283,12 @@ static void handle_write(struct conn_t *c) {
     ssize_t n = RES_WRITE(c);
     CHK_SOCK_OPER(c, n);
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
+        debug_conn(c, "response_complete");
         CHECK_RC(response_complete(c->request.ctx));
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
-        dump_conn_line(stderr, "ACCESS LOG", c, __FILE__, __LINE__);
+        debug_conn(c, "ACCESS DONE");
     } else if(c->buf.len==0) {
+        debug_conn(c, "response_chunk");
         CHECK_RC(response_chunk(&(c->buf), c->request.ctx));
     }
 }
@@ -309,18 +308,23 @@ static void handle_head(struct conn_t *c) {
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
+        debug_conn(c, "body_start");
         body_start(c);
     } else {
         CONN_STATE(c, ST_RESP);
+        debug_conn(c, "response_start")
         response_start(c);
     }
 }
 static void handle_body(struct conn_t *c) {
+    debug_conn(c, "body_chunk");
     CHECK_RC(body_chunk(&(c->buf), c->request.ctx));
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
+        debug_conn(c, "body_complete")
         CHECK_RC(body_complete(c->request.ctx));
         CONN_STATE(c, ST_RESP);
         if(c->buf.len>0) log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
+        debug_conn(c, "response_start");
         response_start(c);
     }
 }
@@ -440,6 +444,8 @@ int main(const int argc, char const* argv[]) {
 #else
     signal(SIGPIPE, SIG_IGN);
 #endif
+    const char* env_value_str = getenv("TRACE");
+    if (env_value_str) trace_level = atoi(env_value_str);
     int srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
     if (srv_sock == -1) {
         perror("Create socket");
