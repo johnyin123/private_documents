@@ -30,8 +30,9 @@
 #endif
 
 static int trace_level = 0;
-#define debugln(format,args...) { if(trace_level>0) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
-#define debug_conn(c, s)        { if(trace_level>1) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
+#define log_error(fmt,args...)  { if(trace_level>0) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define debugln(format,args...) { if(trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
+#define debug_conn(c, s)        { if(trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
@@ -50,7 +51,6 @@ struct buf_t {
     char buf[BUF_SIZE];
     size_t len;
 };
-#define log_error(fmt,args...) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args)
 static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
     memcpy(b->buf, src, len);
