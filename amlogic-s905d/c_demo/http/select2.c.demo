@@ -175,14 +175,72 @@ static inline enum method_t http_method(const char *req) {
 static inline const char *mime_str(enum mime_t m) {
     return mime_map[m];
 }
-static inline const char *status_str(unsigned int s) {
-    switch (s) {
-        case 200: return "200 OK";
-        case 403: return "403 Forbidden";
-        case 413: return "413 Content Too Large";
-        case 404: return "404 Not Found";
-        default:  return "500 Internal Server Error";
-    }
+struct http_code_t {
+    uint16_t code;
+    const char *str;
+} http_code_list[] = {
+  { 100, "Continue" },
+  { 101, "Switching Protocols" },
+  { 102, "Processing" },
+  { 200, "OK" },
+  { 201, "Created" },
+  { 202, "Accepted" },
+  { 203, "Non-Authoritative Information" },
+  { 204, "No Content" },
+  { 205, "Reset Content" },
+  { 206, "Partial Content" },
+  { 207, "Multi Status" },
+  { 300, "Multiple Choices" },
+  { 301, "Moved Permanently" },
+  { 302, "Moved Temporarily" },
+  { 303, "See Other" },
+  { 304, "Not Modified" },
+  { 305, "Use Proxy" },
+  { 306, "Switch Proxy" },
+  { 307, "Temporary Redirect" },
+  { 400, "Bad Request" },
+  { 401, "Unauthorized" },
+  { 402, "Payment Required" },
+  { 403, "Forbidden" },
+  { 404, "Not Found" },
+  { 405, "Method Not Allowed" },
+  { 406, "Not Acceptable" },
+  { 407, "Proxy Authentication Required" },
+  { 408, "Request Time-out" },
+  { 409, "Conflict" },
+  { 410, "Gone" },
+  { 411, "Length Required" },
+  { 412, "Precondition Failed" },
+  { 413, "Request Entity Too Large" },
+  { 414, "Request-URI Too Large" },
+  { 415, "Unsupported Media Type" },
+  { 416, "Requested Range Not Satisfiable" },
+  { 417, "Expectation Failed" },
+  { 422, "Unprocessable Entity" },
+  { 423, "Locked" },
+  { 424, "Failed Dependency" },
+  { 425, "Unordered Collection" },
+  { 426, "Upgrade Required" },
+  { 444, "No Response" },
+  { 449, "Retry With" },
+  { 450, "Blocked by Windows Parental Controls" },
+  { 451, "Unavailable For Legal Reasons" },
+  { 500, "Internal Server Error" },
+  { 501, "Not Implemented" },
+  { 502, "Bad Gateway" },
+  { 503, "Service Unavailable" },
+  { 504, "Gateway Time-out" },
+  { 505, "HTTP Version not supported" },
+  { 506, "Variant Also Negotiates" },
+  { 507, "Insufficient Storage" },
+  { 508, "Unknown" },
+  { 509, "Bandwidth Limit Exceeded" },
+  { 510, "Not Extended" }
+};
+static inline const char *status_str(uint16_t s) {
+    for(int i=0;i<ARRAY_LEN(http_code_list);i++)
+        if(s==http_code_list[i].code) return http_code_list[i].str;
+    return "Not Define";
 }
 static inline int make_header(struct conn_t *c, unsigned int status, int mime, unsigned int content_len) {
     c->response.status = status;
@@ -192,7 +250,7 @@ static inline int make_header(struct conn_t *c, unsigned int status, int mime, u
         debug_conn(c, "make_header warn!!");
         c->buf.len=0;
     }
-    int ret = buf_printf(&(c->buf), "HTTP/1.1 %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status_str(c->response.status), SRV_INFO, mime_str(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
+    int ret = buf_printf(&(c->buf), "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", c->response.status, status_str(c->response.status), SRV_INFO, mime_str(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
     if(ret>0) c->response.header_len = ret;
     return ret;
 }
