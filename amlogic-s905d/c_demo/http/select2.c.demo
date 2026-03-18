@@ -129,17 +129,16 @@ struct response_t {
     unsigned int content_len;
     unsigned int total_len;
 };
-struct hdr_prop_t {
-    char s_key[HDR_KEY_LEN+1];
-    char s_val[HDR_VAL_LEN+1];
-};
 struct request_t {
     enum method_t method;
     char s_uri[URI_LEN+1];
     char *s_arg;
     unsigned int vhi:4,vlo:4;
     void *ctx;
-    struct hdr_prop_t prop[MAX_HEADERS];
+    struct {
+        char s_key[HDR_KEY_LEN+1];
+        char s_val[HDR_VAL_LEN+1];
+    } prop[MAX_HEADERS];
     unsigned int nprop:7;
     unsigned int keep_alive:1;
     uint16_t header_len;
