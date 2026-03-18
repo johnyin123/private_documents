@@ -125,9 +125,9 @@ static const char *method_map[]={"NONE", "GET", "POST"};
 enum conn_state_t { ST_NONE=0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, ST_ALIVE, ST_CLOSE };
 static const char *conn_state_map[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP", "ST_ALIVE", "ST_CLOSE"};
 struct response_t {
-    unsigned int status:16;
+    uint16_t status;
     enum mime_t mime;
-    unsigned int header_len;
+    uint16_t header_len;
     unsigned int content_len;
     unsigned int total_len;
 };
@@ -141,9 +141,9 @@ struct request_t {
     unsigned int vhi:4,vlo:4;
     void *ctx;
     struct hdr_prop_t prop[MAX_HEADERS];
-    size_t nprop:7;
+    unsigned int nprop:7;
     unsigned int keep_alive:1;
-    unsigned int header_len;
+    uint16_t header_len;
     unsigned int content_len;
     unsigned int total_len;
 };
