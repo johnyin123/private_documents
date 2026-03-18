@@ -279,23 +279,23 @@ int body_complete(void *ctx);
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if (4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return -500;
+    if(4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return -500;
     req->method = http_method(method);
     req->vhi = vhi;
     req->vlo = vlo;
     req->s_arg = strchr(req->s_uri, '?');
-    if (req->s_arg) *(req->s_arg++)='\0';
+    if(req->s_arg) *(req->s_arg++)='\0';
     const char *end = buf->buf + req->header_len;
     const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
-    while (line && line < end - 2) {
+    while(line && line < end - 2) {
         const char *next = memmem(line + 2, buf->len-(line + 2 - buf->buf), "\r\n", 2);
-        if (!next) break;
-        if (next == line + 2) break; // empty line (end headers)
+        if(!next) break;
+        if(next == line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
-        if (len < HDR_KEY_LEN + HDR_VAL_LEN) {
+        if(len < HDR_KEY_LEN + HDR_VAL_LEN) {
             if(req->nprop>=MAX_HEADERS) return -413;
             if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
-                if (strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
+                if(strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
                     req->content_len = atoi(req->prop[req->nprop].s_val);
                     if (req->content_len < 0) return -406;
                 } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
@@ -310,7 +310,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
         line = next;
     }
     buf->len -= req->header_len;
-    if (req->content_len>0) {
+    if(req->content_len>0) {
         if(buf->len>0) memmove(buf->buf, buf->buf + req->header_len, buf->len);
     } else {
         if(buf->len>0) {
@@ -329,7 +329,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     }
 #define CHECK_RC(call) ({ \
     int rc = (call); \
-    if (rc != EXIT_SUCCESS) { \
+    if(rc!=EXIT_SUCCESS) { \
         log_error("Error: %s failed with code %d at %s:%d", #call, rc, __FILE__, __LINE__); \
         CONN_STATE(c, ST_CLOSE); \
         return; \
@@ -411,12 +411,13 @@ static inline int create_tcp_server(const char *addr, int port, int backlog) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
     if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
-    set_sock_nonblock_nodelay(srv_sock);
     if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+        log_error("create socket %s", strerror(errno));
         close_socket(srv_sock);
         return -1;
     }
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    set_sock_nonblock_nodelay(srv_sock);
     return srv_sock;
 }
 static struct conn_t conns[MAX_CONNS];
@@ -456,7 +457,7 @@ static void event_loop(int srv_sock) {
         struct timeval timeout = {.tv_sec=POLL_TMOUT,.tv_usec = 0,};
         int nready = select(maxfd+1, &rset, &wset, NULL, &timeout);
         if(nready < 0) {
-            perror("select");
+            log_error("select %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
         if(nready==0) { /*timeout*/
@@ -470,11 +471,11 @@ static void event_loop(int srv_sock) {
             int cli_sock = accept(srv_sock, NULL, NULL);
             if (cli_sock == -1) {
 #if defined(__WIN32__)
-                if (WSAGetLastError() == WSAEWOULDBLOCK) continue;
+                if(WSAGetLastError()==WSAEWOULDBLOCK) continue;
 #else
-                if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+                if(errno==EAGAIN||errno==EWOULDBLOCK) continue;
 #endif
-                perror("accept");
+                log_error("accept %s", strerror(errno));
                 close_socket(srv_sock);
                 continue;
             }
@@ -504,11 +505,7 @@ int main(const int argc, char const* argv[]) {
     const char* env_value_str = getenv("TRACE");
     if (env_value_str) trace_level = atoi(env_value_str);
     int srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
-    if (srv_sock == -1) {
-        perror("Create socket");
-        exit(EXIT_FAILURE);
-    }
-    event_loop(srv_sock);
+    if(srv_sock>0) event_loop(srv_sock);
 #if defined(__WIN32__)
     WSACleanup();
 #endif
