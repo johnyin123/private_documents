@@ -259,27 +259,33 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
             buf->len=0;
         }
     }
-    return 0;
+    return 1;
 }
-#define CHK_SOCK_OPER(c, n) {                                       \
+#define CHK_SOCK_OPER(c, n)                                         \
     if(n==0) { CONN_STATE(c, ST_CLOSE); return; } /*peer shutdown*/ \
     if(n<0) {                                                       \
         if(errno==EAGAIN||errno==EWOULDBLOCK) return;               \
         CONN_STATE(c, ST_CLOSE);                                    \
         return;                                                     \
-    }                                                               \
-}
+    }
+#define CHECK_RC(call) ({ \
+    int rc = (call); \
+    if (rc <= 0) { \
+        log_error("Error: %s failed with code %d at %s:%d", #call, rc, __FILE__, __LINE__); \
+        CONN_STATE(c, ST_CLOSE); \
+        return; \
+    } \
+    rc; /* The value (on success) */ \
+})
 static void handle_write(struct conn_t *c) {
     ssize_t n = RES_WRITE(c);
     CHK_SOCK_OPER(c, n);
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
-        debug_conn(c, "response_complete");
-        if(response_complete(c->request.ctx)<=0) { CONN_STATE(c, ST_CLOSE); return; }
+        CHECK_RC(response_complete(c->request.ctx));
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
-        debug_conn(c, "all complete");
+        dump_conn_line(stderr, "ACCESS LOG", c, __FILE__, __LINE__);
     } else if(c->buf.len==0) {
-        debug_conn(c, "response_chunk");
-        if(response_chunk(&(c->buf), c->request.ctx)<=0) { CONN_STATE(c, ST_CLOSE); return; } /* buf empty */
+        CHECK_RC(response_chunk(&(c->buf), c->request.ctx));
     }
 }
 static void handle_read(struct conn_t *c) {
@@ -294,27 +300,22 @@ static void handle_read(struct conn_t *c) {
     }
 }
 static void handle_head(struct conn_t *c) {
-    if(parse_header(&(c->buf), &(c->request))<0) { CONN_STATE(c, ST_CLOSE); return; }
+    CHECK_RC(parse_header(&(c->buf), &(c->request)));
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
-        debug_conn(c, "body_start");
         body_start(c);
     } else {
         CONN_STATE(c, ST_RESP);
-        debug_conn(c, "response_start");
         response_start(c);
     }
 }
 static void handle_body(struct conn_t *c) {
-    debug_conn(c, "body_chunk");
-    if(body_chunk(&(c->buf), c->request.ctx)<=0) { CONN_STATE(c, ST_CLOSE); return; }
+    CHECK_RC(body_chunk(&(c->buf), c->request.ctx));
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
-        debug_conn(c, "body_complete");
-        if(body_complete(c->request.ctx)<=0) { CONN_STATE(c, ST_CLOSE); return; }
+        CHECK_RC(body_complete(c->request.ctx));
         CONN_STATE(c, ST_RESP);
         if(c->buf.len>0) log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
-        debug_conn(c, "response_start");
         response_start(c);
     }
 }
@@ -364,7 +365,7 @@ static struct conn_t *conn_open(int cli_sock) {
         }
     }
     close_socket(cli_sock);
-    log_error("max connection %d exceed\n", MAX_CONNS);
+    log_error("max connection %d exceed", MAX_CONNS);
     return NULL;
 }
 static void event_loop(int srv_sock) {
