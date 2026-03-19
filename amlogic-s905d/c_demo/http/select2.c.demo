@@ -535,12 +535,12 @@ int main(const int argc, char const* argv[]) {
 struct act_t {
     const enum method_t method;
     const char *s_uri;
+    void (*on_req_start)(struct conn_t *c, void *ctx);
+    int  (*on_req_body)(struct buf_t *buf, void *ctx);
+    int  (*on_req_done)(void *ctx);
     void (*on_resp_start)(struct conn_t *c, void *ctx);
     int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
     int  (*on_resp_done)(void *ctx);
-    void (*on_req_start)(struct conn_t *c, void *ctx);
-    int  (*on_req_chunk)(struct buf_t *buf, void *ctx);
-    int  (*on_req_done)(void *ctx);
 };
 extern int g_acts_len;
 extern const struct act_t g_acts[];
@@ -569,7 +569,7 @@ void body_start(struct conn_t *c) {
     if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_req_start) ((const struct act_t *)GET_PTR(c))->on_req_start(c, GET_CTX(c));
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_chunk) return ((const struct act_t *)ctx->ptr)->on_req_chunk(buf, ctx->ctx);
+    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_body) return ((const struct act_t *)ctx->ptr)->on_req_body(buf, ctx->ctx);
     return EXIT_SUCCESS;
 }
 int body_done(struct ctx_t *ctx) {
@@ -579,7 +579,7 @@ int body_done(struct ctx_t *ctx) {
 //============================================================//
 void big_start(struct conn_t *c, void *ctx){
     char buf[1024];
-    snprintf(buf, 1023, "ctx str for %s %s", method_map[c->request.method], c->request.s_uri);
+    snprintf(buf, sizeof(buf)-1, "ctx str for %s %s", method_map[c->request.method], c->request.s_uri);
     SET_CTX(c, strdup(buf));
     switch(c->request.method) {
         case GET : make_response(c, 200, JSON, "get all ok"); break;
@@ -596,8 +596,8 @@ int big_done(void *ctx) {
     return EXIT_SUCCESS;
 }
 const struct act_t g_acts[] = {
-    {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
-    {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
+    {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
+    {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
 };
 int g_acts_len = ARRAY_LEN(g_acts);
 #else
