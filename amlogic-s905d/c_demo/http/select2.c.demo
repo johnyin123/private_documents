@@ -162,12 +162,16 @@ struct conn_t {
     struct response_t response;
     struct buf_t buf;
 };
+#define SET_CTX(c, x)     (c)->request.ctx.ctx=x
+#define SET_PTR(c, x)     (c)->request.ctx.ptr=x
+#define GET_CTX(c)        (c)->request.ctx.ctx
+#define GET_PTR(c)        (c)->request.ctx.ptr
 #define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, conn_state_map[(c)->state], conn_state_map[(st)]); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
     fprintf(fp, "%s:\n", s);
-    fprintf(fp, "%s@%d, socket=%d, %s, buf.len=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state_map[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)c->request.ctx.ptr, c->tick_cnt);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf.len=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, conn_state_map[c->state], (long int)c->buf.len, c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
     fprintf(fp, "  %s HTTP(%d.%d) %s\n", method_map[c->request.method], c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
@@ -545,11 +549,10 @@ static inline struct act_t *find_action(const enum method_t method, const char *
     }
     return NULL;
 }
-static inline void set_ctx(struct conn_t *c, void *ctx) { c->request.ctx.ctx=ctx; }
 //============================================================//
 void response_start(struct conn_t *c) {
-    if(!c->request.ctx.ptr) c->request.ctx.ptr = find_action(c->request.method, c->request.s_uri);
-    if(c->request.ctx.ptr && ((struct act_t *)c->request.ctx.ptr)->resp.start) ((struct act_t *)c->request.ctx.ptr)->resp.start(c, c->request.ctx.ctx);
+    if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
+    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->resp.start) ((struct act_t *)GET_PTR(c))->resp.start(c, GET_CTX(c));
     else make_response(c, 404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
@@ -561,8 +564,8 @@ int response_complete(struct ctx_t *ctx) {
     return 404;
 }
 void body_start(struct conn_t *c) {
-    if(!c->request.ctx.ptr) c->request.ctx.ptr = find_action(c->request.method, c->request.s_uri);
-    if(c->request.ctx.ptr && ((struct act_t *)c->request.ctx.ptr)->body.start) ((struct act_t *)c->request.ctx.ptr)->body.start(c, c->request.ctx.ctx);
+    if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
+    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->body.start) ((struct act_t *)GET_PTR(c))->body.start(c, GET_CTX(c));
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((struct act_t *)ctx->ptr)->body.chunk) return ((struct act_t *)ctx->ptr)->body.chunk(buf, ctx->ctx);
@@ -576,7 +579,7 @@ int body_complete(struct ctx_t *ctx) {
 void big_start(struct conn_t *c, void *ctx){
     char buf[1024];
     snprintf(buf, 1023, "ctx str for %s %s", method_map[c->request.method], c->request.s_uri);
-    set_ctx(c, strdup(buf));
+    SET_CTX(c, strdup(buf));
     switch(c->request.method) {
         case GET : make_response(c, 200, JSON, "get all ok"); break;
         case POST:
@@ -605,7 +608,7 @@ void response_start(struct conn_t *c) {
     if(stat(fname, &st)) {
         make_response(c, 404, TEXT, "file not found");
     } else {
-        c->request.ctx.ctx = fopen(fname, "rb");
+        SET_CTX(c, fopen(fname, "rb"));
         make_header(c, 200, JSON, st.st_size);
     }
 }
@@ -617,8 +620,8 @@ int response_complete(struct ctx_t *ctx) {
     return EXIT_FAILURE;
 }
 void body_start(struct conn_t *c) {
-    c->request.ctx.ctx = fopen(fname, "wb");
-    if(c->request.ctx.ctx==NULL) make_response(c, 403, TEXT, "access deny");
+    SET_CTX(c, fopen(fname, "wb"));
+    if(GET_CTX(c)==NULL) make_response(c, 403, TEXT, "access deny");
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
