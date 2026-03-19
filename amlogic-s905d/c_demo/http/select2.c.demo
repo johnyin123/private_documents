@@ -583,7 +583,6 @@ void big_start(struct conn_t *c, void *ctx){
     switch(c->request.method) {
         case GET : make_response(c, 200, JSON, "get all ok"); break;
         case POST:
-                   char buf[1024];
                    int n = buf_get(buf, sizeof(buf)-1, &(c->buf));
                    buf[n] = '\0';
                    make_response(c, 200, JSON, "post %s", buf); break;
