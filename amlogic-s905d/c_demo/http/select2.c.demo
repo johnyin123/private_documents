@@ -136,7 +136,7 @@ struct response_t {
     unsigned int total_len;
 };
 struct ctx_t {
-    void *ptr;
+    const void *ptr;
     void *ctx;
 };
 struct request_t {
@@ -543,8 +543,8 @@ struct act_t {
     int  (*on_req_done)(void *ctx);
 };
 extern int g_acts_len;
-extern struct act_t g_acts[];
-static inline struct act_t *find_action(const enum method_t method, const char *s_uri) {
+extern const struct act_t g_acts[];
+static inline const struct act_t *find_action(const enum method_t method, const char *s_uri) {
     for(int i=0;i<g_acts_len;i++) {
         if((method==g_acts[i].method)&&(strcmp(s_uri, g_acts[i].s_uri)==0)) return &g_acts[i];
     }
@@ -553,27 +553,27 @@ static inline struct act_t *find_action(const enum method_t method, const char *
 //============================================================//
 void response_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->on_resp_start) ((struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
+    if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_resp_start) ((const struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
     else make_response(c, 404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_resp_chunk) return ((struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
+    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_chunk) return ((const struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
     return 404;
 }
 int response_done(struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_resp_done) return ((struct act_t *)ctx->ptr)->on_resp_done(ctx->ctx);
+    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_done) return ((const struct act_t *)ctx->ptr)->on_resp_done(ctx->ctx);
     return 404;
 }
 void body_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->on_req_start) ((struct act_t *)GET_PTR(c))->on_req_start(c, GET_CTX(c));
+    if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_req_start) ((const struct act_t *)GET_PTR(c))->on_req_start(c, GET_CTX(c));
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_req_chunk) return ((struct act_t *)ctx->ptr)->on_req_chunk(buf, ctx->ctx);
+    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_chunk) return ((const struct act_t *)ctx->ptr)->on_req_chunk(buf, ctx->ctx);
     return EXIT_SUCCESS;
 }
 int body_done(struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_req_done) return ((struct act_t *)ctx->ptr)->on_req_done(ctx->ctx);
+    if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_done) return ((const struct act_t *)ctx->ptr)->on_req_done(ctx->ctx);
     return EXIT_SUCCESS;
 }
 //============================================================//
@@ -595,7 +595,7 @@ int big_done(void *ctx) {
     free((char *)ctx);
     return EXIT_SUCCESS;
 }
-struct act_t g_acts[] = {
+const struct act_t g_acts[] = {
     {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
     {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
 };
