@@ -284,10 +284,10 @@ static inline int make_response(struct conn_t *c, const uint16_t status, const e
 /*0-EXIT_SUCCESS continue, EXIT_FAILURE nonzero  error*/
 void response_start(struct conn_t *c);
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx);
-int response_complete(struct ctx_t *ctx);
+int response_done(struct ctx_t *ctx);
 void body_start(struct conn_t *c);
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx);
-int body_complete(struct ctx_t *ctx);
+int body_done(struct ctx_t *ctx);
 /*############################################################*/
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
@@ -353,8 +353,8 @@ static void handle_write(struct conn_t *c) {
     ssize_t n = RES_WRITE(c);
     CHK_SOCK_OPER(c, n);
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
-        debug_conn(c, "response_complete");
-        CHECK_RC(response_complete(&(c->request.ctx)), c);
+        debug_conn(c, "response_done");
+        CHECK_RC(response_done(&(c->request.ctx)), c);
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
         debug_conn(c, "ACCESS DONE");
     } else if(c->buf.len==0) {
@@ -390,8 +390,8 @@ static void handle_body(struct conn_t *c) {
     debug_conn(c, "body_chunk");
     CHECK_RC(body_chunk(&(c->buf), &(c->request.ctx)), c);
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
-        debug_conn(c, "body_complete")
-        CHECK_RC(body_complete(&(c->request.ctx)), c);
+        debug_conn(c, "body_done")
+        CHECK_RC(body_done(&(c->request.ctx)), c);
         CONN_STATE(c, ST_RESP);
         // if(c->buf.len>0) log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
         debug_conn(c, "response_start");
@@ -535,11 +535,12 @@ int main(const int argc, char const* argv[]) {
 struct act_t {
     const enum method_t method;
     const char *s_uri;
-    const struct {
-        void (*start)(struct conn_t *c, void *ctx);
-        int  (*chunk)(struct buf_t *buf, void *ctx);
-        int  (*complete)(void *ctx);
-    } resp, body;
+    void (*on_resp_start)(struct conn_t *c, void *ctx);
+    int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
+    int  (*on_resp_done)(void *ctx);
+    void (*on_req_start)(struct conn_t *c, void *ctx);
+    int  (*on_req_chunk)(struct buf_t *buf, void *ctx);
+    int  (*on_req_done)(void *ctx);
 };
 extern int g_acts_len;
 extern struct act_t g_acts[];
@@ -552,27 +553,27 @@ static inline struct act_t *find_action(const enum method_t method, const char *
 //============================================================//
 void response_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->resp.start) ((struct act_t *)GET_PTR(c))->resp.start(c, GET_CTX(c));
+    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->on_resp_start) ((struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
     else make_response(c, 404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->resp.chunk) return ((struct act_t *)ctx->ptr)->resp.chunk(buf, ctx->ctx);
+    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_resp_chunk) return ((struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
     return 404;
 }
-int response_complete(struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->resp.complete) return ((struct act_t *)ctx->ptr)->resp.complete(ctx->ctx);
+int response_done(struct ctx_t *ctx) {
+    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_resp_done) return ((struct act_t *)ctx->ptr)->on_resp_done(ctx->ctx);
     return 404;
 }
 void body_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->body.start) ((struct act_t *)GET_PTR(c))->body.start(c, GET_CTX(c));
+    if(GET_PTR(c) && ((struct act_t *)GET_PTR(c))->on_req_start) ((struct act_t *)GET_PTR(c))->on_req_start(c, GET_CTX(c));
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->body.chunk) return ((struct act_t *)ctx->ptr)->body.chunk(buf, ctx->ctx);
+    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_req_chunk) return ((struct act_t *)ctx->ptr)->on_req_chunk(buf, ctx->ctx);
     return EXIT_SUCCESS;
 }
-int body_complete(struct ctx_t *ctx) {
-    if(ctx->ptr && ((struct act_t *)ctx->ptr)->body.complete) return ((struct act_t *)ctx->ptr)->body.complete(ctx->ctx);
+int body_done(struct ctx_t *ctx) {
+    if(ctx->ptr && ((struct act_t *)ctx->ptr)->on_req_done) return ((struct act_t *)ctx->ptr)->on_req_done(ctx->ctx);
     return EXIT_SUCCESS;
 }
 //============================================================//
@@ -589,14 +590,14 @@ void big_start(struct conn_t *c, void *ctx){
         default  : make_response(c, 405, JSON, "not allow"); break;
     }
 }
-int big_complete(void *ctx) {
+int big_done(void *ctx) {
     debugln("%s\n", (char *)ctx);
     free((char *)ctx);
     return EXIT_SUCCESS;
 }
 struct act_t g_acts[] = {
-    {.method=GET,  .s_uri="/big", .resp={big_start,NULL,big_complete}, },
-    {.method=POST, .s_uri="/big", .resp={big_start,NULL,big_complete}, },
+    {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
+    {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_chunk=NULL, .on_req_done=NULL, },
 };
 int g_acts_len = ARRAY_LEN(g_acts);
 #else
@@ -614,7 +615,7 @@ void response_start(struct conn_t *c) {
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     return buf_read_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
 }
-int response_complete(struct ctx_t *ctx) {
+int response_done(struct ctx_t *ctx) {
     if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
     return EXIT_FAILURE;
 }
@@ -625,7 +626,7 @@ void body_start(struct conn_t *c) {
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
 }
-int body_complete(struct ctx_t *ctx) {
+int body_done(struct ctx_t *ctx) {
     if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
     return EXIT_FAILURE;
 }
