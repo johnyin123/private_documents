@@ -542,7 +542,7 @@ struct act_t {
     int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
     int  (*on_resp_done)(void *ctx);
 };
-extern int g_acts_len;
+extern const int g_acts_len;
 extern const struct act_t g_acts[];
 static inline const struct act_t *find_action(const enum method_t method, const char *s_uri) {
     for(int i=0;i<g_acts_len;i++) {
@@ -577,7 +577,7 @@ int body_done(struct ctx_t *ctx) {
     return EXIT_SUCCESS;
 }
 //============================================================//
-void big_start(struct conn_t *c, void *ctx){
+static void big_start(struct conn_t *c, void *ctx){
     char buf[1024];
     snprintf(buf, sizeof(buf)-1, "ctx str for %s %s", method_map[c->request.method], c->request.s_uri);
     SET_CTX(c, strdup(buf));
@@ -590,7 +590,7 @@ void big_start(struct conn_t *c, void *ctx){
         default  : make_response(c, 405, JSON, "not allow"); break;
     }
 }
-int big_done(void *ctx) {
+static int big_done(void *ctx) {
     debugln("%s\n", (char *)ctx);
     free((char *)ctx);
     return EXIT_SUCCESS;
@@ -599,7 +599,7 @@ const struct act_t g_acts[] = {
     {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
     {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
 };
-int g_acts_len = ARRAY_LEN(g_acts);
+const int g_acts_len = ARRAY_LEN(g_acts);
 #else
 #include <sys/stat.h>
 static const char *fname="output.txt";
