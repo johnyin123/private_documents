@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <signal.h>
 #if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -25,14 +26,12 @@
     #include <unistd.h>
     #include <netinet/tcp.h>
     #include <fcntl.h>
-    #include <signal.h>
     #include <errno.h>
 #endif
-
-static int trace_level = 0;
-#define log_error(fmt,args...)  { if(trace_level>0) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define debugln(format,args...) { if(trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
-#define debug_conn(c, s)        { if(trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
+static int g_trace_level = 0;
+#define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
+#define debug_conn(c, s)        { if(g_trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
@@ -174,11 +173,11 @@ static inline enum method_t http_method(const char *req) {
     }
     return NONE;
 }
-static inline const char *mime_str(enum mime_t m) {
-    return mime_map[m];
+static inline const char *mime_str(const enum mime_t mime) {
+    return mime_map[mime];
 }
 static const struct http_code_t {
-    uint16_t code;
+    const uint16_t code;
     const char *str;
 } http_code_list[] = {
   { 100, "Continue" },
@@ -239,12 +238,12 @@ static const struct http_code_t {
   { 509, "Bandwidth Limit Exceeded" },
   { 510, "Not Extended" }
 };
-static inline const char *status_str(uint16_t s) {
+static inline const char *status_str(const uint16_t status) {
     for(int i=0;i<ARRAY_LEN(http_code_list);i++)
-        if(s==http_code_list[i].code) return http_code_list[i].str;
+        if(status==http_code_list[i].code) return http_code_list[i].str;
     return "Not Define";
 }
-static inline int make_header(struct conn_t *c, unsigned int status, int mime, unsigned int content_len) {
+static inline int make_header(struct conn_t *c, const uint16_t status, const enum mime_t mime, const unsigned int content_len) {
     c->response.status = status;
     c->response.mime = mime;
     c->response.content_len = content_len;
@@ -256,7 +255,7 @@ static inline int make_header(struct conn_t *c, unsigned int status, int mime, u
     if(ret>0) c->response.header_len = ret;
     return ret;
 }
-static inline int make_response(struct conn_t *c, unsigned int status, int mime, const char *format, ...) {
+static inline int make_response(struct conn_t *c, const uint16_t status, const enum mime_t mime, const char *format, ...) {
     va_list args;
     va_start(args, format);
     int ret = vsnprintf(NULL, 0, format, args);
@@ -290,17 +289,17 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     if(req->s_arg) *(req->s_arg++)='\0';
     const char *end = buf->buf + req->header_len;
     const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
-    while(line && line < end - 2) {
+    while(line&&line<end-2) {
         const char *next = memmem(line + 2, buf->len-(line + 2 - buf->buf), "\r\n", 2);
         if(!next) break;
-        if(next == line + 2) break; // empty line (end headers)
+        if(next==line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
-        if(len < HDR_KEY_LEN + HDR_VAL_LEN) {
+        if(len<HDR_KEY_LEN+HDR_VAL_LEN) {
             if(req->nprop>=MAX_HEADERS) return -413;
-            if(2 == sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
+            if(2==sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
                 if(strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
                     req->content_len = atoi(req->prop[req->nprop].s_val);
-                    if (req->content_len < 0) return -406;
+                    if(req->content_len<0) return -406;
                 } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
                     if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->vhi==1 && req->vlo==1) req->keep_alive=1;
                 } else {
@@ -423,7 +422,7 @@ static inline int create_tcp_server(const char *addr, int port, int backlog) {
     set_sock_nonblock_nodelay(srv_sock);
     return srv_sock;
 }
-static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, size_t len) {
+static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, const size_t len) {
     set_sock_nonblock_nodelay(cli_sock);
     for(int i=0; i<len; i++) {
         if(conns[i].state == ST_NONE) {
@@ -479,7 +478,7 @@ static void event_loop(int srv_sock) {
                 log_error("accept %s", strerror(errno));
                 continue;
             }
-            conn_open(cli_sock, conns, sizeof(conns));
+            conn_open(cli_sock, conns, MAX_CONNS);
         }
         for(int i=0;i<MAX_CONNS;i++) {
             if(conns[i].state==ST_NONE) continue;
@@ -494,25 +493,30 @@ static void event_loop(int srv_sock) {
         }
     }
 }
+int server_sock = 0;
+void cleanup() {
+    if(server_sock>0) close_socket(server_sock);
+#if defined(__WIN32__)
+    WSACleanup();
+#endif
+}
+void sig_func(int sig) { exit(EXIT_FAILURE); }
 int main(const int argc, char const* argv[]) {
 #if defined(__WIN32__)
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
-    if (iResult != 0) { log_error("error at WSASturtup %d", iResult); return 0; }
+    if(iResult != 0) { log_error("error at WSASturtup %d", iResult); return EXIT_SUCCESS; }
 #else
     signal(SIGPIPE, SIG_IGN);
 #endif
-    const char* env_value_str = getenv("TRACE");
-    if (env_value_str) trace_level = atoi(env_value_str);
-    int srv_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
-    if(srv_sock>0) {
-        event_loop(srv_sock);
-        close_socket(srv_sock);
-    }
-#if defined(__WIN32__)
-    WSACleanup();
-#endif
-    return 0;
+    atexit(cleanup);
+    signal(SIGINT, sig_func);
+    signal(SIGTERM, sig_func);
+    const char* env_val = getenv("TRACE");
+    if(env_val) g_trace_level = atoi(env_val);
+    server_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
+    if(server_sock>0) event_loop(server_sock);
+    return EXIT_SUCCESS;
 }
 /*############################################################*/
 #include <sys/stat.h>
