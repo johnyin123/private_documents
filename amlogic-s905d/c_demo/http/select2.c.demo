@@ -127,7 +127,7 @@ static const char *mime_map[]={
 enum method_t { NONE=0, GET, POST };
 static const char *method_map[]={"NONE", "GET", "POST"};
 enum conn_state_t { ST_NONE=0, ST_READ, ST_HEAD, ST_BODY, ST_RESP, ST_ALIVE, ST_CLOSE };
-static const char *conn_state_map[]={"ST_NONE", "ST_READ", "ST_HEAD", "ST_BODY", "ST_RESP", "ST_ALIVE", "ST_CLOSE"};
+static const char *conn_state_map[]={"NONE", "READ", "HEAD", "BODY", "RESP", "ALIVE", "CLOSE"};
 struct response_t {
     uint16_t status;
     enum mime_t mime;
