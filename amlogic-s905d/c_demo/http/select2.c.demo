@@ -340,11 +340,11 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
         CONN_STATE(c, ST_CLOSE);                                    \
         return;                                                     \
     }
-#define CHECK_RC(call) ({ \
+#define CHECK_RC(call, c) ({ \
     int rc = (call); \
     if(rc!=EXIT_SUCCESS) { \
         log_error("Error: %s failed with code %d at %s:%d", #call, rc, __FILE__, __LINE__); \
-        CONN_STATE(c, ST_CLOSE); \
+        CONN_STATE((c), ST_CLOSE); \
         return; \
     } \
     rc; /* The value (on success) */ \
@@ -354,12 +354,12 @@ static void handle_write(struct conn_t *c) {
     CHK_SOCK_OPER(c, n);
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
         debug_conn(c, "response_complete");
-        CHECK_RC(response_complete(&(c->request.ctx)));
+        CHECK_RC(response_complete(&(c->request.ctx)), c);
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
         debug_conn(c, "ACCESS DONE");
     } else if(c->buf.len==0) {
         debug_conn(c, "response_chunk");
-        CHECK_RC(response_chunk(&(c->buf), &(c->request.ctx)));
+        CHECK_RC(response_chunk(&(c->buf), &(c->request.ctx)), c);
     }
 }
 static void handle_read(struct conn_t *c) {
@@ -374,7 +374,7 @@ static void handle_read(struct conn_t *c) {
     }
 }
 static void handle_head(struct conn_t *c) {
-    CHECK_RC(parse_header(&(c->buf), &(c->request)));
+    CHECK_RC(parse_header(&(c->buf), &(c->request)), c);
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
@@ -388,10 +388,10 @@ static void handle_head(struct conn_t *c) {
 }
 static void handle_body(struct conn_t *c) {
     debug_conn(c, "body_chunk");
-    CHECK_RC(body_chunk(&(c->buf), &(c->request.ctx)));
+    CHECK_RC(body_chunk(&(c->buf), &(c->request.ctx)), c);
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
         debug_conn(c, "body_complete")
-        CHECK_RC(body_complete(&(c->request.ctx)));
+        CHECK_RC(body_complete(&(c->request.ctx)), c);
         CONN_STATE(c, ST_RESP);
         // if(c->buf.len>0) log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
         debug_conn(c, "response_start");
