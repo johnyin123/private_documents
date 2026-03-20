@@ -109,14 +109,19 @@ static inline int buf_get(char *dest, size_t len, struct buf_t *b) {
 }
 static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
-    memcpy(b->buf, src, len);
+    memcpy(b->buf + b->len, src, len);
     b->len+=len;
     return len;
 }
 static inline int buf_vprintf(struct buf_t *b, const char *format, va_list args) {
-    if(b->len>=BUF_SIZE) return -1;
-    int n = vsnprintf(b->buf+b->len, BUF_SIZE-b->len-1, format, args);
-    if(n>0) b->len+=n;
+    size_t avail = BUF_SIZE - b->len;
+    int n = vsnprintf(b->buf + b->len, avail, format, args);
+    if (n < 0) return -1;
+    if ((size_t)n >= avail) {
+        b->len = BUF_SIZE;
+        return -2;
+    }
+    b->len += n;
     return n;
 }
 static inline int buf_printf(struct buf_t *b, const char *format, ...) {
@@ -127,10 +132,7 @@ static inline int buf_printf(struct buf_t *b, const char *format, ...) {
     return n;
 }
 static inline char* buf_find(struct buf_t *b, const char *needle, size_t len) {
-    for(size_t i=0; i+len<=b->len; i++) {
-        if(memcmp(b->buf+i, needle, len)==0) return b->buf+i;
-    }
-    return NULL;
+    return memmem(b->buf, b->len, needle, len);
 }
 static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
     if((BUF_SIZE - b->len) <= 0) return -1;
@@ -249,16 +251,15 @@ static inline int make_header(struct conn_t *c, const uint16_t status, const enu
 }
 static inline int make_response(struct conn_t *c, const uint16_t status, const enum mime_t mime, const char *format, ...) {
     va_list args;
+    struct buf_t body = {0};
     va_start(args, format);
-    int ret = vsnprintf(NULL, 0, format, args);
+    int ret = buf_vprintf(&body, format, args);
     va_end(args);
-    if(ret<0) return -1; /*format = ""*/
+    if(ret<0) return ret; /*format = ""*/
     ret = make_header(c, status, mime, ret);
     if(ret<=0) return ret;
-    va_start(args, format);
-    ret = buf_vprintf(&(c->buf), format, args);
-    va_end(args);
-    if(ret<0) return -2; /*format = ""*/
+    ret = buf_put(body.buf, body.len, &(c->buf));
+    if(ret<0) return ret; /*format = ""*/
     if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
 }
@@ -282,9 +283,9 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     req->s_arg = strchr(req->s_uri, '?');
     if(req->s_arg) *(req->s_arg++)='\0';
     const char *end = buf->buf + req->header_len;
-    const char *line = memmem(buf->buf, buf->len, "\r\n", 2);
+    const char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
     while(line&&line<end-2) {
-        const char *next = memmem(line + 2, buf->len-(line + 2 - buf->buf), "\r\n", 2);
+        const char *next = memmem(line + 2, req->header_len-(line + 2 - buf->buf), "\r\n", 2);
         if(!next) break;
         if(next==line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
@@ -446,7 +447,7 @@ static void event_loop(int srv_sock) {
                 case ST_READ:
                 case ST_HEAD:
                 case ST_BODY: FD_SET(c->fd, &rset); break;
-                case ST_RESP: FD_SET(c->fd, &wset); break;
+                case ST_RESP: if(c->buf.len>0) FD_SET(c->fd, &wset); break;
                 default     : continue;
             }
             if(c->fd>maxfd) maxfd=c->fd;
