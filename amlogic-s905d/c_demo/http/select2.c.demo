@@ -175,16 +175,25 @@ static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *tota
     X(501, Not Implemented) \
     X(503, Service Unavailable) \
     X(505, HTTP Version not supported)
+static const char *http_status[] = { S_HTTP_CODE(_PTR) };
+static const int http_status_len=ARRAY_LEN(http_status);
+#define STATUS_STR(c) code2str((c), http_status, http_status_len, "No Defined")
 
 #define S_MIME_TYPE(X) \
     X(BIN, application/octet-stream) \
     X(JSON, application/json) \
     X(TEXT, text/plain; charset=utf-8)
+static const char *mime_type[] = { S_MIME_TYPE(_PTR) };
+static const int mime_type_len=ARRAY_LEN(mime_type);
+#define MIME_STR(c)   code2str((c), mime_type, mime_type_len, "application/octet-stream")
 
 #define S_METHOD(X) \
     X(NONE, NONE) \
     X(GET, GET) \
     X(POST, POST)
+static const char *method_map[] = { S_METHOD(_PTR) };
+static const int method_map_len=ARRAY_LEN(method_map);
+#define METHOD_STR(c) code2str((c), method_map, method_map_len, "NONE")
 
 #define S_CONN_STATE(X) \
     X(ST_NONE, NONE) \
@@ -194,13 +203,10 @@ static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *tota
     X(ST_RESP, RESP) \
     X(ST_ALIVE, ALIVE) \
     X(ST_CLOSE, CLOSE)
-
-static const char *conn_state[], *method_map[], *mime_type[], *http_status[];
-static const int conn_state_len, method_map_len, mime_type_len, http_status_len;
+static const char *conn_state[] = { S_CONN_STATE(_PTR) };
+static const int conn_state_len=ARRAY_LEN(conn_state);
 #define STATE_STR(c)  code2str((c), conn_state, conn_state_len, "N/A")
-#define METHOD_STR(c) code2str((c), method_map, method_map_len, "NONE")
-#define MIME_STR(c)   code2str((c), mime_type, mime_type_len, "application/octet-stream")
-#define STATUS_STR(c) code2str((c), http_status, http_status_len, "No Defined")
+
 static inline const char *code2str(const uint16_t code, const char *tbl[], const int len, const char *nodef) {
     if(code<len) {
         const char *s = tbl[code];
@@ -260,14 +266,6 @@ int body_done(struct ctx_t *ctx);
 /*############################################################*/
 int g_trace_level = 0;
 int g_server_sock = 0;
-static const char *conn_state[] = { S_CONN_STATE(_PTR) };
-static const int conn_state_len=ARRAY_LEN(conn_state);
-static const char *method_map[] = { S_METHOD(_PTR) };
-static const int method_map_len=ARRAY_LEN(method_map);
-static const char *mime_type[] = { S_MIME_TYPE(_PTR) };
-static const int mime_type_len=ARRAY_LEN(mime_type);
-static const char *http_status[] = { S_HTTP_CODE(_PTR) };
-static const int http_status_len=ARRAY_LEN(http_status);
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
@@ -527,7 +525,7 @@ static inline const struct act_t *find_action(const enum method_t method, const 
     }
     return NULL;
 }
-//============================================================//
+/*############################################################*/
 void response_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
     if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_resp_start) ((const struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
@@ -553,7 +551,7 @@ int body_done(struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_done) return ((const struct act_t *)ctx->ptr)->on_req_done(ctx->ctx);
     return EXIT_SUCCESS;
 }
-//============================================================//
+/*############################################################*/
 static void big_start(struct conn_t *c, void *ctx){
     char buf[1024];
     snprintf(buf, sizeof(buf)-1, "ctx str for %s %s", METHOD_STR(c->request.method), c->request.s_uri);
