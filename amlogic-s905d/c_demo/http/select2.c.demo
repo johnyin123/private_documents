@@ -29,8 +29,11 @@
     #include <errno.h>
 #endif
 extern int g_trace_level;
-#define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, "%s:%d == "format"\n", __FILE__, __LINE__, ##args); }
+#define RED   "\033[0;31m"
+#define GREEN "\033[0;32m"
+#define RESET "\033[0m"
+#define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, GREEN "%s:%d" RESET " == "format"\n", __FILE__, __LINE__, ##args); }
 #define debug_conn(c, s)        { if(g_trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define XSTR(s)       STR(s)
@@ -221,7 +224,7 @@ static inline enum method_t http_method(const char *req) {
     return NONE;
 }
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
-    fprintf(fp, "%s:\n", s);
+    fprintf(fp, GREEN "%s" RESET ":\n", s);
     fprintf(fp, "%s@%d, socket=%d, %s, buf.len=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, STATE_STR(c->state), (long int)c->buf.len, c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
     fprintf(fp, "  %s HTTP(%d.%d) %s\n", METHOD_STR(c->request.method), c->request.vhi, c->request.vlo, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
