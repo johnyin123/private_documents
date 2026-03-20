@@ -523,9 +523,9 @@ struct act_t {
     int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
     int  (*on_resp_done)(void *ctx);
 };
-extern const int g_acts_len;
-extern const struct act_t g_acts[];
 static inline const struct act_t *find_action(const enum method_t method, const char *s_uri) {
+    extern const int g_acts_len;
+    extern const struct act_t g_acts[];
     for(int i=0;i<g_acts_len;i++) {
         if((method==g_acts[i].method)&&(strcmp(s_uri, g_acts[i].s_uri)==0)) return &g_acts[i];
     }
