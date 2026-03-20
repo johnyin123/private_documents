@@ -258,13 +258,15 @@ void body_start(struct conn_t *c);
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx);
 int body_done(struct ctx_t *ctx);
 /*############################################################*/
-static const char *conn_state[7] = { S_CONN_STATE(_PTR) };
+int g_trace_level = 0;
+int g_server_sock = 0;
+static const char *conn_state[] = { S_CONN_STATE(_PTR) };
 static const int conn_state_len=ARRAY_LEN(conn_state);
-static const char *method_map[10] = { S_METHOD(_PTR) };
+static const char *method_map[] = { S_METHOD(_PTR) };
 static const int method_map_len=ARRAY_LEN(method_map);
-static const char *mime_type[5] = { S_MIME_TYPE(_PTR) };
+static const char *mime_type[] = { S_MIME_TYPE(_PTR) };
 static const int mime_type_len=ARRAY_LEN(mime_type);
-static const char *http_status[550] = { S_HTTP_CODE(_PTR) };
+static const char *http_status[] = { S_HTTP_CODE(_PTR) };
 static const int http_status_len=ARRAY_LEN(http_status);
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
@@ -481,8 +483,6 @@ static void event_loop(int srv_sock) {
         }
     }
 }
-int g_trace_level = 0;
-int g_server_sock = 0;
 void cleanup() {
     if(g_server_sock>0) close_socket(g_server_sock);
 #if defined(__WIN32__)
