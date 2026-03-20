@@ -17,6 +17,9 @@
         }
         return NULL;
     }
+    #define RED
+    #define GREEN
+    #define RESET
 #else
     #define close_socket close
     #define sock_read(a,b,c)  read(a,b,c)
@@ -27,11 +30,11 @@
     #include <netinet/tcp.h>
     #include <fcntl.h>
     #include <errno.h>
+    #define RED   "\033[0;31m"
+    #define GREEN "\033[0;32m"
+    #define RESET "\033[0m"
 #endif
 extern int g_trace_level;
-#define RED   "\033[0;31m"
-#define GREEN "\033[0;32m"
-#define RESET "\033[0m"
 #define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
 #define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, GREEN "%s:%d" RESET " == "format"\n", __FILE__, __LINE__, ##args); }
 #define debug_conn(c, s)        { if(g_trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
