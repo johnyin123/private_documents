@@ -89,7 +89,7 @@ enum conn_state_t { S_CONN_STATE(_ITEM) };
 #define _ITEM(c, n)   HTTP_##c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
 #undef _ITEM
-#define _PTR(c, n)    [c] = #n,
+#define _PTR(c, n)    [c] = STR(n),
 static const char *http_status[] = { S_HTTP_CODE(_PTR) };
 static const int http_status_len=ARRAY_LEN(http_status);
 #define STATUS_STR(c) code2str((c), http_status, http_status_len, "No Defined")
