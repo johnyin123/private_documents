@@ -86,6 +86,9 @@ enum mime_t       { S_MIME_TYPE(_ITEM) };
 enum method_t     { S_METHOD(_ITEM) };
 enum conn_state_t { S_CONN_STATE(_ITEM) };
 #undef _ITEM
+#define _ITEM(c, n)   HTTP_##c,
+enum http_code_t  { S_HTTP_CODE(_ITEM) };
+#undef _ITEM
 #define _PTR(c, n)    [c] = #n,
 static const char *http_status[] = { S_HTTP_CODE(_PTR) };
 static const int http_status_len=ARRAY_LEN(http_status);
@@ -276,7 +279,7 @@ int g_server_sock = 0;
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if(4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return -500;
+    if(4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return HTTP_500;
     req->method = http_method(method);
     req->vhi = vhi;
     req->vlo = vlo;
@@ -290,18 +293,18 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
         if(next==line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
         if(len<HDR_KEY_LEN+HDR_VAL_LEN) {
-            if(req->nprop>=MAX_HEADERS) return -413;
+            if(req->nprop>=MAX_HEADERS) return HTTP_413;
             if(2==sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
                 if(strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
                     req->content_len = atoi(req->prop[req->nprop].s_val);
-                    if(req->content_len<0) return -406;
+                    if(req->content_len<0) return HTTP_406;
                 } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
                     if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->vhi==1 && req->vlo==1) req->keep_alive=1;
                 } else {
                     req->nprop++;
                 }
             } else {
-                return -406;
+                return HTTP_406;
             }
         }
         line = next;
@@ -536,15 +539,15 @@ static inline const struct act_t *find_action(const enum method_t method, const 
 void response_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
     if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_resp_start) ((const struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
-    else make_response(c, 404, TEXT, "action not found");
+    else make_response(c, HTTP_404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_chunk) return ((const struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
-    return 404;
+    return HTTP_404;
 }
 int response_done(struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_done) return ((const struct act_t *)ctx->ptr)->on_resp_done(ctx->ctx);
-    return 404;
+    return HTTP_404;
 }
 void body_start(struct conn_t *c) {
     if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
@@ -564,12 +567,12 @@ static void big_start(struct conn_t *c, void *ctx){
     snprintf(buf, sizeof(buf)-1, "ctx str for %s %s", METHOD_STR(c->request.method), c->request.s_uri);
     SET_CTX(c, strdup(buf));
     switch(c->request.method) {
-        case GET : make_response(c, 200, JSON, "get all ok"); break;
+        case GET : make_response(c, HTTP_200, JSON, "get all ok"); break;
         case POST:
                    int n = buf_get(buf, sizeof(buf)-1, &(c->buf));
                    buf[n] = '\0';
-                   make_response(c, 200, JSON, "post %s", buf); break;
-        default  : make_response(c, 405, JSON, "not allow"); break;
+                   make_response(c, HTTP_200, JSON, "post %s", buf); break;
+        default  : make_response(c, HTTP_405, JSON, "not allow"); break;
     }
 }
 static int big_done(void *ctx) {
@@ -588,10 +591,10 @@ static const char *fname="output.txt";
 void response_start(struct conn_t *c) {
     struct stat st;
     if(stat(fname, &st)) {
-        make_response(c, 404, TEXT, "file not found");
+        make_response(c, HTTP_404, TEXT, "file not found");
     } else {
         SET_CTX(c, fopen(fname, "rb"));
-        make_header(c, 200, JSON, st.st_size);
+        make_header(c, HTTP_200, JSON, st.st_size);
     }
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
@@ -603,7 +606,7 @@ int response_done(struct ctx_t *ctx) {
 }
 void body_start(struct conn_t *c) {
     SET_CTX(c, fopen(fname, "wb"));
-    if(GET_CTX(c)==NULL) make_response(c, 403, TEXT, "access deny");
+    if(GET_CTX(c)==NULL) make_response(c, HTTP_403, TEXT, "access deny");
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
