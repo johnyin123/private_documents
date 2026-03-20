@@ -86,7 +86,7 @@ enum mime_t       { S_MIME_TYPE(_ITEM) };
 enum method_t     { S_METHOD(_ITEM) };
 enum conn_state_t { S_CONN_STATE(_ITEM) };
 #undef _ITEM
-#define _ITEM(c, n)   HTTP_##c,
+#define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
 #undef _ITEM
 #define _PTR(c, n)    [c] = STR(n),
