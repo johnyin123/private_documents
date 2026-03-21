@@ -150,6 +150,11 @@ struct conn_t {
 #define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
+static inline void buf_remove_head(struct buf_t *b, size_t len) {
+    if(b->len<=len) { b->len=0; return; }
+    memmove(b->buf, b->buf+len, b->len-len);
+    b->len-=len;
+}
 static inline int buf_get(char *dest, size_t len, struct buf_t *b) {
     int n=(len>b->len?b->len:len);
     memcpy(dest, b->buf, n);
@@ -280,99 +285,47 @@ int g_trace_level = 0;
 int g_server_sock = 0;
 #if 1
 #include <ctype.h>
-static int parse_header(struct buf_t *buf, struct request_t *req) {
+static int parse_header(const struct buf_t *buf, struct request_t *req) {
+#define SET_STR(dest, start, len, max) if(len>max) return HTTP_413; memcpy(dest,start,len); dest[len]=0;
     enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
-    const char *p = buf->buf;
-    const char *end = p + buf->len;
-    const char *token_start = p;
-    while(p<end&&state!=PARSE_DONE) {
+    const char *p = buf->buf, *end = p + req->header_len, *start = p;
+    for(;p<end && state!=PARSE_DONE; p++) {
         char c = *p;
-        switch(state) {
-            case PARSE_METHOD:
-                if (c == ' ') {
-                    if ((req->method = http_method(token_start, p - token_start)) == NONE) return HTTP_501;
-                    token_start = p + 1;
-                    state = PARSE_URI;
-                }
-                break;
-            case PARSE_URI:
-                if (c == ' ') {
-                    size_t len = p - token_start;
-                    if(len>URI_LEN) return HTTP_414;
-                    memcpy(req->s_uri, token_start, len);
-                    req->s_uri[len] = '\0';
-                    // Split URI and Args
-                    req->s_arg = strchr(req->s_uri, '?');
-                    if (req->s_arg) *(req->s_arg++) = '\0';
-                    token_start = p + 1;
-                    state = PARSE_PROTO;
-                }
-                break;
-            case PARSE_PROTO:
-                if (c == '\r') {
-                    // Fast-parse "HTTP/X.Y"
-                    if (p - token_start >= 8) {
-                        req->vhi = token_start[5] - '0';
-                        req->vlo = token_start[7] - '0';
-                    }
-                    state = PARSE_CRLF;
-                }
-                break;
-            case PARSE_CRLF:
-                if (c == '\n') {
-                    if (p + 1 < end && *(p + 1) == '\r') {
-                        p++; // Move to \r
-                        state = PARSE_DONE;
-                    } else {
-                        token_start = p + 1;
-                        state = PARSE_HKEY;
-                    }
-                }
-                break;
-            case PARSE_HKEY:
-                if (c == ':') {
-                    size_t len = p - token_start;
-                    if(len>HDR_KEY_LEN) return HTTP_413;
-                    memcpy(req->prop[req->nprop].s_key, token_start, len);
-                    req->prop[req->nprop].s_key[len] = '\0';
-                    while(p+1<end&&isspace(*(p+1))) p++; // Skip whitespace
-                    token_start = p + 1;
-                    state = PARSE_HVAL;
-                }
-                break;
-            case PARSE_HVAL:
-                if (c == '\r') {
-                    size_t len = p - token_start;
-                    if((len>HDR_VAL_LEN)||(req->nprop>=MAX_HEADERS)) return HTTP_413;
-                    memcpy(req->prop[req->nprop].s_val, token_start, len);
-                    req->prop[req->nprop].s_val[len] = '\0';
-                    if (strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
-                        req->content_len = atoi(req->prop[req->nprop].s_val);
-                    } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
-                        if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->vhi==1 && req->vlo==1) req->keep_alive=1;
-                    } else { req->nprop++; }
-                    state = PARSE_CRLF;
-                }
-                break;
-            default:
-                log_error("parse state should not here");
-                break;
-        }
-        p++;
-    }
-    buf->len -= req->header_len;
-    if(req->content_len>0) {
-        if(buf->len>0) memmove(buf->buf, buf->buf + req->header_len, buf->len);
-    } else {
-        if(buf->len>0) {
-            log_error("header ok but, buf.len left %d", (int)buf->len);
-            buf->len=0;
+        if(state == PARSE_METHOD && c==' ') {
+            if((req->method=http_method(start, p-start))==NONE) return HTTP_501;
+            state = PARSE_URI;start = p + 1;
+        } else if(state==PARSE_URI && c==' ') {
+            SET_STR(req->s_uri, start, p - start, URI_LEN);
+            if((req->s_arg = strchr(req->s_uri, '?'))) *(req->s_arg++) = 0;
+            state = PARSE_PROTO; start = p + 1;
+        } else if(state == PARSE_PROTO && c == '\r') {
+            req->vhi = start[5]-'0';
+            req->vlo = start[7]-'0';
+            state = PARSE_CRLF;
+        } else if(state == PARSE_CRLF && c == '\n') {
+            if(p+1<end && p[1]=='\r') { state = PARSE_DONE; p++; }
+            else { state = PARSE_HKEY; start = p + 1; }
+        } else if(state == PARSE_HKEY && c == ':') {
+            if(req->nprop>=MAX_HEADERS) return HTTP_413;
+            SET_STR(req->prop[req->nprop].s_key, start, p - start, HDR_KEY_LEN);
+            for(start = ++p; start<end && isspace(*start); start++); /*Skip space*/
+            p = start; state = PARSE_HVAL;
+        } else if(state == PARSE_HVAL && c == '\r') {
+            SET_STR(req->prop[req->nprop].s_val, start, p - start, HDR_VAL_LEN);
+            if(!strcasecmp(req->prop[req->nprop].s_key, "Content-Length"))
+                req->content_len = atoi(req->prop[req->nprop].s_val);
+            else if(!strcasecmp(req->prop[req->nprop].s_key, "Connection") && !strcasecmp(req->prop[req->nprop].s_val, "keep-alive") && req->vhi==1 && req->vlo==1)
+                req->keep_alive = 1;
+            else
+                req->nprop++;
+            state = PARSE_CRLF;
         }
     }
     return (state == PARSE_DONE) ? EXIT_SUCCESS : HTTP_400;
+#undef SET_STR
 }
 #else
-static int parse_header(struct buf_t *buf, struct request_t *req) {
+static int parse_header(const struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
     char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
@@ -406,15 +359,6 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
             }
         }
         line = next;
-    }
-    buf->len -= req->header_len;
-    if(req->content_len>0) {
-        if(buf->len>0) memmove(buf->buf, buf->buf + req->header_len, buf->len);
-    } else {
-        if(buf->len>0) {
-            log_error("header ok but, buf.len left %d", (int)buf->len);
-            buf->len=0;
-        }
     }
     return EXIT_SUCCESS;
 }
@@ -461,6 +405,7 @@ static void handle_read(struct conn_t *c) {
 }
 static void handle_head(struct conn_t *c) {
     int rc = parse_header(&(c->buf), &(c->request));
+    buf_remove_head(&(c->buf), c->request.header_len);
     if(rc!=EXIT_SUCCESS) { \
         log_error("Error: parse_header %d", rc);
         make_response(c, rc, TEXT, STATUS_STR(rc));
