@@ -299,6 +299,7 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
             if((req->s_arg = strchr(req->s_uri, '?'))) *(req->s_arg++) = 0;
             state = PARSE_PROTO; start = p + 1;
         } else if(state == PARSE_PROTO && c == '\r') {
+            if((p-start)<8 || memcmp(start, "HTTP/", 5)!=0) return HTTP_406;
             req->vhi = start[5]-'0';
             req->vlo = start[7]-'0';
             state = PARSE_CRLF;
