@@ -55,11 +55,13 @@ extern int g_trace_level;
 #define S_HTTP_CODE(X) \
     X(100, Continue) \
     X(200, OK) \
+    X(400, Bad Request) \
     X(403, Forbidden) \
     X(404, Not Found) \
     X(405, Method Not Allowed) \
     X(406, Not Acceptable) \
     X(413, Request Entity Too Large) \
+    X(414, Request-URI Too Long) \
     X(500, Internal Server Error) \
     X(501, Not Implemented) \
     X(503, Service Unavailable) \
@@ -225,9 +227,9 @@ static inline const char *code2str(const uint16_t code, const char *tbl[], const
     }
     return nodef;
 }
-static inline enum method_t http_method(const char *req) {
+static inline enum method_t http_method(const char *m, int len) {
     for(int i=0;i<method_map_len;i++) {
-        if(strcmp(req, METHOD_STR(i))==0) return i;
+        if(!memcmp(m, METHOD_STR(i), len)) return i;
     }
     return NONE;
 }
@@ -276,13 +278,107 @@ int body_done(struct ctx_t *ctx);
 /*############################################################*/
 int g_trace_level = 0;
 int g_server_sock = 0;
+#if 1
+#include <ctype.h>
+static int parse_header(struct buf_t *buf, struct request_t *req) {
+    enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
+    const char *p = buf->buf;
+    const char *end = p + buf->len;
+    const char *token_start = p;
+    while(p<end&&state!=PARSE_DONE) {
+        char c = *p;
+        switch(state) {
+            case PARSE_METHOD:
+                if (c == ' ') {
+                    if ((req->method = http_method(token_start, p - token_start)) == NONE) return HTTP_501;
+                    token_start = p + 1;
+                    state = PARSE_URI;
+                }
+                break;
+            case PARSE_URI:
+                if (c == ' ') {
+                    size_t len = p - token_start;
+                    if(len>URI_LEN) return HTTP_414;
+                    memcpy(req->s_uri, token_start, len);
+                    req->s_uri[len] = '\0';
+                    // Split URI and Args
+                    req->s_arg = strchr(req->s_uri, '?');
+                    if (req->s_arg) *(req->s_arg++) = '\0';
+                    token_start = p + 1;
+                    state = PARSE_PROTO;
+                }
+                break;
+            case PARSE_PROTO:
+                if (c == '\r') {
+                    // Fast-parse "HTTP/X.Y"
+                    if (p - token_start >= 8) {
+                        req->vhi = token_start[5] - '0';
+                        req->vlo = token_start[7] - '0';
+                    }
+                    state = PARSE_CRLF;
+                }
+                break;
+            case PARSE_CRLF:
+                if (c == '\n') {
+                    if (p + 1 < end && *(p + 1) == '\r') {
+                        p++; // Move to \r
+                        state = PARSE_DONE;
+                    } else {
+                        token_start = p + 1;
+                        state = PARSE_HKEY;
+                    }
+                }
+                break;
+            case PARSE_HKEY:
+                if (c == ':') {
+                    size_t len = p - token_start;
+                    if(len>HDR_KEY_LEN) return HTTP_413;
+                    memcpy(req->prop[req->nprop].s_key, token_start, len);
+                    req->prop[req->nprop].s_key[len] = '\0';
+                    while(p+1<end&&isspace(*(p+1))) p++; // Skip whitespace
+                    token_start = p + 1;
+                    state = PARSE_HVAL;
+                }
+                break;
+            case PARSE_HVAL:
+                if (c == '\r') {
+                    size_t len = p - token_start;
+                    if((len>HDR_VAL_LEN)||(req->nprop>=MAX_HEADERS)) return HTTP_413;
+                    memcpy(req->prop[req->nprop].s_val, token_start, len);
+                    req->prop[req->nprop].s_val[len] = '\0';
+                    if (strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
+                        req->content_len = atoi(req->prop[req->nprop].s_val);
+                    } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
+                        if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->vhi==1 && req->vlo==1) req->keep_alive=1;
+                    } else { req->nprop++; }
+                    state = PARSE_CRLF;
+                }
+                break;
+            default:
+                log_error("parse state should not here");
+                break;
+        }
+        p++;
+    }
+    buf->len -= req->header_len;
+    if(req->content_len>0) {
+        if(buf->len>0) memmove(buf->buf, buf->buf + req->header_len, buf->len);
+    } else {
+        if(buf->len>0) {
+            log_error("header ok but, buf.len left %d", (int)buf->len);
+            buf->len=0;
+        }
+    }
+    return (state == PARSE_DONE) ? EXIT_SUCCESS : HTTP_400;
+}
+#else
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
     char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
     *line = '\0';
-    if(4!=sscanf(line, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u", method, req->s_uri, &vhi, &vlo)) return HTTP_500;
-    if((req->method = http_method(method))==NONE) return HTTP_501;
+    if(4!=sscanf(line, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u", method, req->s_uri, &vhi, &vlo)) return HTTP_400;
+    if((req->method = http_method(method, strlen(method)))==NONE) return HTTP_501;
     req->vhi = vhi;
     req->vlo = vlo;
     req->s_arg = strchr(req->s_uri, '?');
@@ -322,6 +418,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     }
     return EXIT_SUCCESS;
 }
+#endif
 #define CHK_SOCK_OPER(c, n)                                         \
     if(n==0) { CONN_STATE(c, ST_CLOSE); return; } /*peer shutdown*/ \
     if(n<0) {                                                       \
