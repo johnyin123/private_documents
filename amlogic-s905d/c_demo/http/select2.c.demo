@@ -279,17 +279,19 @@ int g_server_sock = 0;
 static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
-    if(4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return HTTP_500;
+    char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
+    *line = '\0';
+    if(4!=sscanf(line, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u", method, req->s_uri, &vhi, &vlo)) return HTTP_500;
     if((req->method = http_method(method))==NONE) return HTTP_501;
     req->vhi = vhi;
     req->vlo = vlo;
     req->s_arg = strchr(req->s_uri, '?');
     if(req->s_arg) *(req->s_arg++)='\0';
     const char *end = buf->buf + req->header_len;
-    const char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
     while(line&&line<end-2) {
-        const char *next = memmem(line + 2, req->header_len-(line + 2 - buf->buf), "\r\n", 2);
+        char *next = memmem(line + 2, req->header_len-(line + 2 - buf->buf), "\r\n", 2);
         if(!next) break;
+        *next = '\0';
         if(next==line + 2) break; // empty line (end headers)
         size_t len = next - (line + 2);
         if(len<HDR_KEY_LEN+HDR_VAL_LEN) {
