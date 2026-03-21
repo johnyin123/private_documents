@@ -280,7 +280,7 @@ static int parse_header(struct buf_t *buf, struct request_t *req) {
     char method[METHOD_LEN+1];
     unsigned int vhi, vlo;
     if(4!=sscanf(buf->buf, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u\r\n", method, req->s_uri, &vhi, &vlo)) return HTTP_500;
-    req->method = http_method(method);
+    if((req->method = http_method(method))==NONE) return HTTP_501;
     req->vhi = vhi;
     req->vlo = vlo;
     req->s_arg = strchr(req->s_uri, '?');
@@ -361,7 +361,12 @@ static void handle_read(struct conn_t *c) {
     }
 }
 static void handle_head(struct conn_t *c) {
-    CHECK_RC(parse_header(&(c->buf), &(c->request)), c);
+    int rc = parse_header(&(c->buf), &(c->request));
+    if(rc!=EXIT_SUCCESS) { \
+        log_error("Error: parse_header %d", rc);
+        make_response(c, rc, TEXT, STATUS_STR(rc));
+        return;
+    }
     if(c->request.content_len>0){
         if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
