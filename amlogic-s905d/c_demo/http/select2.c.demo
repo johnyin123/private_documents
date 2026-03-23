@@ -290,6 +290,7 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
 #define SET_STR(dest, start, len, max) if(len>max) return HTTP_413; memcpy(dest,start,len); dest[len]=0;
     enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
     const char *p = buf->buf, *end = p + req->header_len, *start = p;
+    unsigned int vhi, vlo;
     for(;p<end && state!=PARSE_DONE; p++) {
         char c = *p;
         if(state == PARSE_METHOD && c==' ') {
@@ -300,7 +301,8 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
             if((req->s_arg = strchr(req->s_uri, '?'))) *(req->s_arg++) = 0;
             state = PARSE_PROTO; start = p + 1;
         } else if(state == PARSE_PROTO && c == '\r') {
-            if(sscanf(start, "HTTP/%1u.%1u", &req->vhi, &req->vlo)!=2) return HTTP_406;
+            if(sscanf(start, "HTTP/%1u.%1u", &vhi, &vlo)!=2) return HTTP_406;
+            req->vhi=vhi; req->vlo=vlo;
             state = PARSE_CRLF;
         } else if(state == PARSE_CRLF && c == '\n') {
             if(p+1<end && p[1]=='\r') { state = PARSE_DONE; p++; }
@@ -317,7 +319,7 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
             else if(!strcasecmp(req->prop[req->nprop].s_key, "Connection") && !strcasecmp(req->prop[req->nprop].s_val, "keep-alive") && req->vhi==1 && req->vlo==1)
                 req->keep_alive = 1;
             else
-                req->nprop++;
+                req->nprop++; /*Content-Length and Connection not need in prop*/
             state = PARSE_CRLF;
         }
     }
@@ -429,7 +431,6 @@ static void handle_body(struct conn_t *c) {
         debug_conn(c, "body_done")
         CHK_RC(body_done(&(c->request.ctx)), c);
         CONN_STATE(c, ST_RESP);
-        // if(c->buf.len>0) log_error("sock=%d body ok but, buf.len left %d", c->fd, (int)c->buf.len);
         debug_conn(c, "response_start");
         response_start(c);
     }
@@ -565,7 +566,7 @@ int main(const int argc, char const* argv[]) {
     return EXIT_SUCCESS;
 }
 /*############################################################*/
-#ifdef DEBUG
+#if 1
 struct act_t {
     const enum method_t method;
     const char *s_uri;
@@ -585,22 +586,30 @@ static inline const struct act_t *find_action(const enum method_t method, const 
     return NULL;
 }
 /*############################################################*/
+static const struct act_t *get_action(struct conn_t *c) {
+    const struct act_t *a = (const struct act_t *)GET_PTR(c);
+    if(!a){
+        a = find_action(c->request.method, c->request.s_uri);
+        SET_PTR(c, (void *)a);
+    }
+    return a;
+}
 void response_start(struct conn_t *c) {
-    if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_resp_start) ((const struct act_t *)GET_PTR(c))->on_resp_start(c, GET_CTX(c));
+    const struct act_t *a = get_action(c);
+    if(a && a->on_resp_start) a->on_resp_start(c, GET_CTX(c));
     else make_response(c, HTTP_404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_chunk) return ((const struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
-    return HTTP_404;
+    return EXIT_SUCCESS;
 }
 int response_done(struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_done) return ((const struct act_t *)ctx->ptr)->on_resp_done(ctx->ctx);
-    return HTTP_404;
+    return EXIT_SUCCESS;
 }
 void body_start(struct conn_t *c) {
-    if(!GET_PTR(c)) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
-    if(GET_PTR(c) && ((const struct act_t *)GET_PTR(c))->on_req_start) ((const struct act_t *)GET_PTR(c))->on_req_start(c, GET_CTX(c));
+    const struct act_t *a = get_action(c);
+    if(a && a->on_req_start) a->on_req_start(c, GET_CTX(c));
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_body) return ((const struct act_t *)ctx->ptr)->on_req_body(buf, ctx->ctx);
@@ -613,7 +622,7 @@ int body_done(struct ctx_t *ctx) {
 /*############################################################*/
 static void big_start(struct conn_t *c, void *ctx){
     char buf[1024];
-    snprintf(buf, sizeof(buf)-1, "ctx str for %s %s", METHOD_STR(c->request.method), c->request.s_uri);
+    snprintf(buf, sizeof(buf), "ctx str for %s %s", METHOD_STR(c->request.method), c->request.s_uri);
     SET_CTX(c, strdup(buf));
     switch(c->request.method) {
         case GET : make_response(c, HTTP_200, JSON, "get all ok"); break;
@@ -625,13 +634,13 @@ static void big_start(struct conn_t *c, void *ctx){
     }
 }
 static int big_done(void *ctx) {
-    debugln("%s\n", (char *)ctx);
-    free((char *)ctx);
+    debugln("ctx ptr = %p\n", (void *)ctx);
+    if(ctx) free((char *)ctx);
     return EXIT_SUCCESS;
 }
 const struct act_t g_acts[] = {
-    {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
-    {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_chunk=NULL, .on_resp_done=big_done, .on_req_start=NULL, .on_req_body=NULL, .on_req_done=NULL, },
+  {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_done=big_done, },
+  {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_done=big_done, },
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
 #else
@@ -651,7 +660,7 @@ int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
 }
 int response_done(struct ctx_t *ctx) {
     if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
 void body_start(struct conn_t *c) {
     SET_CTX(c, fopen(fname, "wb"));
@@ -662,6 +671,6 @@ int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
 }
 int body_done(struct ctx_t *ctx) {
     if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
 #endif
