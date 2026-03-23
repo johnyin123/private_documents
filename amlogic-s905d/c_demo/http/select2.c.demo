@@ -563,7 +563,6 @@ int main(const int argc, char const* argv[]) {
     return EXIT_SUCCESS;
 }
 /*############################################################*/
-#if 1
 struct act_t {
     const enum method_t method;
     const char *s_uri;
@@ -584,12 +583,8 @@ static inline const struct act_t *find_action(const enum method_t method, const 
 }
 /*############################################################*/
 static const struct act_t *get_action(struct conn_t *c) {
-    const struct act_t *a = (const struct act_t *)GET_PTR(c);
-    if(!a){
-        a = find_action(c->request.method, c->request.s_uri);
-        SET_PTR(c, (void *)a);
-    }
-    return a;
+    if(GET_PTR(c)==NULL) SET_PTR(c, find_action(c->request.method, c->request.s_uri));
+    return GET_PTR(c);
 }
 void response_start(struct conn_t *c) {
     const struct act_t *a = get_action(c);
@@ -656,32 +651,3 @@ const struct act_t g_acts[] = {
   {.method=POST, .s_uri="/big", .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp },
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
-#else
-void response_start(struct conn_t *c) {
-    struct stat st;
-    if(stat(fname, &st)) {
-        make_response(c, HTTP_404, TEXT, "file not found");
-    } else {
-        SET_CTX(c, fopen(fname, "rb"));
-        make_header(c, HTTP_200, JSON, st.st_size);
-    }
-}
-int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    return buf_read_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
-}
-int response_done(struct ctx_t *ctx) {
-    if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
-    return EXIT_SUCCESS;
-}
-void body_start(struct conn_t *c) {
-    SET_CTX(c, fopen(fname, "wb"));
-    if(GET_CTX(c)==NULL) make_response(c, HTTP_403, TEXT, "access deny");
-}
-int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>=0?EXIT_SUCCESS:EXIT_FAILURE;
-}
-int body_done(struct ctx_t *ctx) {
-    if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
-    return EXIT_SUCCESS;
-}
-#endif
