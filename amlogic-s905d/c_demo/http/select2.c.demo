@@ -158,8 +158,7 @@ static inline void buf_remove_head(struct buf_t *b, size_t len) {
 static inline int buf_get(char *dest, size_t len, struct buf_t *b) {
     int n=(len>b->len?b->len:len);
     memcpy(dest, b->buf, n);
-    b->len-=n;
-    if(b->len>0) memmove(b->buf, b->buf+n, b->len);
+    buf_remove_head(b, n);
     return n;
 }
 static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
@@ -201,9 +200,8 @@ static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) 
 static inline ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total) {
     ssize_t n = sock_write(fd, b->buf, b->len);
     if (n > 0) {
-        b->len -= n;
         if(total) *total += n;
-        if(b->len>0) memmove(b->buf, b->buf + n, b->len);
+        buf_remove_head(b, n);
     }
     return n;
 }
@@ -219,9 +217,8 @@ static inline ssize_t buf_read_fp(struct buf_t *b, FILE *fp, unsigned int *total
 static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *total) {
     ssize_t n = fwrite(b->buf, 1, b->len, fp);
     if (n > 0) {
-        b->len -= n;
         if(total) *total += n;
-        if(b->len>0) memmove(b->buf, b->buf + n, b->len);
+        buf_remove_head(b, n);
     }
     return n;
 }
@@ -570,10 +567,10 @@ int main(const int argc, char const* argv[]) {
 struct act_t {
     const enum method_t method;
     const char *s_uri;
-    void (*on_req_start)(struct conn_t *c, void *ctx);
+    void (*on_req_start)(struct conn_t *c);
     int  (*on_req_body)(struct buf_t *buf, void *ctx);
     int  (*on_req_done)(void *ctx);
-    void (*on_resp_start)(struct conn_t *c, void *ctx);
+    void (*on_resp_start)(struct conn_t *c);
     int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
     int  (*on_resp_done)(void *ctx);
 };
@@ -596,7 +593,7 @@ static const struct act_t *get_action(struct conn_t *c) {
 }
 void response_start(struct conn_t *c) {
     const struct act_t *a = get_action(c);
-    if(a && a->on_resp_start) a->on_resp_start(c, GET_CTX(c));
+    if(a && a->on_resp_start) a->on_resp_start(c);
     else make_response(c, HTTP_404, TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
@@ -609,7 +606,7 @@ int response_done(struct ctx_t *ctx) {
 }
 void body_start(struct conn_t *c) {
     const struct act_t *a = get_action(c);
-    if(a && a->on_req_start) a->on_req_start(c, GET_CTX(c));
+    if(a && a->on_req_start) a->on_req_start(c);
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_req_body) return ((const struct act_t *)ctx->ptr)->on_req_body(buf, ctx->ctx);
@@ -620,32 +617,46 @@ int body_done(struct ctx_t *ctx) {
     return EXIT_SUCCESS;
 }
 /*############################################################*/
-static void big_start(struct conn_t *c, void *ctx){
-    char buf[1024];
-    snprintf(buf, sizeof(buf), "ctx str for %s %s", METHOD_STR(c->request.method), c->request.s_uri);
-    SET_CTX(c, strdup(buf));
-    switch(c->request.method) {
-        case GET : make_response(c, HTTP_200, JSON, "get all ok"); break;
-        case POST:
-                   int n = buf_get(buf, sizeof(buf)-1, &(c->buf));
-                   buf[n] = '\0';
-                   make_response(c, HTTP_200, JSON, "post %s", buf); break;
-        default  : make_response(c, HTTP_405, JSON, "not allow"); break;
+static void small_start(struct conn_t *c){
+    make_response(c, HTTP_200, JSON, "get all ok");
+}
+static const char *fname="output.txt";
+static void upload_start(struct conn_t *c) {
+    SET_CTX(c, fopen(fname, "wb"));
+    if(GET_CTX(c)==NULL) make_response(c, HTTP_500, TEXT, "Cannot open file");
+}
+static int upload_chunk(struct buf_t *buf, void *ctx) {
+    if(ctx) return buf_write_fp(buf, (FILE *)ctx, NULL)>=0?EXIT_SUCCESS:EXIT_FAILURE;
+    return EXIT_SUCCESS;
+}
+static void upload_resp(struct conn_t *c){
+    if(GET_CTX(c)) fclose((FILE *)GET_CTX(c));
+    make_response(c, HTTP_200, JSON, "{\"status\":\"ok\"}");
+}
+#include <sys/stat.h>
+void download_start(struct conn_t *c) {
+    struct stat st;
+    if(stat(fname, &st)) {
+        make_response(c, HTTP_404, TEXT, "file not found");
+    } else {
+        SET_CTX(c, fopen(fname, "rb"));
+        make_header(c, HTTP_200, JSON, st.st_size);
     }
 }
-static int big_done(void *ctx) {
-    debugln("ctx ptr = %p\n", (void *)ctx);
-    if(ctx) free((char *)ctx);
+int download_chunk(struct buf_t *buf, void *ctx) {
+    return buf_read_fp(buf, (FILE *)ctx, NULL)>=0?EXIT_SUCCESS:EXIT_FAILURE;
+}
+int download_done(void *ctx) {
+    if(ctx) return fclose((FILE *)ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
     return EXIT_SUCCESS;
 }
 const struct act_t g_acts[] = {
-  {.method=GET,  .s_uri="/big", .on_resp_start=big_start, .on_resp_done=big_done, },
-  {.method=POST, .s_uri="/big", .on_resp_start=big_start, .on_resp_done=big_done, },
+  {.method=GET,  .s_uri="/small", .on_resp_start=small_start, },
+  {.method=GET,  .s_uri="/big", .on_resp_start=download_start, .on_resp_chunk=download_chunk, .on_resp_done=download_done },
+  {.method=POST, .s_uri="/big", .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp },
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
 #else
-#include <sys/stat.h>
-static const char *fname="output.txt";
 void response_start(struct conn_t *c) {
     struct stat st;
     if(stat(fname, &st)) {
@@ -667,7 +678,7 @@ void body_start(struct conn_t *c) {
     if(GET_CTX(c)==NULL) make_response(c, HTTP_403, TEXT, "access deny");
 }
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx) {
-    return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>0?EXIT_SUCCESS:EXIT_FAILURE;
+    return buf_write_fp(buf, (FILE *)ctx->ctx, NULL)>=0?EXIT_SUCCESS:EXIT_FAILURE;
 }
 int body_done(struct ctx_t *ctx) {
     if(ctx->ctx) return fclose((FILE *)ctx->ctx)==0?EXIT_SUCCESS:EXIT_FAILURE;
