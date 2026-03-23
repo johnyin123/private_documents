@@ -638,7 +638,7 @@ void download_start(struct conn_t *c) {
         make_response(c, HTTP_404, TEXT, "file not found");
     } else {
         SET_CTX(c, fopen(fname, "rb"));
-        make_header(c, HTTP_200, JSON, st.st_size);
+        make_header(c, HTTP_200, BIN, st.st_size);
     }
 }
 int download_chunk(struct buf_t *buf, void *ctx) {
