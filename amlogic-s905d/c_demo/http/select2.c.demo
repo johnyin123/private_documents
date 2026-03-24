@@ -72,8 +72,15 @@ extern int g_trace_level;
     X(TEXT, text/plain; charset=utf-8)
 #define S_METHOD(X) \
     X(NONE, NONE) \
-    X(GET, GET) \
-    X(POST, POST)
+    X(GET,      GET) \
+    X(POST,     POST) \
+    X(PUT,      PUT) \
+    X(DELETE,   DELETE) \
+    X(HEAD,     HEAD) \
+    X(OPTIONS,  OPTIONS) \
+    X(PATCH,    PATCH) \
+    X(TRACE,    TRACE) \
+    X(CONNECT,  CONNECT)
 #define S_CONN_STATE(X) \
     X(ST_NONE, NONE) \
     X(ST_READ, READ) \
