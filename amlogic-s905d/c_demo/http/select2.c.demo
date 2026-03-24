@@ -162,13 +162,13 @@ static inline void buf_remove_head(struct buf_t *b, size_t len) {
     memmove(b->buf, b->buf+len, b->len-len);
     b->len-=len;
 }
-static inline int buf_get(char *dest, size_t len, struct buf_t *b) {
+static inline int buf_pop(char *dest, size_t len, struct buf_t *b) {
     int n=(len>b->len?b->len:len);
     memcpy(dest, b->buf, n);
     buf_remove_head(b, n);
     return n;
 }
-static inline int buf_put(const char *src, size_t len, struct buf_t *b) {
+static inline int buf_push(const char *src, size_t len, struct buf_t *b) {
     if(BUF_SIZE-b->len<len) return -1;
     memcpy(b->buf + b->len, src, len);
     b->len+=len;
@@ -192,8 +192,8 @@ static inline int buf_printf(struct buf_t *b, const char *format, ...) {
     va_end(args);
     return n;
 }
-static inline char* buf_find(struct buf_t *b, const char *needle, size_t len) {
-    return memmem(b->buf, b->len, needle, len);
+static inline char* buf_find(struct buf_t *b, const char *s, size_t len) {
+    return b->len < len ? NULL : memmem(b->buf, b->len, s, len);
 }
 static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
     if((BUF_SIZE - b->len) <= 0) return -1;
@@ -273,7 +273,7 @@ static inline int make_response(struct conn_t *c, const uint16_t status, const e
     if(ret<0) return ret; /*format = ""*/
     ret = make_header(c, status, mime, ret);
     if(ret<=0) return ret;
-    ret = buf_put(body.buf, body.len, &(c->buf));
+    ret = buf_push(body.buf, body.len, &(c->buf));
     if(ret<0) return ret; /*format = ""*/
     if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
