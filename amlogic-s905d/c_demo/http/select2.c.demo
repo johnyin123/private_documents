@@ -160,6 +160,9 @@ struct conn_t {
 #define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
+static inline size_t buf_avail(const struct buf_t *b) {
+    return BUF_SIZE - b->len;
+}
 static inline void buf_remove_head(struct buf_t *b, size_t len) {
     if(b->len<=len) { b->len=0; return; }
     memmove(b->buf, b->buf+len, b->len-len);
@@ -172,17 +175,17 @@ static inline int buf_pop(char *dest, size_t len, struct buf_t *b) {
     return n;
 }
 static inline int buf_push(const char *src, size_t len, struct buf_t *b) {
-    if(BUF_SIZE-b->len<len) return -1;
+    if(buf_avail(b)<len) return -1;
     memcpy(b->buf + b->len, src, len);
     b->len+=len;
     return len;
 }
 static inline int buf_vprintf(struct buf_t *b, const char *format, va_list args) {
-    size_t avail = BUF_SIZE - b->len;
+    size_t avail = buf_avail(b);
     int n = vsnprintf(b->buf + b->len, avail, format, args);
     if (n < 0) return -1;
     if ((size_t)n >= avail) {
-        b->len = BUF_SIZE;
+        b->len += avail;
         return -2;
     }
     b->len += n;
@@ -199,8 +202,8 @@ static inline char* buf_find(struct buf_t *b, const char *s, size_t len) {
     return b->len < len ? NULL : memmem(b->buf, b->len, s, len);
 }
 static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
-    if((BUF_SIZE - b->len) <= 0) return -1;
-    ssize_t n = sock_read(fd, b->buf + b->len, BUF_SIZE - b->len);
+    if(buf_avail(b)<=0) return -1;
+    ssize_t n = sock_read(fd, b->buf + b->len, buf_avail(b));
     if (n > 0) {
         b->len += n;
         if(total) *total += n;
@@ -216,8 +219,8 @@ static inline ssize_t buf_write_fd(struct buf_t *b, int fd, unsigned int *total)
     return n;
 }
 static inline ssize_t buf_read_fp(struct buf_t *b, FILE *fp, unsigned int *total) {
-    if((BUF_SIZE - b->len) <= 0) return -1;
-    ssize_t n = fread(b->buf + b->len, 1, BUF_SIZE - b->len, fp);
+    if(buf_avail(b)<=0) return -1;
+    ssize_t n = fread(b->buf + b->len, 1, buf_avail(b), fp);
     if (n > 0) {
         b->len += n;
         if(total) *total += n;
