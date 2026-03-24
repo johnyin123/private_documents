@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <signal.h>
+#include <ctype.h>
 #if defined(__WIN32__)
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -153,7 +154,7 @@ struct conn_t {
     struct request_t request;
     struct response_t response;
     struct buf_t buf;
-    char store[BUF_SIZE];
+    char storage[BUF_SIZE];
 };
 #define SET_CTX(c, x)     (c)->request.ctx.ctx=x
 #define SET_PTR(c, x)     (c)->request.ctx.ptr=x
@@ -249,24 +250,41 @@ static inline enum method_t http_method(const char *m, int len) {
     }
     return NONE;
 }
+static void inline hexdump(FILE *fp, const void *ptr, int len) {
+    const unsigned char *buf = ptr;
+    for (int i = 0; i < len; i += 16) {
+        fprintf(fp, "%08x:", i);
+        for (int j = 0; j < 16; j++) {
+            if (i + j < len) fprintf(fp, " %02x", buf[i + j]);
+            else fprintf(fp, "   ");
+        }
+        fprintf(fp, "  |");
+        for (int j = 0; j < 16; j++) {
+            if (i + j < len) fprintf(fp, "%c", isprint(buf[i + j]) ? buf[i + j] : '.');
+            else fprintf(fp, " ");
+        }
+        fprintf(fp, "|\n");
+    }
+}
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
     fprintf(fp, GREEN "%s" RESET ":\n", s);
-    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, STATE_STR(c->state), (long int)buf_len(&(c->buf)), c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, STATE_STR(c->state), (long int)buf_len(&c->buf), c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
     fprintf(fp, "  %s HTTP(%.1f) %s\n", METHOD_STR(c->request.method), c->request.version/10.0, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
     if(c->request.s_arg) fprintf(fp, "     ARGS: %s\n", c->request.s_arg);
     fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
+    if((g_trace_level>3)&&(buf_len(&c->buf)>0)) hexdump(fp, buf_buf(&c->buf), buf_len(&c->buf));
 }
 static inline int make_header(struct conn_t *c, const uint16_t status, const enum mime_t mime, const unsigned int content_len) {
     c->response.status = status;
     c->response.mime = mime;
     c->response.content_len = content_len;
-    if(buf_len(&(c->buf))!=0) { /*response header must first*/
+    if(buf_len(&c->buf)!=0) { /*response header must first*/
         debug_conn(c, "make_header warn, buf not empty!!");
-        buf_remove_head(&(c->buf), buf_len(&(c->buf)));
+        buf_remove_head(&c->buf, buf_len(&c->buf));
     }
-    int ret = buf_printf(&(c->buf), "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", c->response.status, STATUS_STR(c->response.status), SRV_INFO, MIME_STR(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
+    int ret = buf_printf(&c->buf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", c->response.status, STATUS_STR(c->response.status), SRV_INFO, MIME_STR(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
     if(ret>0) c->response.header_len = ret;
     return ret;
 }
@@ -281,7 +299,7 @@ static inline int make_response(struct conn_t *c, const uint16_t status, const e
     if(ret<0) return ret; /*format = ""*/
     ret = make_header(c, status, mime, ret);
     if(ret<=0) return ret;
-    ret = buf_push(body.buf, body.len, &(c->buf));
+    ret = buf_push(body.buf, body.len, &c->buf);
     if(ret<0) return ret; /*format = ""*/
     if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + c->response.header_len;
@@ -297,7 +315,6 @@ int body_done(struct ctx_t *ctx);
 int g_trace_level = 0;
 int g_server_sock = 0;
 #if 1
-#include <ctype.h>
 static int parse_header(const struct buf_t *buf, struct request_t *req) {
 #define SET_STR(dst, src, len, max) if(len>max) return HTTP_413; memcpy(dst,src,len); dst[len]=0;
     enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
@@ -399,28 +416,28 @@ static void handle_write(struct conn_t *c) {
     CHK_SOCK_OPER(c, n);
     if(c->response.total_len == (c->response.content_len + c->response.header_len)) {
         debug_conn(c, "response_done");
-        CHK_RC(response_done(&(c->request.ctx)), c);
+        CHK_RC(response_done(&c->request.ctx), c);
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
         debug_conn(c, "ACCESS DONE");
-    } else if(buf_len(&(c->buf))==0) {
+    } else if(buf_len(&c->buf)==0) {
         debug_conn(c, "response_chunk");
-        CHK_RC(response_chunk(&(c->buf), &(c->request.ctx)), c);
+        CHK_RC(response_chunk(&c->buf, &c->request.ctx), c);
     }
 }
 static void handle_read(struct conn_t *c) {
     ssize_t n = REQ_READ(c);
     CHK_SOCK_OPER(c, n);
     if(c->request.header_len<=0) {
-        const char *delm = buf_find(&(c->buf), "\r\n\r\n", 4);
+        const char *delm = buf_find(&c->buf, "\r\n\r\n", 4);
         if(delm) {
-            c->request.header_len = delm - buf_buf(&(c->buf)) + 4;
+            c->request.header_len = delm - buf_buf(&c->buf) + 4;
             CONN_STATE(c, ST_HEAD);
         }
     }
 }
 static void handle_head(struct conn_t *c) {
-    int rc = parse_header(&(c->buf), &(c->request));
-    buf_remove_head(&(c->buf), c->request.header_len);
+    int rc = parse_header(&c->buf, &c->request);
+    buf_remove_head(&c->buf, c->request.header_len);
     if(rc!=EXIT_SUCCESS) { \
         log_error("Error: parse_header %d", rc);
         make_response(c, rc, TEXT, STATUS_STR(rc));
@@ -439,10 +456,10 @@ static void handle_head(struct conn_t *c) {
 }
 static void handle_body(struct conn_t *c) {
     debug_conn(c, "body_chunk");
-    CHK_RC(body_chunk(&(c->buf), &(c->request.ctx)), c);
+    CHK_RC(body_chunk(&c->buf, &c->request.ctx), c);
     if((c->request.content_len+c->request.header_len)<=c->request.total_len) {
         debug_conn(c, "body_done")
-        CHK_RC(body_done(&(c->request.ctx)), c);
+        CHK_RC(body_done(&c->request.ctx), c);
         CONN_STATE(c, ST_RESP);
         debug_conn(c, "response_start");
         response_start(c);
@@ -456,7 +473,7 @@ static void handle_alive(struct conn_t *c) {
     int fd=c->fd;
     memset(c, 0, sizeof(struct conn_t));
     CONN_STATE(c, ST_READ);
-    buf_reset(&(c->buf), c->store, sizeof(c->store));
+    buf_reset(&c->buf, c->storage, sizeof(c->storage));
     c->fd=fd;
 }
 /*============================================================*/
@@ -511,7 +528,7 @@ static void event_loop(int srv_sock) {
                 case ST_READ:
                 case ST_HEAD:
                 case ST_BODY: FD_SET(c->fd, &rset); break;
-                case ST_RESP: if(buf_len(&(c->buf))>0) FD_SET(c->fd, &wset); break;
+                case ST_RESP: if(buf_len(&c->buf)>0) FD_SET(c->fd, &wset); break;
                 default     : continue;
             }
             if(c->fd>maxfd) maxfd=c->fd;
