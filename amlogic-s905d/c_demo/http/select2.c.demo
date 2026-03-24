@@ -54,7 +54,7 @@ extern int g_trace_level;
 #define MAX_HEADERS   8
 #define HDR_KEY_LEN   16
 #define HDR_VAL_LEN   256
-#define BUF_SIZE      (8192 - sizeof(size_t))
+#define BUF_SIZE      (8*1024)
 #define S_HTTP_CODE(X) \
     X(100, Continue) \
     X(200, OK) \
@@ -116,8 +116,9 @@ static const int conn_state_len=ARRAY_LEN(conn_state);
 #define STATE_STR(c)  code2str((c), conn_state, conn_state_len, "N/A")
 #undef _PTR
 struct buf_t {
-    char buf[BUF_SIZE];
+    char *buf;
     size_t len;
+    size_t cap;
 };
 struct ctx_t {
     const void *ptr;
@@ -152,6 +153,7 @@ struct conn_t {
     struct request_t request;
     struct response_t response;
     struct buf_t buf;
+    char store[BUF_SIZE];
 };
 #define SET_CTX(c, x)     (c)->request.ctx.ctx=x
 #define SET_PTR(c, x)     (c)->request.ctx.ptr=x
@@ -160,8 +162,14 @@ struct conn_t {
 #define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
+static inline int buf_init(struct buf_t *b, char *buf, size_t len) {
+    b->buf=buf;
+    b->len=0;
+    b->cap=len;
+    return 0;
+}
 static inline size_t buf_avail(const struct buf_t *b) {
-    return BUF_SIZE - b->len;
+    return b->cap - b->len;
 }
 static inline void buf_remove_head(struct buf_t *b, size_t len) {
     if(b->len<=len) { b->len=0; return; }
@@ -272,7 +280,9 @@ static inline int make_header(struct conn_t *c, const uint16_t status, const enu
 }
 static inline int make_response(struct conn_t *c, const uint16_t status, const enum mime_t mime, const char *format, ...) {
     va_list args;
-    struct buf_t body = {0};
+    char buf[BUF_SIZE];
+    struct buf_t body;
+    buf_init(&body, buf, sizeof(buf));
     va_start(args, format);
     int ret = buf_vprintf(&body, format, args);
     va_end(args);
@@ -488,6 +498,7 @@ static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, const size_t
             memset(&conns[i], 0, sizeof(struct conn_t));
             conns[i].fd=cli_sock;
             CONN_STATE(&conns[i], ST_READ);
+            buf_init(&conns[i].buf, conns[i].store, sizeof(conns[i].store));
             return &conns[i];
         }
     }
