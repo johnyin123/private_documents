@@ -17,6 +17,7 @@
         }
         return NULL;
     }
+    #define sock_errno() WSAGetLastError()
     #define RED
     #define GREEN
     #define RESET
@@ -30,10 +31,12 @@
     #include <netinet/tcp.h>
     #include <fcntl.h>
     #include <errno.h>
+    #define sock_errno() errno
     #define RED   "\033[0;31m"
     #define GREEN "\033[0;32m"
     #define RESET "\033[0m"
 #endif
+static inline int is_wouldblock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
 extern int g_trace_level;
 #define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
 #define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, GREEN "%s:%d" RESET " == "format"\n", __FILE__, __LINE__, ##args); }
@@ -373,7 +376,7 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
 #define CHK_SOCK_OPER(c, n)                                         \
     if(n==0) { CONN_STATE(c, ST_CLOSE); return; } /*peer shutdown*/ \
     if(n<0) {                                                       \
-        if(errno==EAGAIN||errno==EWOULDBLOCK) return;               \
+        if(is_wouldblock(sock_errno())) return;                     \
         CONN_STATE(c, ST_CLOSE);                                    \
         return;                                                     \
     }
@@ -520,8 +523,13 @@ static void event_loop(int srv_sock) {
         }
         if(FD_ISSET(srv_sock, &rset)) {
             int cli_sock = accept(srv_sock, NULL, NULL);
-            if(cli_sock>0) conn_open(cli_sock, conns, MAX_CONNS);
-            else if (errno != EAGAIN && errno != EWOULDBLOCK) log_error("accept %s", strerror(errno));
+            if(cli_sock<0) {
+                int err = sock_errno();
+                if(is_wouldblock(err)) continue;
+                log_error("accept %d", err);
+                continue;
+            }
+            conn_open(cli_sock, conns, MAX_CONNS);
         }
         for(int i=0;i<MAX_CONNS;i++) {
             if(conns[i].state==ST_NONE) continue;
