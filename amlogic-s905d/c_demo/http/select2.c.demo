@@ -85,11 +85,11 @@ extern int g_trace_level;
     X(TRACE,    TRACE) \
     X(CONNECT,  CONNECT)
 #define S_CONN_STATE(X) \
-    X(ST_NONE, NONE) \
-    X(ST_READ, READ) \
-    X(ST_HEAD, HEAD) \
-    X(ST_BODY, BODY) \
-    X(ST_RESP, RESP) \
+    X(ST_NONE,  NONE) \
+    X(ST_READ,  READ) \
+    X(ST_HEAD,  HEAD) \
+    X(ST_BODY,  BODY) \
+    X(ST_RESP,  RESP) \
     X(ST_ALIVE, ALIVE) \
     X(ST_CLOSE, CLOSE)
 
@@ -117,8 +117,8 @@ static const int conn_state_len=ARRAY_LEN(conn_state);
 #undef _PTR
 struct buf_t {
     char *buf;
-    size_t len;
-    size_t cap;
+    uint16_t len; /*used size*/
+    uint16_t capacity; /*buf size*/
 };
 struct ctx_t {
     const void *ptr;
@@ -162,18 +162,13 @@ struct conn_t {
 #define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
-static inline int buf_init(struct buf_t *b, char *buf, size_t len) {
-    b->buf=buf;
-    b->len=0;
-    b->cap=len;
-    return 0;
-}
-static inline size_t buf_avail(const struct buf_t *b) {
-    return b->cap - b->len;
-}
+static inline int buf_reset(struct buf_t *b, char *buf, size_t capacity) { b->buf=buf; b->capacity=capacity; b->len=0; return 0; }
+static inline const char *buf_buf(const struct buf_t *b) { return b->buf; }
+static inline const char* buf_find(struct buf_t *b, const char *s, size_t len) { return b->len < len ? NULL : memmem(b->buf, b->len, s, len); }
+static inline size_t buf_len(const struct buf_t *b) { return b->len; }
+static inline size_t buf_avail(const struct buf_t *b) { return b->capacity - b->len; }
 static inline void buf_remove_head(struct buf_t *b, size_t len) {
-    if(b->len<=len) { b->len=0; return; }
-    memmove(b->buf, b->buf+len, b->len-len);
+    if(len>b->len) memmove(b->buf, b->buf+len, b->len-len);
     b->len-=len;
 }
 static inline int buf_pop(char *dest, size_t len, struct buf_t *b) {
@@ -205,9 +200,6 @@ static inline int buf_printf(struct buf_t *b, const char *format, ...) {
     int n = buf_vprintf(b, format, args);
     va_end(args);
     return n;
-}
-static inline char* buf_find(struct buf_t *b, const char *s, size_t len) {
-    return b->len < len ? NULL : memmem(b->buf, b->len, s, len);
 }
 static inline ssize_t buf_read_fd(struct buf_t *b, int fd, unsigned int *total) {
     if(buf_avail(b)<=0) return -1;
@@ -259,7 +251,7 @@ static inline enum method_t http_method(const char *m, int len) {
 }
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
     fprintf(fp, GREEN "%s" RESET ":\n", s);
-    fprintf(fp, "%s@%d, socket=%d, %s, buf.len=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, STATE_STR(c->state), (long int)c->buf.len, c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
+    fprintf(fp, "%s@%d, socket=%d, %s, buf=%ld, keepalive=%d, ctx=%p, tick=%d\n", f, line, c->fd, STATE_STR(c->state), (long int)buf_len(&(c->buf)), c->request.keep_alive, (void *)GET_PTR(c), c->tick_cnt);
     fprintf(fp, "  %s HTTP(%.1f) %s\n", METHOD_STR(c->request.method), c->request.version/10.0, c->request.s_uri);
     for(int i=0;i<c->request.nprop;i++) fprintf(fp, "    [%d] %s: %s\n", i+1, c->request.prop[i].s_key, c->request.prop[i].s_val);
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
@@ -270,9 +262,9 @@ static inline int make_header(struct conn_t *c, const uint16_t status, const enu
     c->response.status = status;
     c->response.mime = mime;
     c->response.content_len = content_len;
-    if(c->buf.len!=0) { /*response header must first*/
+    if(buf_len(&(c->buf))!=0) { /*response header must first*/
         debug_conn(c, "make_header warn, buf not empty!!");
-        c->buf.len=0;
+        buf_remove_head(&(c->buf), buf_len(&(c->buf)));
     }
     int ret = buf_printf(&(c->buf), "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", c->response.status, STATUS_STR(c->response.status), SRV_INFO, MIME_STR(c->response.mime), c->request.keep_alive ? "keep-alive" : "close", c->response.content_len);
     if(ret>0) c->response.header_len = ret;
@@ -282,7 +274,7 @@ static inline int make_response(struct conn_t *c, const uint16_t status, const e
     va_list args;
     char buf[BUF_SIZE];
     struct buf_t body;
-    buf_init(&body, buf, sizeof(buf));
+    buf_reset(&body, buf, sizeof(buf));
     va_start(args, format);
     int ret = buf_vprintf(&body, format, args);
     va_end(args);
@@ -410,7 +402,7 @@ static void handle_write(struct conn_t *c) {
         CHK_RC(response_done(&(c->request.ctx)), c);
         CONN_STATE(c, c->request.keep_alive ? ST_ALIVE : ST_CLOSE);
         debug_conn(c, "ACCESS DONE");
-    } else if(c->buf.len==0) {
+    } else if(buf_len(&(c->buf))==0) {
         debug_conn(c, "response_chunk");
         CHK_RC(response_chunk(&(c->buf), &(c->request.ctx)), c);
     }
@@ -419,9 +411,9 @@ static void handle_read(struct conn_t *c) {
     ssize_t n = REQ_READ(c);
     CHK_SOCK_OPER(c, n);
     if(c->request.header_len<=0) {
-        char *delm = buf_find(&(c->buf), "\r\n\r\n", 4);
+        const char *delm = buf_find(&(c->buf), "\r\n\r\n", 4);
         if(delm) {
-            c->request.header_len = delm - c->buf.buf + 4;
+            c->request.header_len = delm - buf_buf(&(c->buf)) + 4;
             CONN_STATE(c, ST_HEAD);
         }
     }
@@ -459,13 +451,13 @@ static void handle_body(struct conn_t *c) {
 static void handle_close(struct conn_t *c) {
     close_socket(c->fd);
     CONN_STATE(c, ST_NONE);
-    memset(c, 0, sizeof(struct conn_t)); /* ST_NONE */
 }
 static void handle_alive(struct conn_t *c) {
     int fd=c->fd;
     memset(c, 0, sizeof(struct conn_t));
-    c->fd=fd;
     CONN_STATE(c, ST_READ);
+    buf_reset(&(c->buf), c->store, sizeof(c->store));
+    c->fd=fd;
 }
 /*============================================================*/
 static inline int set_sock_nonblock_nodelay(int fd) {
@@ -495,10 +487,8 @@ static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, const size_t
     set_sock_nonblock_nodelay(cli_sock);
     for(int i=0; i<len; i++) {
         if(conns[i].state == ST_NONE) {
-            memset(&conns[i], 0, sizeof(struct conn_t));
             conns[i].fd=cli_sock;
-            CONN_STATE(&conns[i], ST_READ);
-            buf_init(&conns[i].buf, conns[i].store, sizeof(conns[i].store));
+            handle_alive(&conns[i]);
             return &conns[i];
         }
     }
@@ -521,7 +511,7 @@ static void event_loop(int srv_sock) {
                 case ST_READ:
                 case ST_HEAD:
                 case ST_BODY: FD_SET(c->fd, &rset); break;
-                case ST_RESP: if(c->buf.len>0) FD_SET(c->fd, &wset); break;
+                case ST_RESP: if(buf_len(&(c->buf))>0) FD_SET(c->fd, &wset); break;
                 default     : continue;
             }
             if(c->fd>maxfd) maxfd=c->fd;
