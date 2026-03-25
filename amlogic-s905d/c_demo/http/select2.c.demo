@@ -128,23 +128,20 @@ struct response_t {
     enum mime_t mime;
     uint16_t status;
     uint16_t header_len;
-    unsigned int content_len;
-    unsigned int total_len;
+    unsigned int content_len, total_len;
 };
 struct request_t {
     enum method_t method;
     char s_uri[URI_LEN+1], *s_arg;
     uint8_t version:8;
-    unsigned int keep_alive:1;
-    uint8_t nprop:7;
+    uint8_t keep_alive:1, nprop:7;
     struct {
         char s_key[HDR_KEY_LEN+1];
         char s_val[HDR_VAL_LEN+1];
     } prop[MAX_HEADERS];
     struct ctx_t ctx;
     uint16_t header_len;
-    unsigned int content_len;
-    unsigned int total_len;
+    unsigned int content_len, total_len;
 };
 struct conn_t {
     int fd;
@@ -486,13 +483,13 @@ static inline int set_sock_nonblock_nodelay(int fd) {
 static inline int create_tcp_server(const char *addr, int port, int backlog) {
     int srv_sock;
     struct sockaddr_in sa = { .sin_family = AF_INET, .sin_addr.s_addr = inet_addr(addr), .sin_port = htons(port) };
-    if ((srv_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) return -1;
-    if (bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa)) == -1 || listen(srv_sock, backlog) == -1) {
+    if((srv_sock = socket(AF_INET, SOCK_STREAM, 0))<0) return -1;
+    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
+    if(bind(srv_sock,(struct sockaddr*)&sa,sizeof(sa))<0 || listen(srv_sock, backlog)<0) {
         log_error("create socket %s", strerror(errno));
         close_socket(srv_sock);
         return -1;
     }
-    setsockopt(srv_sock, SOL_SOCKET, SO_REUSEADDR, (void *)&(int){1}, sizeof(int));
     set_sock_nonblock_nodelay(srv_sock);
     return srv_sock;
 }
