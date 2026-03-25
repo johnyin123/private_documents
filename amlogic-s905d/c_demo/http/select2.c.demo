@@ -584,6 +584,7 @@ int main(const int argc, char const* argv[]) {
 /*############################################################*/
 struct act_t {
     const enum method_t method;
+    size_t uri_len;
     const char *s_uri;
     void (*on_req_start)(struct conn_t *c);
     int  (*on_req_body)(struct buf_t *buf, void *ctx);
@@ -592,6 +593,7 @@ struct act_t {
     int  (*on_resp_chunk)(struct buf_t *buf, void *ctx);
     int  (*on_resp_done)(void *ctx);
 };
+#define ACT(m, u, ...)     { m, sizeof(u)-1, u, __VA_ARGS__ }
 static inline const struct act_t *find_action(const enum method_t method, const char *s_uri) {
     extern const int g_acts_len;
     extern const struct act_t g_acts[];
@@ -665,8 +667,8 @@ int download_done(void *ctx) {
     return EXIT_SUCCESS;
 }
 const struct act_t g_acts[] = {
-  {.method=METHOD_GET,  .s_uri="/small", .on_resp_start=small_start, },
-  {.method=METHOD_GET,  .s_uri="/big", .on_resp_start=download_start, .on_resp_chunk=download_chunk, .on_resp_done=download_done },
-  {.method=METHOD_POST, .s_uri="/big", .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp },
+  ACT(METHOD_GET, "/small", .on_resp_start=small_start),
+  ACT(METHOD_GET, "/big",   .on_resp_start=download_start, .on_resp_chunk=download_chunk, .on_resp_done=download_done),
+  ACT(METHOD_POST,"/big",   .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp),
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
