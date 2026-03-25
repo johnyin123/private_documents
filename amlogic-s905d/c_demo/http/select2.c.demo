@@ -57,23 +57,23 @@ extern int g_trace_level;
 #define HDR_VAL_LEN   256
 #define BUF_SIZE      (8*1024)
 #define S_HTTP_CODE(X) \
-    X(100, Continue) \
-    X(200, OK) \
-    X(400, Bad Request) \
-    X(403, Forbidden) \
-    X(404, Not Found) \
-    X(405, Method Not Allowed) \
-    X(406, Not Acceptable) \
-    X(413, Request Entity Too Large) \
-    X(414, Request-URI Too Long) \
-    X(500, Internal Server Error) \
-    X(501, Not Implemented) \
-    X(503, Service Unavailable) \
-    X(505, HTTP Version not supported)
+    X(100,      Continue) \
+    X(200,      OK) \
+    X(400,      Bad Request) \
+    X(403,      Forbidden) \
+    X(404,      Not Found) \
+    X(405,      Method Not Allowed) \
+    X(406,      Not Acceptable) \
+    X(413,      Request Entity Too Large) \
+    X(414,      Request-URI Too Long) \
+    X(500,      Internal Server Error) \
+    X(501,      Not Implemented) \
+    X(503,      Service Unavailable) \
+    X(505,      HTTP Version not supported)
 #define S_MIME_TYPE(X) \
-    X(BIN, application/octet-stream) \
-    X(JSON, application/json) \
-    X(TEXT, text/plain; charset=utf-8)
+    X(BIN,      application/octet-stream) \
+    X(JSON,     application/json) \
+    X(TEXT,     text/plain; charset=utf-8)
 #define S_METHOD(X) \
     X(NONE, NONE) \
     X(GET,      GET) \
@@ -250,20 +250,16 @@ static inline enum method_t http_method(const char *m, int len) {
     }
     return NONE;
 }
-static void inline hexdump(FILE *fp, const void *ptr, int len) {
+static void inline hexdump(FILE *fp, const void *ptr, size_t len) {
     const unsigned char *buf = ptr;
-    for (int i = 0; i < len; i += 16) {
-        fprintf(fp, "%08x:", i);
-        for (int j = 0; j < 16; j++) {
-            if (i + j < len) fprintf(fp, " %02x", buf[i + j]);
-            else fprintf(fp, "   ");
-        }
-        fprintf(fp, "  |");
-        for (int j = 0; j < 16; j++) {
-            if (i + j < len) fprintf(fp, "%c", isprint(buf[i + j]) ? buf[i + j] : '.');
-            else fprintf(fp, " ");
-        }
-        fprintf(fp, "|\n");
+    for (size_t i = 0; i < len; i += 16, fprintf(fp, "\n")) {
+        fprintf(fp, "%08x: ", (int)i);
+        for (size_t j = 0; j < 16; j++)
+            i+j < len ? fprintf(fp, "%02x ", buf[i+j]) : fprintf(fp, "   ");
+        fprintf(fp, " |");
+        for (int j = 0; j < 16 && i+j < len; j++)
+            fprintf(fp, "%c", isprint(buf[i+j]) ? buf[i+j] : '.');
+        fprintf(fp, "|");
     }
 }
 static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* c, const char *f, int line) {
