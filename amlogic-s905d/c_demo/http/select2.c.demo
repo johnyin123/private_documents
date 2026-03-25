@@ -306,7 +306,6 @@ int body_done(struct ctx_t *ctx);
 /*############################################################*/
 int g_trace_level = 0;
 int g_server_sock = 0;
-#if 1
 static int parse_header(const struct buf_t *buf, struct request_t *req) {
 #define SET_STR(dst, src, len, max) if(len>max) return HTTP_413; memcpy(dst,src,len); dst[len]=0;
     enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
@@ -349,45 +348,6 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
     return (state == PARSE_DONE) ? EXIT_SUCCESS : HTTP_400;
 #undef SET_STR
 }
-#else
-static int parse_header(const struct buf_t *buf, struct request_t *req) {
-    #define METHOD_LEN    8
-    char method[METHOD_LEN+1];
-    unsigned int vhi, vlo;
-    char *line = memmem(buf->buf, req->header_len, "\r\n", 2);
-    *line = '\0';
-    if(4!=sscanf(line, "%" XSTR(METHOD_LEN) "s %" XSTR(URI_LEN) "s HTTP/%u.%u", method, req->s_uri, &vhi, &vlo)) return HTTP_400;
-    if((req->method = http_method(method, strlen(method)))==NONE) return HTTP_501;
-    req->version = vhi * 10 + vlo;
-    req->s_arg = strchr(req->s_uri, '?');
-    if(req->s_arg) *(req->s_arg++)='\0';
-    const char *end = buf->buf + req->header_len;
-    while(line&&line<end-2) {
-        char *next = memmem(line + 2, req->header_len-(line + 2 - buf->buf), "\r\n", 2);
-        if(!next) break;
-        *next = '\0';
-        if(next==line + 2) break; // empty line (end headers)
-        size_t len = next - (line + 2);
-        if(len<HDR_KEY_LEN+HDR_VAL_LEN) {
-            if(req->nprop>=MAX_HEADERS) return HTTP_413;
-            if(2==sscanf(line + 2, "%" XSTR(HDR_KEY_LEN) "[^:]: %" XSTR(HDR_VAL_LEN) "[^ \t\r\n]", req->prop[req->nprop].s_key, req->prop[req->nprop].s_val)) {
-                if(strcasecmp(req->prop[req->nprop].s_key, "Content-Length") == 0) {
-                    req->content_len = atoi(req->prop[req->nprop].s_val);
-                    if(req->content_len<0) return HTTP_406;
-                } else if(strcasecmp(req->prop[req->nprop].s_key, "Connection")==0) {
-                    if(strcasecmp(req->prop[req->nprop].s_val, "keep-alive")==0 && req->version==11) req->keep_alive=1;
-                } else {
-                    req->nprop++;
-                }
-            } else {
-                return HTTP_406;
-            }
-        }
-        line = next;
-    }
-    return EXIT_SUCCESS;
-}
-#endif
 #define CHK_SOCK_OPER(c, n)                                         \
     if(n==0) { CONN_STATE(c, ST_CLOSE); return; } /*peer shutdown*/ \
     if(n<0) {                                                       \
