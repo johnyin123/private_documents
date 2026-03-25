@@ -239,10 +239,10 @@ static inline const char *code2str(const uint16_t code, const char *tbl[], const
     }
     return nodef;
 }
-static inline enum method_t http_method(const char *m, int len) {
+static inline enum method_t http_method(const char *m, size_t len) {
     for(int i=0;i<method_map_len;i++) {
         const char *s = METHOD_STR(i);
-        if(strlen(s)==(size_t)len && memcmp(m, s, len)==0) return i;
+        if(strlen(s)==len && memcmp(m, s, len)==0) return i;
     }
     return METHOD_NONE;
 }
