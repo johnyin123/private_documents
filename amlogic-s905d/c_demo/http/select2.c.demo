@@ -70,28 +70,28 @@ extern int g_trace_level;
     X(503,      Service Unavailable) \
     X(505,      HTTP Version not supported)
 #define S_MIME_TYPE(X) \
-    X(BIN,      application/octet-stream) \
-    X(JSON,     application/json) \
-    X(TEXT,     text/plain; charset=utf-8)
+    X(MIME_BIN,       application/octet-stream) \
+    X(MIME_JSON,      application/json) \
+    X(MIME_TEXT,      text/plain; charset=utf-8)
 #define S_METHOD(X) \
-    X(NONE, NONE) \
-    X(GET,      GET) \
-    X(POST,     POST) \
-    X(PUT,      PUT) \
-    X(DELETE,   DELETE) \
-    X(HEAD,     HEAD) \
-    X(OPTIONS,  OPTIONS) \
-    X(PATCH,    PATCH) \
-    X(TRACE,    TRACE) \
-    X(CONNECT,  CONNECT)
+    X(METHOD_NONE,     NONE) \
+    X(METHOD_GET,      GET) \
+    X(METHOD_POST,     POST) \
+    X(METHOD_PUT,      PUT) \
+    X(METHOD_DELETE,   DELETE) \
+    X(METHOD_HEAD,     HEAD) \
+    X(METHOD_OPTIONS,  OPTIONS) \
+    X(METHOD_PATCH,    PATCH) \
+    X(METHOD_TRACE,    TRACE) \
+    X(METHOD_CONNECT,  CONNECT)
 #define S_CONN_STATE(X) \
-    X(ST_NONE,  NONE) \
-    X(ST_READ,  READ) \
-    X(ST_HEAD,  HEAD) \
-    X(ST_BODY,  BODY) \
-    X(ST_RESP,  RESP) \
-    X(ST_ALIVE, ALIVE) \
-    X(ST_CLOSE, CLOSE)
+    X(ST_NONE,         NONE) \
+    X(ST_READ,         READ) \
+    X(ST_HEAD,         HEAD) \
+    X(ST_BODY,         BODY) \
+    X(ST_RESP,         RESP) \
+    X(ST_ALIVE,        ALIVE) \
+    X(ST_CLOSE,        CLOSE)
 
 #define _ITEM(c, n)   c,
 enum mime_t       { S_MIME_TYPE(_ITEM) };
@@ -101,7 +101,7 @@ enum conn_state_t { S_CONN_STATE(_ITEM) };
 #define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
 #undef _ITEM
-#define _ITEM(c, n)    [c] = STR(n),
+#define _ITEM(c, n)    [c] = #n,
 static const char *http_status[] = { S_HTTP_CODE(_ITEM) };
 static const int http_status_len=ARRAY_LEN(http_status);
 #define STATUS_STR(c) code2str((c), http_status, http_status_len, "No Defined")
@@ -167,7 +167,10 @@ static inline const char *buf_buf(const struct buf_t *b) { return b->buf; }
 static inline const char* buf_find(struct buf_t *b, const char *s, size_t len) { return b->len < len ? NULL : memmem(b->buf, b->len, s, len); }
 static inline size_t buf_len(const struct buf_t *b) { return b->len; }
 static inline size_t buf_avail(const struct buf_t *b) { return b->capacity - b->len; }
-static inline void buf_remove_head(struct buf_t *b, size_t n) { n >= b->len ? (b->len = 0) : memmove(b->buf, b->buf + n, b->len -= n); }
+static inline void buf_remove_head(struct buf_t *b, size_t n) {
+    if(n >= b->len) b->len = 0;
+    else memmove(b->buf, b->buf + n, b->len -= n);
+}
 static inline int buf_pop(char *dest, size_t len, struct buf_t *b) {
     int n=(len>b->len?b->len:len);
     memcpy(dest, b->buf, n);
@@ -244,7 +247,7 @@ static inline enum method_t http_method(const char *m, int len) {
         const char *s = METHOD_STR(i);
         if(strlen(s)==(size_t)len && memcmp(m, s, len)==0) return i;
     }
-    return NONE;
+    return METHOD_NONE;
 }
 static void inline hexdump(FILE *fp, const void *ptr, size_t len) {
     const unsigned char *buf = ptr;
@@ -314,7 +317,7 @@ static int parse_header(const struct buf_t *buf, struct request_t *req) {
     for(;p<end && state!=PARSE_DONE; p++) {
         char c = *p;
         if(state == PARSE_METHOD && c==' ') {
-            if((req->method=http_method(start, p-start))==NONE) return HTTP_501;
+            if((req->method=http_method(start, p-start))==METHOD_NONE) return HTTP_501;
             state = PARSE_URI;start = p + 1;
         } else if(state==PARSE_URI && c==' ') {
             SET_STR(req->s_uri, start, p - start, URI_LEN);
@@ -433,11 +436,11 @@ static void handle_head(struct conn_t *c) {
     buf_remove_head(&c->buf, c->request.header_len);
     if(rc!=EXIT_SUCCESS) { \
         log_error("Error: parse_header %d", rc);
-        make_response(c, rc, TEXT, STATUS_STR(rc));
+        make_response(c, rc, MIME_TEXT, STATUS_STR(rc));
         return;
     }
     if(c->request.content_len>0) {
-        if(c->request.method != POST) { CONN_STATE(c, ST_CLOSE); return; }
+        if(c->request.method != METHOD_POST) { CONN_STATE(c, ST_CLOSE); return; }
         CONN_STATE(c, ST_BODY);
         debug_conn(c, "body_start");
         body_start(c);
@@ -608,7 +611,7 @@ static const struct act_t *get_action(struct conn_t *c) {
 void response_start(struct conn_t *c) {
     const struct act_t *a = get_action(c);
     if(a && a->on_resp_start) a->on_resp_start(c);
-    else make_response(c, HTTP_404, TEXT, "action not found");
+    else make_response(c, HTTP_404, MIME_TEXT, "action not found");
 }
 int response_chunk(struct buf_t *buf, struct ctx_t *ctx) {
     if(ctx->ptr && ((const struct act_t *)ctx->ptr)->on_resp_chunk) return ((const struct act_t *)ctx->ptr)->on_resp_chunk(buf, ctx->ctx);
@@ -632,12 +635,12 @@ int body_done(struct ctx_t *ctx) {
 }
 /*############################################################*/
 static void small_start(struct conn_t *c) {
-    make_response(c, HTTP_200, JSON, "get all ok");
+    make_response(c, HTTP_200, MIME_JSON, "get all ok");
 }
 static const char *fname="output.txt";
 static void upload_start(struct conn_t *c) {
     SET_CTX(c, fopen(fname, "wb"));
-    if(GET_CTX(c)==NULL) make_response(c, HTTP_500, TEXT, "Cannot open file");
+    if(GET_CTX(c)==NULL) make_response(c, HTTP_500, MIME_TEXT, "Cannot open file");
 }
 static int upload_chunk(struct buf_t *buf, void *ctx) {
     if(ctx) return buf_write_fp(buf, (FILE *)ctx, NULL)>=0?EXIT_SUCCESS:EXIT_FAILURE;
@@ -645,16 +648,16 @@ static int upload_chunk(struct buf_t *buf, void *ctx) {
 }
 static void upload_resp(struct conn_t *c) {
     if(GET_CTX(c)) fclose((FILE *)GET_CTX(c));
-    make_response(c, HTTP_200, JSON, "{\"status\":\"ok\"}");
+    make_response(c, HTTP_200, MIME_JSON, "{\"status\":\"ok\"}");
 }
 #include <sys/stat.h>
 void download_start(struct conn_t *c) {
     struct stat st;
     if(stat(fname, &st)) {
-        make_response(c, HTTP_404, TEXT, "file not found");
+        make_response(c, HTTP_404, MIME_TEXT, "file not found");
     } else {
         SET_CTX(c, fopen(fname, "rb"));
-        make_header(c, HTTP_200, BIN, st.st_size);
+        make_header(c, HTTP_200, MIME_BIN, st.st_size);
     }
 }
 int download_chunk(struct buf_t *buf, void *ctx) {
@@ -665,8 +668,8 @@ int download_done(void *ctx) {
     return EXIT_SUCCESS;
 }
 const struct act_t g_acts[] = {
-  {.method=GET,  .s_uri="/small", .on_resp_start=small_start, },
-  {.method=GET,  .s_uri="/big", .on_resp_start=download_start, .on_resp_chunk=download_chunk, .on_resp_done=download_done },
-  {.method=POST, .s_uri="/big", .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp },
+  {.method=METHOD_GET,  .s_uri="/small", .on_resp_start=small_start, },
+  {.method=METHOD_GET,  .s_uri="/big", .on_resp_start=download_start, .on_resp_chunk=download_chunk, .on_resp_done=download_done },
+  {.method=METHOD_POST, .s_uri="/big", .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp },
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
