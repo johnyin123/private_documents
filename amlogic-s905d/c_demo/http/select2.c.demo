@@ -249,7 +249,7 @@ static inline enum method_t http_method(const char *m, size_t len) {
 static void inline hexdump(FILE *fp, const void *ptr, size_t len) {
     const unsigned char *buf = ptr;
     for(size_t i = 0; i < len; i += 16, fprintf(fp, "\n")) {
-        fprintf(fp, "%08x: ", (int)i);
+        fprintf(fp, "%08zx: ", i);
         for(size_t j = 0; j < 16; j++)
             i+j < len ? fprintf(fp, "%02x ", buf[i+j]) : fprintf(fp, "   ");
         fprintf(fp, " |");
@@ -503,7 +503,7 @@ static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, const size_t
         }
     }
     close_socket(cli_sock);
-    log_error("max connection %d exceed", (int)len);
+    log_error("max connection %08zx exceed", len);
     return NULL;
 }
 /*============================================================*/
