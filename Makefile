@@ -21,7 +21,7 @@ include $(INCFILE)
 # # define EXPORT_API __attribute__((visibility("default")))
 # # objdump -T libmyutils.so
 # CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
-# CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
+# CFLAGS+=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
 # LIBFLAGS+=-l:test.so -lpthread#`pkg-config --libs libssl`
 # LDFLAGS+=#-static #-Wl,-Bstatic -lxx1 -lxx2 -Wl,-Bdynamic -ldynxx1
@@ -34,9 +34,9 @@ endif
 EXE         ?= indb
 
 ifdef DEBUG
-	DEBUG_FLAG+=-g -DDEBUG 
+	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
 else 
-	DEBUG_FLAG+=-O3 -fomit-frame-pointer -pipe
+	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
 endif
 
 SRC=$(wildcard *.c)
