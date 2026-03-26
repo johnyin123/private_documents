@@ -35,7 +35,7 @@ EXE         ?= indb
 
 ifdef DEBUG
 	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
-else 
+else
 	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
 endif
 
@@ -44,31 +44,27 @@ OBJ=$(SRC:.c=.o)
 #SRCPP=$(wildcard *.cpp)
 #OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
-%.o: %.c 
-	@echo -n "\033[1;31m"
+%.o: %.c
+	@printf "\033[1;31m"
 	$(CC) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
-	@echo -n "\033[m"
+	@printf "\033[m"
 
 %.md.docx : %.md
 	$(PANDOCDOC) $< -o $@
 
 .PHONY : all
 all: $(EXE) strip
+	@printf "\033[1;32m  BUILD $(EXE) SUCCESS \033[m\n"
 
 strip: $(EXE)
 	$(STRIP) $(EXE)
 
-$(EXE): $(OBJ) 
+$(EXE): $(OBJ)
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
 
 .PHONY : clean
 clean:
 	-$(RM) $(OBJ) $(EXE) $(DOCX)
-
-run:
-	@echo run $(filter-out $@,$(MAKECMDGOALS))
-%:
-	@:
 
 version:
 	$(shell if [ ! -f "version.h" ]; then {  \
@@ -123,7 +119,7 @@ docs: $(DOCX)
 
 # @manager = admin
 # @developer = admin
-# 
+#
 # repo CREATOR/..*
 # 	C   =   @all
 # 	RW+ =   CREATOR @manager
@@ -173,7 +169,7 @@ docs: $(DOCX)
 # git checkout master
 # git diff v1.2 > ../patch     ||   git format-patch v1.2
 # git checkout v1.2
-# git apply ../patch 
+# git apply ../patch
 
 #lock file
 #ssh git@localhost lock -l gitolite-admin conf/gitolite.conf
@@ -219,7 +215,7 @@ docs: $(DOCX)
 # git flow init -d
 # git flow feature start xxx
 # git flow feature finish xxx
-# 
+#
 # git flow release start 1.1.5
 # git flow release finish 1.1.5
 # git push origin --tags
