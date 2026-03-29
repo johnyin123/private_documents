@@ -15,8 +15,8 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
-#include <curl/curl.h>
 #include "demo.h"
+#include <curl/curl.h>
 #include "cJSON.h"
 
 static int test_cjson() {
@@ -65,8 +65,7 @@ static int test_curl() {
     curl_global_cleanup();
     return 0;
 }
-int dllmain(int argc, char *argv[])
-{
+int dllmain(int argc, char *argv[]) {
     for (int i = 0; i < argc; ++i) {
         debugln("input %d, %s\n", i, argv[i]);
     }
@@ -74,3 +73,20 @@ int dllmain(int argc, char *argv[])
     test_cjson();
     return 0;
 }
+void my_initializer() {
+    printf("Library initialized!\n");
+}
+void my_deinitializer() {
+    printf("Library deinitialized!\n");
+}
+#if defined _WIN32__
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {
+    switch (ul_reason_for_call) {
+        case DLL_PROCESS_ATTACH: my_initializer(); break
+        case DLL_THREAD_ATTACH:
+        case DLL_THREAD_DETACH:
+        case DLL_PROCESS_DETACH: my_deinitializer(); break;
+    }
+    return TRUE;
+}
+#endif

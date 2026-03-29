@@ -4,8 +4,9 @@
 extern "C" {
 #endif
 
-#define BUILDING_LIBRARY
-#if defined _WIN32 || defined __CYGWIN__
+#if defined _WIN32__ || defined __CYGWIN__
+    #define LIB_INIT
+    #define LIB_DEINIT
     #ifdef BUILDING_LIBRARY
         #define EXPORT_API __declspec(dllexport)
     #else
@@ -14,8 +15,12 @@ extern "C" {
 #elif defined __GNUC__
     #ifdef BUILDING_LIBRARY
         #define EXPORT_API __attribute__((visibility("default")))
+        #define LIB_INIT   __attribute__((constructor))
+        #define LIB_DEINIT __attribute__((destructor))
     #else
         #define EXPORT_API extern
+        #define LIB_INIT
+        #define LIB_DEINIT
     #endif
 #else
     #error "Unknown compiler or operating system"
@@ -29,6 +34,8 @@ extern "C" {
 #endif
 
 EXPORT_API int dllmain(int argc, char *argv[]);
+LIB_INIT void my_initializer();
+LIB_DEINIT void my_deinitializer();
 
 #ifdef __cplusplus
 }

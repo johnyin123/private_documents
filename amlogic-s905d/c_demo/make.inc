@@ -1,5 +1,5 @@
 EXE?=libneusoft.so
-CFLAGS+=-DCURL_STATICLIB -D_GNU_SOURCE -D__USE_XOPEN -O2 -fvisibility=hidden -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
+CFLAGS+=-DBUILDING_LIBRARY -DCURL_STATICLIB -D_GNU_SOURCE -D__USE_XOPEN -O2 -fvisibility=hidden -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
 LDFLAGS+=-shared
 LDFLAGS+=-Wl,-Bstatic -lcurl -Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
