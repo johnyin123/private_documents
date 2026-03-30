@@ -1,8 +1,8 @@
-EXE?=libneusoft.dll
-CFLAGS+=-DBUILDING_LIBRARY -DCURL_STATICLIB -D_GNU_SOURCE -D__USE_XOPEN -O2 -fvisibility=hidden -march=native -mfpmath=sse -Ofast -flto -march=native -funroll-loops
-LDFLAGS+=-shared -Wl,--out-implib,libneusoft.dll.a 
-LDFLAGS+=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi 
-LDFLAGS+=-Wl,-Bstatic -lcurl -Wl,-Bdynamic
+EXE     ?=HeaSecReadInfo.dll
+CFLAGS  +=-DBUILDING_LIBRARY -D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
+LDFLAGS +=-shared
+LDFLAGS +=-Wl,--out-implib,libHeaSecReadInfo.lib
+LDFLAGS +=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi
 LIBFLAGS+=-Wl,-rpath,./
-INC_PATH+=-I./win/curl/include
-LIB_PATH+=-L./win/curl/lib/.libs
+INC_PATH+=-I./mylibs/include
+LIB_PATH+=-L./mylibs/lib
