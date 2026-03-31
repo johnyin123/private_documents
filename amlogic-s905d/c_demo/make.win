@@ -2,6 +2,7 @@ EXE     ?=HeaSecReadInfo.dll
 CFLAGS  +=-DCURL_STATICLIB -DBUILDING_LIBRARY -D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
 LDFLAGS +=-shared
 LDFLAGS +=-Wl,--out-implib,libHeaSecReadInfo.lib
+LDFLAGS +=-L./ -lSSCardDriver
 LDFLAGS +=-Wl,-Bstatic -lcurl -lssl -lcrypto -lexpat -liconv -Wl,-Bdynamic
 LDFLAGS +=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi
 LIBFLAGS+=-Wl,-rpath,./
