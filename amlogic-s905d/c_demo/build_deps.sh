@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 MYLIB_DEPS=${DIRNAME}/mylibs
-# MYCROSS=x86_64-w64-mingw32
+# MYCROSS=x86_64-w64-mingw32 / i686-w64-mingw32
 (cd openssl && make distclean && ./Configure ${MYCROSS:+mingw64 --cross-compile-prefix=${MYCROSS}-} \
     --prefix=${MYLIB_DEPS} no-zstd no-zlib \
     no-shared no-threads no-tests no-legacy no-apps no-docs \
