@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-#if defined _WIN32__ || defined __CYGWIN__
+#if defined __WIN32__ || defined __CYGWIN__
     #define LIB_INIT
     #define LIB_DEINIT
     #ifdef BUILDING_LIBRARY
@@ -34,8 +34,8 @@ extern "C" {
 #endif
 
 EXPORT_API int dllmain(int argc, char *argv[]);
-LIB_INIT void my_initializer();
-LIB_DEINIT void my_deinitializer();
+LIB_INIT void Initializer();
+LIB_DEINIT void Deinitializer();
 
 #ifdef __cplusplus
 }
