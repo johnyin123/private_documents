@@ -8,10 +8,10 @@ int dllmain(int argc, char *argv[]) {
     return 0;
 }
 void Initializer() {
-    printf("Library initialized!\n");
+    debugln("Library initialized!\n");
 }
 void Deinitializer() {
-    printf("Library deinitialized!\n");
+    debugln("Library deinitialized!\n");
 }
 #if defined __WIN32__
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {

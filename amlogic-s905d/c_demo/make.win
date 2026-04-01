@@ -6,5 +6,5 @@ LDFLAGS +=-L./ -lSSCardDriver
 LDFLAGS +=-Wl,-Bstatic -lcurl -lssl -lcrypto -lexpat -liconv -Wl,-Bdynamic
 LDFLAGS +=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi
 LIBFLAGS+=-Wl,-rpath,./
-INC_PATH+=-I./mylibs/include
-LIB_PATH+=-L./mylibs/lib
+INC_PATH+=-I./mylibs.mingw/include
+LIB_PATH+=-L./mylibs.mingw/lib

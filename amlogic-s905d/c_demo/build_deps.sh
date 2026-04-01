@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-MYLIB_DEPS=${DIRNAME}/mylibs
-# MYCROSS=x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
-WIN_TGT=mingw64
+MYCROSS=  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
+WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "i686-w64-mingw32" ] && WIN_TGT=mingw
+[ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && WIN_TGT=mingw64
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
+MYLIB_DEPS=${DIRNAME}/mylibs.${WIN_TGT}
+[ -d "${MYLIB_DEPS}" ] && { echo "${MYLIB_DEPS} exists!"; exit 1; }
 (cd openssl && { make distclean||true; } && ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
     --prefix=${MYLIB_DEPS} no-zstd no-zlib \
     no-shared no-threads no-tests no-legacy no-apps no-docs \
