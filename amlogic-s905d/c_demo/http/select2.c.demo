@@ -44,7 +44,7 @@
     __auto_type _result = (func_call); \
     clock_gettime(CLOCK_MONOTONIC, &end); \
     double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9; \
-    debugln("[%s] Duration: %.9f seconds\n", #func_call, elapsed); \
+    debugln("[%s] Duration: %.9f seconds", #func_call, elapsed); \
     _result; \
 })
 static inline int is_wouldblock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
