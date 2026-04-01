@@ -37,6 +37,16 @@
     #define GREEN "\033[0;32m"
     #define RESET "\033[0m"
 #endif
+#include <time.h>
+#define SHOW_EXECUTION_TIME(func_call) ({ \
+    struct timespec start, end; \
+    clock_gettime(CLOCK_MONOTONIC, &start); \
+    __auto_type _result = (func_call); \
+    clock_gettime(CLOCK_MONOTONIC, &end); \
+    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9; \
+    debugln("[%s] Duration: %.9f seconds\n", #func_call, elapsed); \
+    _result; \
+})
 static inline int is_wouldblock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
 extern int g_trace_level;
 #define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
