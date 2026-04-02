@@ -19,12 +19,17 @@ include $(INCFILE)
 # # make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
 # EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
-# # objdump -T libmyutils.so
-# CFLAGS+=-fvisibility=hidden # only export visibility func, when make share so
-# CFLAGS+=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
-# LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
+# # objdump -T libmyutils.so|grep 'DF .text' || gendef - HeaSecReadInfo.dll
+# # CFLAGS  +=-DCJSON_HIDE_SYMBOLS -DCURL_STATICLIB -DBUILDING_LIBRARY
+# CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
 # LIBFLAGS+=-l:test.so -lpthread#`pkg-config --libs libssl`
-# LDFLAGS+=#-static #-Wl,-Bstatic -lxx1 -lxx2 -Wl,-Bdynamic -ldynxx1
+# # not include libs for .so/.dll export
+# LDFLAGS +=-Wl,--exclude-libs,ALL
+# # linke dynlib3.so even not need!!
+# LDFLAGS +=-Wl,--no-as-needed -L./ -ldynlib3
+# LDFLAGS +=-Wl,-Bdynamic -ldynxx1 -ldynxx2
+# LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
+# LDFLAGS+=#-static #-Wl,-Bstatic -lxx1 -lxx2
 # LDFLAGS+=#-shared # must -fPIC compile xxx lib, when .so
 # LDFLAGS+=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis

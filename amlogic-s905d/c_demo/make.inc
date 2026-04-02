@@ -1,8 +1,14 @@
 EXE     ?=libHeaSecReadInfo.so
-CFLAGS  +=-DCURL_STATICLIB -DBUILDING_LIBRARY -D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -flto -march=native -funroll-loops
+CFLAGS  +=-DCJSON_HIDE_SYMBOLS -DCURL_STATICLIB -DBUILDING_LIBRARY
+CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -flto -march=native -funroll-loops
 LDFLAGS +=-shared
 LDFLAGS +=-L./ -lSSCardDriver -Wl,--no-as-needed -L./ -ldcrf32
-LDFLAGS +=-Wl,-Bstatic -lcurl -lssl -lcrypto -lexpat -liconv -Wl,-Bdynamic
+# static link libs
+LDFLAGS +=-Wl,-Bstatic -lcurl -lssl -lcrypto -lexpat -liconv
+# not export static link libs funcs
+LDFLAGS +=-Wl,--exclude-libs,ALL
+# othre dynamic link
+LDFLAGS +=-Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
 INC_PATH+=-I./mylibs.linux-x86_64/include
 LIB_PATH+=-L./mylibs.linux-x86_64/lib

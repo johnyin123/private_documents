@@ -3,7 +3,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+/* show export funcs: objdump -T libHeaSecReadInfo.so  | grep 'DF .text' */
+/* mingw show exports: gendef - HeaSecReadInfo.dll */
 #if defined __WIN32__ || defined __CYGWIN__
     #define LIB_INIT
     #define LIB_DEINIT
@@ -34,8 +35,6 @@ extern "C" {
 #endif
 
 EXPORT_API int dllmain(int argc, char *argv[]);
-LIB_INIT void Initializer();
-LIB_DEINIT void Deinitializer();
 
 #ifdef __cplusplus
 }
