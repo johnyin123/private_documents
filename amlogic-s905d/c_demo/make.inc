@@ -10,5 +10,6 @@ LDFLAGS +=-Wl,--exclude-libs,ALL
 # othre dynamic link
 LDFLAGS +=-Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
+LDFLAGS +=-static-libgcc
 INC_PATH+=-I./mylibs.linux-x86_64/include
 LIB_PATH+=-L./mylibs.linux-x86_64/lib
