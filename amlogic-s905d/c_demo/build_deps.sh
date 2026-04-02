@@ -6,14 +6,13 @@ WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
 MYLIB_DEPS=${DIRNAME}/mylibs.${WIN_TGT}
-# MYLIB_DEPS=${DIRNAME}/mylibs
 [ -d "${MYLIB_DEPS}" ] && { echo "${MYLIB_DEPS} exists!"; exit 1; }
 (cd openssl && { make distclean||true; } && ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
-    --prefix=${MYLIB_DEPS} no-zstd no-zlib \
+    LIBDIR=lib --prefix=${MYLIB_DEPS} no-zstd no-zlib \
     no-shared no-threads no-tests no-legacy no-apps no-docs \
     && perl configdata.pm --dump \
-    && make -j "$(nproc)" build_libs \
-    && make -j "$(nproc)" install_sw LIBDIR=lib) || { echo  'error~~openssl'; exit 1; }
+    && make LIBDIR=lib -j "$(nproc)" build_libs \
+    && make LIBDIR=lib -j "$(nproc)" install_sw) || { echo  'error~~openssl'; exit 1; }
 (cd curl && { make distclean||true; } && ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
     --with-pic=yes --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes \
