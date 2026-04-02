@@ -1,22 +1,10 @@
-UUID        := $(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
-GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
-GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
-GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
-BUILD_DATE  := $(shell date --iso=seconds)
-PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=frenchb -V fontsize=11pt -V geometry:margin=3cm -V papersize=a4paper
-DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
-CC          := $(CROSS_COMPILE)gcc -std=c99
-STRIP       := $(CROSS_COMPILE)strip
-RM          := rm -f
-
-DEBUG_FLAG  += -Wall
-
 INCFILE     ?= make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
 # # apt -y install gcc-mingw-w64-x86-64 ntldd
-# # make CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
+# # make INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
+# # CROSS_COMPILE=x86_64-w64-mingw32-
 # EXE?=libmyutils # env EXE first -lmyutils -L./
 # # define EXPORT_API __attribute__((visibility("default")))
 # # objdump -T libmyutils.so|grep 'DF .text' || gendef - HeaSecReadInfo.dll
@@ -36,6 +24,17 @@ include $(INCFILE)
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
 
+UUID        := $(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
+GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
+GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
+GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
+BUILD_DATE  := $(shell date --iso=seconds)
+PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=frenchb -V fontsize=11pt -V geometry:margin=3cm -V papersize=a4paper
+DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
+CC          := $(CROSS_COMPILE)gcc -std=c99
+STRIP       := $(CROSS_COMPILE)strip
+RM          := rm -f
+DEBUG_FLAG  += -Wall
 EXE         ?= indb
 
 ifdef DEBUG
