@@ -3,13 +3,15 @@
 #include "demo.h"
 struct env {
     int trace_level;
+    FILE *logfile;
 } g_env = {
     .trace_level = 0,
 };
-#define debugln(fmt,args...) { if(g_env.trace_level>5) fprintf(stderr, "DBG: "fmt"\n", ##args); }
+#define debugln(fmt,args...) { if(g_env.trace_level>5 && g_env.logfile) fprintf(g_env.logfile, "DBG: "fmt"\n", ##args); }
 LIB_INIT void Initializer() {
     const char* env_val = getenv("TRACE");
     if(env_val) g_env.trace_level = atoi(env_val);
+    g_env.logfile = stderr;
     debugln("Library initialized!\n");
 }
 LIB_DEINIT void Deinitializer() {
