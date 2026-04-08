@@ -3,7 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* show export funcs: objdump -T libHeaSecReadInfo.so  | grep 'DF .text' */
+/* show export funcs: objdump -T libHeaSecReadInfo.so | grep 'DF .text' */
 /* mingw show exports: gendef - HeaSecReadInfo.dll */
 #if defined __WIN32__ || defined __CYGWIN__
     #define LIB_INIT
@@ -25,13 +25,6 @@ extern "C" {
     #endif
 #else
     #error "Unknown compiler or operating system"
-#endif
-
-#ifdef DEBUG
-    #include <stdio.h>
-    #define debugln(...) fprintf(stderr, __VA_ARGS__)
-#else
-    #define debugln(...) do {} while (0)
 #endif
 
 EXPORT_API int dllmain(int argc, char *argv[]);
