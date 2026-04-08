@@ -1,11 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "demo.h"
 struct env {
     int trace_level;
 } env = {
     .trace_level = 0,
 };
-#include <stdio.h>
 #define debugln(fmt,args...) { if(env.trace_level>5) fprintf(stderr, "DBG: "fmt"\n", ##args); }
 LIB_INIT void Initializer() {
     const char* env_val = getenv("TRACE");
