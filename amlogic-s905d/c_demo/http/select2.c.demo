@@ -38,6 +38,10 @@
     #define RESET "\033[0m"
 #endif
 #include <time.h>
+/*
+clock_t start = clock();
+double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
+*/
 #define SHOW_EXECUTION_TIME(func_call) ({ \
     struct timespec start, end; \
     clock_gettime(CLOCK_MONOTONIC, &start); \
