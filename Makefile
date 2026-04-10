@@ -34,7 +34,7 @@ DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
 CC          := $(CROSS_COMPILE)gcc -std=c99
 STRIP       := $(CROSS_COMPILE)strip
 RM          := rm -f
-DEBUG_FLAG  += -Wall
+DEBUG_FLAG  += -Wall -Wextra
 EXE         ?= indb
 
 ifdef DEBUG

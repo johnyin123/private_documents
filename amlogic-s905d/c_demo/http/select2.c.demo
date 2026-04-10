@@ -280,7 +280,7 @@ static inline enum method_t http_method(const char *m, size_t len) {
     }
     return METHOD_NONE;
 }
-static void inline hexdump(FILE *fp, const void *ptr, size_t len) {
+static inline void hexdump(FILE *fp, const void *ptr, size_t len) {
     const unsigned char *buf = ptr;
     for(size_t i = 0; i < len; i += 16, fprintf(fp, "\n")) {
         fprintf(fp, "%08zx: ", i);
@@ -491,7 +491,7 @@ static inline int create_tcp_server(const char *addr, int port, int backlog) {
 }
 static struct conn_t *conn_open(int cli_sock, struct conn_t *conns, const size_t len) {
     set_sock_nonblock_nodelay(cli_sock);
-    for(int i=0; i<len; i++) {
+    for(size_t i=0; i<len; i++) {
         if(conns[i].state == ST_NONE) {
             conns[i].fd=cli_sock;
             handle_alive(&conns[i]);
@@ -559,8 +559,10 @@ void cleanup() {
     WSACleanup();
 #endif
 }
-void sig_func(int sig) { exit(EXIT_FAILURE); }
+void sig_func(int sig) { UNUSED(sig); exit(EXIT_FAILURE); }
 int main(const int argc, char const* argv[]) {
+    UNUSED(argc);
+    UNUSED(argv);
 #if defined(__WIN32__)
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2 ,2), &wsaData);
