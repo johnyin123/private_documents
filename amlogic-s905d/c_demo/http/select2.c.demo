@@ -58,7 +58,7 @@ extern struct env {
 } g_env;
 #ifdef USE_SYSLOG
 #include <syslog.h>
-#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) syslog(LOG_DEBUG, "DBG: "fmt"\n", ##args) }
+#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) syslog(LOG_DEBUG, "DBG: "fmt"\n", ##args); }
 #define log_info(fmt,args...)   { if(g_env.trace_level>LOG_INFO) syslog(LOG_INFO, fmt"\n", ##args); }
 #define log_error(fmt,args...)  { if(g_env.trace_level>LOG_ERR) syslog(LOG_ERR, fmt"\n", ##args); }
 #else
