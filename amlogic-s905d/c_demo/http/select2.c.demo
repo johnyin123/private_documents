@@ -48,15 +48,35 @@ double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
     __auto_type _result = (func_call); \
     clock_gettime(CLOCK_MONOTONIC, &end); \
     double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9; \
-    debugln("[%s] Duration: %.9f seconds", #func_call, elapsed); \
+    log_debug("[%s] Duration: %.9f seconds", #func_call, elapsed); \
     _result; \
 })
 static inline int is_wouldblock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
-extern int g_trace_level;
-#define log_error(fmt,args...)  { if(g_trace_level>0) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define debugln(format,args...) { if(g_trace_level>1) fprintf(stderr, GREEN "%s:%d" RESET " == "format"\n", __FILE__, __LINE__, ##args); }
-#define debug_conn(c, s)        { if(g_trace_level>2) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
+extern struct env {
+    int trace_level;
+    int server_sock;
+} g_env;
+#ifdef USE_SYSLOG
+#include <syslog.h>
+#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) syslog(LOG_DEBUG, "DBG: "fmt"\n", ##args) }
+#define log_info(fmt,args...)   { if(g_env.trace_level>LOG_INFO) syslog(LOG_INFO, fmt"\n", ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>LOG_ERR) syslog(LOG_ERR, fmt"\n", ##args); }
+#else
+#define LOG_EMERG     0
+#define LOG_ALERT     1
+#define LOG_CRIT      2
+#define LOG_ERR       3
+#define LOG_WARNING   4
+#define LOG_NOTICE    5
+#define LOG_INFO      6
+#define LOG_DEBUG     7
+#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) fprintf(stderr, GREEN "%s:%d" RESET " == "fmt"\n", __FILE__, __LINE__, ##args); }
+#define log_info(fmt,args...)   { if(g_env.trace_level>LOG_INFO) fprintf(stderr, fmt"\n", ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>LOG_ERR) fprintf(stderr, RED "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#endif
+#define debug_conn(c, s)        { if(g_env.trace_level>LOG_DEBUG) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define UNUSED(x)     ((void)(x))
 #define XSTR(s)       STR(s)
 #define STR(s)        #s
 #define HTTP_PORT     8080
@@ -170,7 +190,7 @@ struct conn_t {
 #define SET_PTR(c, x)     (c)->request.ctx.ptr=x
 #define GET_CTX(c)        (c)->request.ctx.ctx
 #define GET_PTR(c)        (c)->request.ctx.ptr
-#define CONN_STATE(c, st) { debugln("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
+#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 #define REQ_READ(c)       buf_read_fd(&((c)->buf), (c)->fd, &((c)->request.total_len))
 #define RES_WRITE(c)      buf_write_fd(&((c)->buf), (c)->fd, &((c)->response.total_len))
 static inline int buf_reset(struct buf_t *b, char *buf, size_t capacity) { b->buf=buf; b->capacity=capacity; b->len=0; return 0; }
@@ -280,7 +300,7 @@ static inline void dump_conn_line(FILE *fp, const char *s, const struct conn_t* 
     fprintf(fp, "  REQUEST: HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->request.header_len, c->request.content_len, c->request.total_len);
     if(c->request.s_arg) fprintf(fp, "     ARGS: %s\n", c->request.s_arg);
     fprintf(fp, "  RESPONSE(%d): HEADER(%d), CONTENT(%d), TOTAL(%d)\n", c->response.status, c->response.header_len, c->response.content_len, c->response.total_len);
-    if((g_trace_level>3)&&(buf_len(&c->buf)>0)) hexdump(fp, buf_buf(&c->buf), buf_len(&c->buf));
+    if((g_env.trace_level>LOG_DEBUG)&&(buf_len(&c->buf)>0)) hexdump(fp, buf_buf(&c->buf), buf_len(&c->buf));
 }
 static inline int make_header(struct conn_t *c, const uint16_t status, const enum mime_t mime, const unsigned int content_len) {
     c->response.status = status;
@@ -318,8 +338,10 @@ void body_start(struct conn_t *c);
 int body_chunk(struct buf_t *buf, struct ctx_t *ctx);
 int body_done(struct ctx_t *ctx);
 /*############################################################*/
-int g_trace_level = 0;
-int g_server_sock = 0;
+struct env g_env = {
+    .trace_level = 0,
+    .server_sock = 0,
+};
 static int parse_header(const struct buf_t *buf, struct request_t *req) {
 #define SET_STR(dst, src, len, max) if(len>max) return HTTP_413; memcpy(dst,src,len); dst[len]=0;
     enum { PARSE_METHOD, PARSE_URI, PARSE_PROTO, PARSE_HKEY, PARSE_HVAL, PARSE_CRLF, PARSE_DONE } state = PARSE_METHOD;
@@ -532,7 +554,7 @@ static void event_loop(int srv_sock) {
     }
 }
 void cleanup() {
-    if(g_server_sock>0) close_socket(g_server_sock);
+    if(g_env.server_sock>0) close_socket(g_env.server_sock);
 #if defined(__WIN32__)
     WSACleanup();
 #endif
@@ -550,9 +572,9 @@ int main(const int argc, char const* argv[]) {
     signal(SIGINT, sig_func);
     signal(SIGTERM, sig_func);
     const char* env_val = getenv("TRACE");
-    if(env_val) g_trace_level = atoi(env_val);
-    g_server_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
-    if(g_server_sock>0) event_loop(g_server_sock);
+    if(env_val) g_env.trace_level = atoi(env_val);
+    g_env.server_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
+    if(g_env.server_sock>0) event_loop(g_env.server_sock);
     return EXIT_SUCCESS;
 }
 /*############################################################*/
