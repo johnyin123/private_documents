@@ -21,17 +21,17 @@ struct env {
 #define debugln(fmt,args...) do { if(g_env.trace_level>LOG_DEBUG) fprintf(stderr, "DBG: "fmt"\n", ##args); } while(0)
 #endif
 
-LIB_INIT void Initializer() {
+LIB_INIT static void Initializer() {
     const char* env_val = getenv("TRACE");
     if(env_val) g_env.trace_level = atoi(env_val);
     debugln("Library initialized!\n");
 }
-LIB_DEINIT void Deinitializer() {
+LIB_DEINIT static void Deinitializer() {
     debugln("Library deinitialized!\n");
 }
 #if defined __WIN32__
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-    switch (ul_reason_for_call) {
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
+    switch (reason) {
         case DLL_PROCESS_ATTACH: Initializer(); break;
         case DLL_THREAD_ATTACH:
         case DLL_THREAD_DETACH:
