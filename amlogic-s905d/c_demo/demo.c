@@ -10,21 +10,14 @@ struct env {
 #define UNUSED(x)             ((void)(x))
 #ifdef USE_SYSLOG
 #include <syslog.h>
-#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) syslog(LOG_DEBUG, "DEBUG %s:%d "fmt"\n", __FILE__, __LINE_, _##args); }
-#define log_info(fmt,args...)   { if(g_env.trace_level>LOG_INFO)  syslog(LOG_INFO,  fmt"\n", ##args); }
-#define log_error(fmt,args...)  { if(g_env.trace_level>LOG_ERR)   syslog(LOG_ERR,   fmt"\n", ##args); }
+#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) syslog(LOG_DEBUG, "DEBUG %s:%d "fmt"\n", __FILE__, __LINE_, _##args); }
+#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  syslog(LOG_INFO,  fmt"\n", ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   syslog(LOG_ERR,   fmt"\n", ##args); }
 #else
-#define LOG_EMERG     0
-#define LOG_ALERT     1
-#define LOG_CRIT      2
-#define LOG_ERR       3
-#define LOG_WARNING   4
-#define LOG_NOTICE    5
-#define LOG_INFO      6
-#define LOG_DEBUG     7
-#define log_debug(fmt,args...)  { if(g_env.trace_level>LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define log_info(fmt,args...)   { if(g_env.trace_level>LOG_INFO)  fprintf(stderr, "INFO  %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define log_error(fmt,args...)  { if(g_env.trace_level>LOG_ERR)   fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
+#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
 #endif
 #ifdef DEBUG
 #include <time.h>

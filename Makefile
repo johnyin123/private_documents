@@ -1,6 +1,5 @@
 INCFILE     ?= make.inc
-ifeq ($(INCFILE), $(wildcard $(INCFILE)))
-include $(INCFILE)
+-include $(INCFILE)
 # make.inc -->
 # # apt -y install gcc-mingw-w64-x86-64 ntldd
 # # make INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
@@ -22,7 +21,6 @@ include $(INCFILE)
 # LDFLAGS+=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
-endif
 
 UUID        := $(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
 GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
