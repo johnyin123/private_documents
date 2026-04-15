@@ -13,3 +13,7 @@ LDFLAGS +=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi
 LDFLAGS +=-static-libgcc
 INC_PATH+=-I./mylibs.mingw/include
 LIB_PATH+=-L./mylibs.mingw/lib
+
+test: $(EXE)
+	@printf "\033[1;32m  build test \033[m\n"
+	@$(CC) -x c test.cc -L./ -lHeaSecReadInfo -Wl,-rpath,./ -o libtest.exe

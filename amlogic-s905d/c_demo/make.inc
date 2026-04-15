@@ -13,3 +13,7 @@ LIBFLAGS+=-Wl,-rpath,./
 LDFLAGS +=-static-libgcc
 INC_PATH+=-I./mylibs.linux-x86_64/include
 LIB_PATH+=-L./mylibs.linux-x86_64/lib
+
+test: $(EXE)
+	@printf "\033[1;32m  build test \033[m\n"
+	@LD_LIBRARY_PATH=./mylibs.linux-x86_64/lib $(CC) -x c test.cc -L./ -lHeaSecReadInfo -Wl,-rpath,./ -o libtest
