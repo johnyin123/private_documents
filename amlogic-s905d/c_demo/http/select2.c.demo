@@ -687,7 +687,7 @@ extern struct cfg_t g_cfg;
 #define PARSE_STR(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
     if (cJSON_IsString(item) && item->valuestring) snprintf(cfg->name, sizeof(cfg->name), "%s", item->valuestring);
 #define PARSE_INT(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
-    if (cJSON_IsNumber(item)) cfg->name = (typeof(cfg->name))item->valueint;
+    if (cJSON_IsNumber(item)) cfg->name = item->valueint;
 #define PARSE_BOOL(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
     if (cJSON_IsBool(item)) cfg->name = cJSON_IsTrue(item);
 #define DECODE_STEP(kind, name, key) PARSE_##kind(name, key)
