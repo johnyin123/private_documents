@@ -17,5 +17,5 @@ INC_PATH+=-I./mylibs.linux-aarch64/include
 LIB_PATH+=-L./mylibs.linux-aarch64/lib
 
 test: $(EXE)
-	@printf "\033[1;32m  build test \033[m\n"
-	@LD_LIBRARY_PATH=./mylibs.linux-aarch64/lib $(CC) -x c test.cc -L./ -lHeaSecReadInfo -Wl,-rpath,./ -o libtest.aarch64
+	@printf "\033[1;32m BUILD TEST \033[m\n"
+	@$(CC) -x c test.cc -L./ -lHeaSecReadInfo.aarch64 -Wl,-rpath-link=./mylibs.linux-aarch64/lib -Wl,-rpath,./ -o libtest.aarch64

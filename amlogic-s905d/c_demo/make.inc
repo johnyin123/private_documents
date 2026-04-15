@@ -16,4 +16,4 @@ LIB_PATH+=-L./mylibs.linux-x86_64/lib
 
 test: $(EXE)
 	@printf "\033[1;32m  build test \033[m\n"
-	@LD_LIBRARY_PATH=./mylibs.linux-x86_64/lib $(CC) -x c test.cc -L./ -lHeaSecReadInfo -Wl,-rpath,./ -o libtest
+	@$(CC) -x c test.cc -L./ -lHeaSecReadInfo -Wl,-rpath-link=./mylibs.linux-x86_64/lib -Wl,-rpath,./ -o libtest.x86_64
