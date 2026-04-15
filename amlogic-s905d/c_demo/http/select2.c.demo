@@ -684,25 +684,23 @@ struct cfg_t {
 };
 extern struct cfg_t g_cfg;
 
+#define PARSE_STR(name, key, type) item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_Is##type(item) && item->valuestring) snprintf(cfg->name, sizeof(cfg->name), "%s", item->valuestring);
+#define PARSE_INT(name, key, type) item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_Is##type(item)) cfg->name = (typeof(cfg->name))item->valueint;
+#define PARSE_BOOL(name, key, type) item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_Is##type(item)) cfg->name = cJSON_IsTrue(item);
+#define DECODE_STEP(kind, name, key, type) PARSE_##kind(name, key, type)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "cjson/cJSON.h"
 int cfg_decode(const char *json_string, struct cfg_t *cfg) {
+    if (!json_string || !cfg) return EXIT_FAILURE;
     cJSON *json = cJSON_Parse(json_string);
     if (!json) return EXIT_FAILURE;
     cJSON *item = NULL;
-    #define PARSE_STR(name, key, type) \
-        item = cJSON_GetObjectItemCaseSensitive(json, key); \
-        if (cJSON_Is##type(item) && item->valuestring) \
-            strncpy(cfg->name, item->valuestring, sizeof(cfg->name));
-    #define PARSE_INT(name, key, type) \
-        item = cJSON_GetObjectItemCaseSensitive(json, key); \
-        if (cJSON_Is##type(item)) cfg->name = item->valueint;
-    #define PARSE_BOOL(name, key, type) \
-        item = cJSON_GetObjectItemCaseSensitive(json, key); \
-        if (cJSON_Is##type(item)) cfg->name = cJSON_IsTrue(item) ? true : false;
-    #define DECODE_STEP(kind, name, key, type) PARSE_##kind(name, key, type)
     CONFIG_JSON_TYPE_MAP(DECODE_STEP)
     cJSON_Delete(json);
     return EXIT_SUCCESS;
