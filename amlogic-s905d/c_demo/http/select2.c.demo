@@ -663,3 +663,69 @@ const struct act_t g_acts[] = {
   ACT(METHOD_POST,"/big",   .on_req_start=upload_start, .on_req_body=upload_chunk, .on_resp_start=upload_resp),
 };
 const int g_acts_len = ARRAY_LEN(g_acts);
+/* ----------------------------------------------
+#include <stdint.h>
+#include <stdbool.h>
+
+#define CONFIG_JSON_TYPE_MAP(X) \
+    X(STR,  ip,         "ip",         String) \
+    X(INT,  port,       "port",       Number) \
+    X(STR,  protocol,   "protocol",   String) \
+    X(BOOL, ssl_verify, "ssl_verify", Bool)
+
+struct cfg_t {
+    char ip[16];
+    uint16_t port;
+    char protocol[12];
+    bool ssl_verify;
+    struct {
+        int trace_level;
+    } env;
+};
+extern struct cfg_t g_cfg;
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cjson/cJSON.h"
+int cfg_decode(const char *json_string, struct cfg_t *cfg) {
+    cJSON *json = cJSON_Parse(json_string);
+    if (!json) return EXIT_FAILURE;
+    cJSON *item = NULL;
+    #define PARSE_STR(name, key, type) \
+        item = cJSON_GetObjectItemCaseSensitive(json, key); \
+        if (cJSON_Is##type(item) && item->valuestring) \
+            strncpy(cfg->name, item->valuestring, sizeof(cfg->name));
+    #define PARSE_INT(name, key, type) \
+        item = cJSON_GetObjectItemCaseSensitive(json, key); \
+        if (cJSON_Is##type(item)) cfg->name = item->valueint;
+    #define PARSE_BOOL(name, key, type) \
+        item = cJSON_GetObjectItemCaseSensitive(json, key); \
+        if (cJSON_Is##type(item)) cfg->name = cJSON_IsTrue(item) ? true : false;
+    #define DECODE_STEP(kind, name, key, type) PARSE_##kind(name, key, type)
+    CONFIG_JSON_TYPE_MAP(DECODE_STEP)
+    cJSON_Delete(json);
+    return EXIT_SUCCESS;
+}
+void cfg_dump(struct cfg_t *cfg, FILE *fp) {
+    #define DUMP_STR(n, k, t)  fprintf(fp, "    %s: %s\n", k, cfg->n);
+    #define DUMP_INT(n, k, t)  fprintf(fp, "    %s: %d\n", k, cfg->n);
+    #define DUMP_BOOL(n, k, t) fprintf(fp, "    %s: %s\n", k, cfg->n ? "true" : "false");
+    #define DUMP_STEP(kind, name, key, type) DUMP_##kind(name, key, type)
+    fprintf(fp, "Configuration Dump\n");
+    CONFIG_JSON_TYPE_MAP(DUMP_STEP)
+    fprintf(fp, "    %s: %d\n", "trace_level", cfg->env.trace_level);
+    fflush(fp);
+}
+struct cfg_t g_cfg = {
+    .protocol   = "http",
+    .ssl_verify = true,
+    .env = { .trace_level = LOG_INFO, },
+};
+int main() {
+    const char *src="{\"ip\":\"127.0.0.1\",\"port\":9999, \"protocol\":\"https\" }";
+    cfg_decode(src, &g_cfg);
+    cfg_dump(&g_cfg, stderr);
+}
+// gcc -x c a.c -lcjson
+------------------------------------------------- */
