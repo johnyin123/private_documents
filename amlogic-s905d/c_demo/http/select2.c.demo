@@ -39,11 +39,15 @@
 #endif
 #ifdef DEBUG
 #include <time.h>
+#ifdef __cplusplus
+#define _AUTO_TYPE auto
+#else
+#define _AUTO_TYPE __auto_type
+#endif
 #define SHOW_EXECUTION_TIME(func_call) ({ \
     clock_t start = clock(); \
-    __auto_type _result = (func_call); \
+    _AUTO_TYPE _result = (func_call); \
     clock_t end = clock(); \
-    if(__builtin_types_compatible_p(__typeof__(_result), int)) log_debug("[%s] return %d", #func_call, _result); \
     double elapsed = (double)(end - start) / CLOCKS_PER_SEC; \
     log_debug("[%s] Duration: %.9f seconds", #func_call, elapsed); \
     _result; \
@@ -666,7 +670,7 @@ const int g_acts_len = ARRAY_LEN(g_acts);
 /* ----------------------------------------------
 #include <stdint.h>
 #include <stdbool.h>
-/*  X(TYPE, struct elem,json name,    obj decode*/
+//  X(TYPE, struct elem,json name,    obj decode
 #define CONFIG_JSON_TYPE_MAP(X)                  \
     X(STR,  ip,         "ip",         NULL)      \
     X(INT,  port,       "port",       NULL)      \
