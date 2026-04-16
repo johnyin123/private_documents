@@ -61,6 +61,7 @@ all: $(EXE) strip
 strip: $(EXE)
 	$(STRIP) $(EXE)
 
+# -lstdc++ if gcc link cpp
 $(EXE): $(OBJ)
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
 
