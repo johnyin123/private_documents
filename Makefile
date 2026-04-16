@@ -65,13 +65,15 @@ OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
 .PHONY : all
 all: $(EXE) strip
-	@printf "\033[1;32m  BUILD $(EXE) SUCCESS \033[m\n"
+	@printf "\033[1;33m  BUILD $(EXE) SUCCESS\n\033[m"
 
 strip: $(EXE)
 	$(STRIP) $(EXE)
 
 $(EXE): $(OBJ)
+	@printf "\033[1;32m"
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
+	@printf "\033[m"
 
 .PHONY : clean
 clean:
