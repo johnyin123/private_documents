@@ -10,7 +10,7 @@ LDFLAGS +=-Wl,--exclude-libs,ALL
 LDFLAGS +=-Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
 LDFLAGS +=-lbcrypt -ladvapi32 -lcrypt32 -lws2_32 -liphlpapi
-LDFLAGS +=-static-libgcc
+LDFLAGS +=-static-libgcc -static-libstdc++
 INC_PATH+=-I./mylibs.mingw/include
 LIB_PATH+=-L./mylibs.mingw/lib
 

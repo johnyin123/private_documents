@@ -36,10 +36,10 @@ enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTIC
 LIB_INIT static void Initializer() {
     const char* env_val = getenv("TRACE");
     if(env_val) g_env.trace_level = atoi(env_val);
-    debugln("Library initialized!\n");
+    log_debug("Library initialized!\n");
 }
 LIB_DEINIT static void Deinitializer() {
-    debugln("Library deinitialized!\n");
+    log_debug("Library deinitialized!\n");
 }
 #if defined __WIN32__
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
@@ -54,7 +54,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
 #endif
 EXPORT_API int dllmain(int argc, char *argv[]) {
     for (int i = 0; i < argc; ++i) {
-        debugln("input %d, %s\n", i, argv[i]);
+        log_info("input %d, %s\n", i, argv[i]);
     }
     return 0;
 }

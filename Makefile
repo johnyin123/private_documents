@@ -15,10 +15,12 @@ INCFILE     ?= make.inc
 # # linke dynlib3.so even not need!!
 # LDFLAGS +=-Wl,--no-as-needed -L./ -ldynlib3
 # LDFLAGS +=-Wl,-Bdynamic -ldynxx1 -ldynxx2
+# LDFLAGS +=#-static #-Wl,-Bstatic -lxx1 -lxx2
+# LDFLAGS +=#-shared # must -fPIC compile xxx lib, when .so
+# # static link libgcc & libstdc++(when c++, and c in same prj)
+# LDFLAGS +=-static-libgcc -static-libstdc++
+# LDFLAGS +=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
-# LDFLAGS+=#-static #-Wl,-Bstatic -lxx1 -lxx2
-# LDFLAGS+=#-shared # must -fPIC compile xxx lib, when .so
-# LDFLAGS+=-Wl,--out-implib,libtest.dll.a #CROSS_COMPILE=x86_64-w64-mingw32- INCFILE=make.win
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 
@@ -29,7 +31,7 @@ GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --forma
 BUILD_DATE  := $(shell date --iso=seconds)
 PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=frenchb -V fontsize=11pt -V geometry:margin=3cm -V papersize=a4paper
 DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
-CC          := $(CROSS_COMPILE)gcc -std=c99
+CC          := $(CROSS_COMPILE)gcc
 STRIP       := $(CROSS_COMPILE)strip
 RM          := rm -f
 DEBUG_FLAG  += -Wall -Wextra
@@ -43,11 +45,16 @@ endif
 
 SRC=$(wildcard *.c)
 OBJ=$(SRC:.c=.o)
-#SRCPP=$(wildcard *.cpp)
-#OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
+SRCPP=$(wildcard *.cpp)
+OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
 %.o: %.c
 	@printf "\033[1;31m"
+	$(CC) -std=c99 $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
+	@printf "\033[m"
+
+%.o: %.cpp
+	@printf "\033[1;35m"
 	$(CC) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 	@printf "\033[m"
 
@@ -61,7 +68,6 @@ all: $(EXE) strip
 strip: $(EXE)
 	$(STRIP) $(EXE)
 
-# -lstdc++ if gcc link cpp
 $(EXE): $(OBJ)
 	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
 

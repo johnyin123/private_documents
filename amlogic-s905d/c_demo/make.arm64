@@ -12,7 +12,7 @@ LDFLAGS +=-Wl,--exclude-libs,ALL
 # othre dynamic link
 LDFLAGS +=-Wl,-Bdynamic
 LIBFLAGS+=-Wl,-rpath,./
-LDFLAGS +=-static-libgcc
+LDFLAGS +=-static-libgcc -static-libstdc++
 INC_PATH+=-I./mylibs.linux-aarch64/include
 LIB_PATH+=-L./mylibs.linux-aarch64/lib
 
