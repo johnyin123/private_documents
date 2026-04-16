@@ -32,6 +32,8 @@ BUILD_DATE  := $(shell date --iso=seconds)
 PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=frenchb -V fontsize=11pt -V geometry:margin=3cm -V papersize=a4paper
 DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
 CC          := $(CROSS_COMPILE)gcc
+C_STANDARD   = -std=c99
+CPP_STANDARD = -std=c++20
 STRIP       := $(CROSS_COMPILE)strip
 RM          := rm -f
 DEBUG_FLAG  += -Wall -Wextra
@@ -50,12 +52,12 @@ OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
 %.o: %.c
 	@printf "\033[1;31m"
-	$(CC) -std=c99 $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
+	$(CC) $(C_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 	@printf "\033[m"
 
 %.o: %.cpp
 	@printf "\033[1;35m"
-	$(CC) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
+	$(CC) $(CPP_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 	@printf "\033[m"
 
 %.md.docx : %.md
