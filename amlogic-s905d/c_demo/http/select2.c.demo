@@ -58,14 +58,14 @@ extern struct env {
 } g_env;
 #ifdef USE_SYSLOG
 #include <syslog.h>
-#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) syslog(LOG_DEBUG, fmt"\n", ##args); }
-#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  syslog(LOG_INFO, fmt"\n", ##args); }
-#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   syslog(LOG_ERR, fmt"\n", ##args); }
+#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) syslog(LOG_DEBUG, fmt "\n", ##args); }
+#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  syslog(LOG_INFO, fmt "\n", ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   syslog(LOG_ERR, fmt "\n", ##args); }
 #else
 enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
-#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) fprintf(stderr, GREEN "DEBUG" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  fprintf(stderr, GREEN "INFO " RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
-#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   fprintf(stderr, RED   "ERROR" RESET " %s:%d "fmt"\n", __FILE__, __LINE__, ##args); }
+#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) fprintf(stderr, GREEN "DEBUG" RESET " %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  fprintf(stderr, GREEN "INFO " RESET " %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   fprintf(stderr, RED   "ERROR" RESET " %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #endif
 #define debug_conn(c, s)        { if(g_env.trace_level>LOG_DEBUG) dump_conn_line(stderr, s, c, __FILE__, __LINE__); }
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
@@ -666,52 +666,65 @@ const int g_acts_len = ARRAY_LEN(g_acts);
 /* ----------------------------------------------
 #include <stdint.h>
 #include <stdbool.h>
+/*  X(TYPE, struct elem,json name,    obj decode*/
+#define CONFIG_JSON_TYPE_MAP(X)                  \
+    X(STR,  ip,         "ip",         NULL)      \
+    X(INT,  port,       "port",       NULL)      \
+    X(STR,  protocol,   "protocol",   NULL)      \
+    X(BOOL, ssl_verify, "ssl_verify", NULL)      \
+    X(OBJ,  env,        "env",        env_decode)
 
-#define CONFIG_JSON_TYPE_MAP(X)       \
-    X(STR,  ip,         "ip")         \
-    X(INT,  port,       "port")       \
-    X(STR,  protocol,   "protocol")   \
-    X(BOOL, ssl_verify, "ssl_verify")
+#define ENV_JSON_TYPE_MAP(X)            \
+    X(INT,  trace_level, "trace_level", NULL)
 
+struct env_t {
+    int trace_level;
+};
 struct cfg_t {
     char ip[16];
     uint16_t port;
     char protocol[12];
     bool ssl_verify;
-    struct {
-        int trace_level;
-    } env;
+    struct env_t env;
 };
 extern struct cfg_t g_cfg;
 
-#define PARSE_STR(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
-    if (cJSON_IsString(item) && item->valuestring) snprintf(cfg->name, sizeof(cfg->name), "%s", item->valuestring);
-#define PARSE_INT(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
-    if (cJSON_IsNumber(item)) cfg->name = item->valueint;
-#define PARSE_BOOL(name, key) item = cJSON_GetObjectItemCaseSensitive(json, key); \
-    if (cJSON_IsBool(item)) cfg->name = cJSON_IsTrue(item);
-#define DECODE_STEP(kind, name, key) PARSE_##kind(name, key)
+#define PARSE_STR(json, cfg, name, key, dec_func) { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_IsString(item) && item->valuestring) snprintf(cfg->name, sizeof(cfg->name), "%s", item->valuestring); }
+#define PARSE_INT(json, cfg, name, key, dec_func) { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_IsNumber(item)) cfg->name = item->valueint; }
+#define PARSE_BOOL(json, cfg, name, key, dec_func) { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_IsBool(item)) cfg->name = cJSON_IsTrue(item); }
+#define PARSE_OBJ(json, cfg, name, key, dec_func) { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); \
+    if (cJSON_IsObject(item)) dec_func(item, &cfg->name); }
+#define DECODE_STEP(json, cfg, kind, name, key, dec_func) PARSE_##kind(json, cfg, name, key, dec_func)
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "cjson/cJSON.h"
+int env_decode(cJSON *json, struct env_t *env) {
+    if (!json || !env) return EXIT_FAILURE;
+    #define X(kind, name, key, dec_func) DECODE_STEP(json, env, kind, name, key, dec_func)
+    ENV_JSON_TYPE_MAP(X)
+    #undef X
+    return EXIT_SUCCESS;
+}
 int cfg_decode(const char *json_string, struct cfg_t *cfg) {
-    if (!json_string || !cfg) return EXIT_FAILURE;
     cJSON *json = cJSON_Parse(json_string);
-    if (!json) return EXIT_FAILURE;
-    cJSON *item = NULL;
-    CONFIG_JSON_TYPE_MAP(DECODE_STEP)
+    if (!json || !json_string || !cfg) return EXIT_FAILURE;
+    #define X(kind, name, key, dec_func) DECODE_STEP(json, cfg, kind, name, key, dec_func)
+    CONFIG_JSON_TYPE_MAP(X)
+    #undef X
     cJSON_Delete(json);
     return EXIT_SUCCESS;
 }
 void cfg_dump(struct cfg_t *cfg, FILE *fp) {
-    #define DUMP_STR(n, k)  fprintf(fp, "    %s: %s\n", k, cfg->n);
-    #define DUMP_INT(n, k)  fprintf(fp, "    %s: %d\n", k, cfg->n);
-    #define DUMP_BOOL(n, k) fprintf(fp, "    %s: %s\n", k, cfg->n ? "true" : "false");
-    #define DUMP_STEP(kind, name, key) DUMP_##kind(name, key)
     fprintf(fp, "Configuration Dump\n");
-    CONFIG_JSON_TYPE_MAP(DUMP_STEP)
+    fprintf(fp, "    %s: %s\n", "ip", cfg->ip);
+    fprintf(fp, "    %s: %d\n", "port", cfg->port);
+    fprintf(fp, "    %s: %s\n", "protocol", cfg->protocol);
+    fprintf(fp, "    %s: %s\n", "ssl_verify", cfg->ssl_verify ? "true":"false");
     fprintf(fp, "    %s: %d\n", "trace_level", cfg->env.trace_level);
     fflush(fp);
 }
@@ -721,7 +734,7 @@ struct cfg_t g_cfg = {
     .env = { .trace_level = LOG_INFO, },
 };
 int main() {
-    const char *src="{\"ip\":\"127.0.0.1\",\"port\":9999, \"protocol\":\"https\" }";
+    const char *src="{\"ip\":\"127.0.0.1\",\"port\":9999, \"protocol\":\"https\", \"env\":{ \"trace_level\":8888 } }";
     cfg_decode(src, &g_cfg);
     cfg_dump(&g_cfg, stderr);
 }
