@@ -1,7 +1,8 @@
 INCFILE     ?= make.inc
 -include $(INCFILE)
 # make.inc -->
-# # apt -y install gcc-mingw-w64-x86-64 ntldd
+# # apt -y install gcc-mingw-w64-x86-64 gcc-mingw-w64-i686 ntldd
+# # apt -y install g++-mingw-w64-x86-64 g++-mingw-w64-i686
 # # make INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
 # # CROSS_COMPILE=x86_64-w64-mingw32-
 # EXE?=libmyutils # env EXE first -lmyutils -L./
