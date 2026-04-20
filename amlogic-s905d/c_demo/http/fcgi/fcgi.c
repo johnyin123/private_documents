@@ -38,7 +38,6 @@ static inline const char* req_query(FCGX_Request *r) {
 static inline const char* req_cookie(FCGX_Request *r) {
     return req_get_header(r, "HTTP_COOKIE");
 }
-#include <unistd.h>
 int main(int argc, char *argv[]) {
     UNUSED(argc);UNUSED(argv);
     if (FCGX_Init() != 0) {
@@ -46,7 +45,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     int backlog = 8;
-    int sock = FCGX_OpenSocket("127.0.0.1:9999", backlog);
+    int sock = FCGX_OpenSocket("localhost:9999", backlog);
     if (sock < 0) {
         perror("FCGX_OpenSocket");
         return 1;
@@ -77,6 +76,8 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 /*
+# sudo apt install autoconf automake libtool
+# git clone https://github.com/FastCGI-Archives/fcgi2.git
 limit_conn_zone $server_name zone=connperserver:10m;
 server {
     listen 127.0.0.1:19999;

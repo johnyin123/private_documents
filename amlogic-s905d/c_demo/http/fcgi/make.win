@@ -1,0 +1,6 @@
+CROSS_COMPILE=i686-w64-mingw32-
+EXE     ?=mycgi.exe
+CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -flto -march=native -funroll-loops
+LDFLAGS +=-lfcgi -lws2_32
+INC_PATH+=-I./mylibs.mingw/include
+LIB_PATH+=-L./mylibs.mingw/lib
