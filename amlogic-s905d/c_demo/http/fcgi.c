@@ -81,9 +81,13 @@ limit_conn_zone $server_name zone=connperserver:10m;
 server {
     listen 127.0.0.1:19999;
     server_name _;
+    error_page 403 = @403;
+    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
     location / {
         limit_conn connperserver 1;
-        limit_conn_status 401;
+        limit_conn_status 403;
         if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
