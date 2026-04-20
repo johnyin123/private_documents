@@ -77,10 +77,13 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 /*
+limit_conn_zone $server_name zone=connperserver:10m;
 server {
     listen 127.0.0.1:19999;
     server_name _;
     location / {
+        limit_conn connperserver 1;
+        limit_conn_status 401;
         if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
