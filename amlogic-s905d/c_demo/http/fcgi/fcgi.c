@@ -1,6 +1,9 @@
 #include <fcgiapp.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #define UNUSED(x)             ((void)(x))
 void dump_fcgx_request(FCGX_Request *req) {
     fprintf(stderr, "=== FCGX_Request Dump ===\n");
@@ -37,6 +40,51 @@ static inline const char* req_query(FCGX_Request *r) {
 }
 static inline const char* req_cookie(FCGX_Request *r) {
     return req_get_header(r, "HTTP_COOKIE");
+}
+static inline bool query_get(const char *qs, const char *key, char *out, size_t out_sz) {
+    if (!qs || !key || !out || out_sz == 0) return false;
+    size_t key_len = strlen(key);
+    const char *p = qs;
+    while (*p) {
+        if (strncmp(p, key, key_len) == 0 && p[key_len] == '=') {
+            const char *val = p + key_len + 1;
+            size_t i = 0;
+            while (val[i] && val[i] != '&' && i < out_sz - 1) {
+                out[i] = val[i];
+                i++;
+            }
+            out[i] = '\0';
+            return true;
+        }
+        while (*p && *p != '&') p++;
+        if (*p == '&') p++;
+    }
+    return false;
+}
+static inline int hex(char c) {
+    if ('0'<=c && c<='9') return c-'0';
+    if ('a'<=c && c<='f') return c-'a'+10;
+    if ('A'<=c && c<='F') return c-'A'+10;
+    return -1;
+}
+static inline void url_decode(char *s) {
+    char *dst = s;
+    while(*s) {
+        if (*s == '%' &&
+            isxdigit((unsigned char)s[1]) &&
+            isxdigit((unsigned char)s[2])) {
+            int hi = hex(s[1]);
+            int lo = hex(s[2]);
+            *dst++ = (char)((hi << 4) | lo);
+            s += 3;
+        } else if (*s == '+') {
+            *dst++ = ' ';
+            s++;
+        } else {
+            *dst++ = *s++;
+        }
+    }
+    *dst = '\0';
 }
 int main(int argc, char *argv[]) {
     UNUSED(argc);UNUSED(argv);
