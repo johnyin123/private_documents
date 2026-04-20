@@ -41,6 +41,10 @@ static inline const char* req_query(FCGX_Request *r) {
 static inline const char* req_cookie(FCGX_Request *r) {
     return req_get_header(r, "HTTP_COOKIE");
 }
+static inline int req_content_length(FCGX_Request *r) {
+    const char *len_str = req_get_header(r, "CONTENT_LENGTH");
+    return len_str ? atoi(len_str) : 0;
+}
 static inline bool query_get(const char *qs, const char *key, char *out, size_t out_sz) {
     if (!qs || !key || !out || out_sz == 0) return false;
     size_t key_len = strlen(key);
