@@ -740,4 +740,36 @@ int main() {
     cfg_dump(&g_cfg, stderr);
 }
 // gcc -x c a.c -lcjson
+
+//col1|col2|....|
+int get_column(const char *src, int idx, char *out, size_t out_len, const char delm) {
+    const char *start = src;
+    const char *end;
+    int current_col = 1;
+    while (current_col < idx) {
+        start = strchr(start, delm);
+        if (!start) return EXIT_FAILURE; /* out of bounds */
+        start++;
+        current_col++;
+    }
+    end = strchr(start, delm);
+    size_t len = end ? (size_t)(end - start) : strlen(start);
+    if(len >= out_len) len = out_len - 1;
+    memcpy(out, start, len);
+    out[len] = '\0';
+    return EXIT_SUCCESS;
+}
+int get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) { buf[0] = '\0'; return EXIT_FAILURE; }
+    size_t n = fread(buf, 1, buf_len - 1, pipe);
+    if (ferror(pipe)) {
+        fclose(pipe);
+        buf[0] = '\0';
+        return EXIT_FAILURE;
+    }
+    pclose(pipe);
+    buf[n] = '\0';
+    return EXIT_SUCCESS;
+}
 ------------------------------------------------- */

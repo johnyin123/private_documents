@@ -28,7 +28,7 @@ void queue_destroy(struct queue_t *q) {
     pthread_cond_destroy(&q->not_empty);
     pthread_cond_destroy(&q->not_full);
 }
-int queue_push(struct queue_t *q, void *req) {
+int queue_push(struct queue_t *q, void *elem) {
     pthread_mutex_lock(&q->mutex);
     while (q->count >= MAX_CONNS && !env.stop) {
         pthread_cond_wait(&q->not_full, &q->mutex);
@@ -37,7 +37,7 @@ int queue_push(struct queue_t *q, void *req) {
         pthread_mutex_unlock(&q->mutex);
         return EXIT_FAILURE;
     }
-    q->elems[q->tail] = req;
+    q->elems[q->tail] = elem;
     q->tail = (q->tail + 1) % MAX_CONNS;
     q->count++;
     pthread_cond_signal(&q->not_empty);
@@ -53,12 +53,12 @@ void *queue_pop(struct queue_t *q) {
         pthread_mutex_unlock(&q->mutex);
         return NULL;
     }
-    void *req = q->elems[q->head];
+    void *elem = q->elems[q->head];
     q->head = (q->head + 1) % MAX_CONNS;
     q->count--;
     pthread_cond_signal(&q->not_full);
     pthread_mutex_unlock(&q->mutex);
-    return req;
+    return elem;
 }
 void *acceptor_thread(void *arg) {
     struct queue_t *queue = arg;
