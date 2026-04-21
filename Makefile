@@ -69,7 +69,8 @@ all: $(EXE) strip
 	@printf "\033[1;33m  BUILD $(EXE) SUCCESS\n\033[m"
 
 strip: $(EXE)
-	$(STRIP) $(EXE)
+	@printf "\033[1;33m  STRIP $(EXE) SUCCESS\n\033[m"
+	@$(STRIP) $(EXE)
 
 $(EXE): $(OBJ)
 	@printf "\033[1;32m"
