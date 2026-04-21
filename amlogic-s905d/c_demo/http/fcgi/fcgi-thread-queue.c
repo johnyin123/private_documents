@@ -5,12 +5,12 @@ struct env_t {
 } env = {
     .sock  = -1,
 };
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define MAX_CONNS     128
 /*-------------------------------*/
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define MAX_CONNS     128
 struct queue_t {
     void **elems; int cap;
     int head, tail, count;
