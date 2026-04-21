@@ -1,77 +1,13 @@
-#include <fcgiapp.h>
+#include "fcgi_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
+#define MAX_CONNS  128
+
 struct env_t {
     int sock;
 } env = {
     .sock  = -1,
 };
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define MAX_CONNS     128
-/*-------------------------------*/
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-struct queue_t {
-    void **elems; int cap;
-    int head, tail, count;
-    pthread_mutex_t mutex;
-    pthread_cond_t not_empty;
-    pthread_cond_t not_full;
-    volatile int stop;
-};
-void queue_init(struct queue_t *q, void *elems, size_t size) {
-    memset(q, 0, sizeof(*q));
-    q->elems = elems;
-    q->cap = size;
-    pthread_mutex_init(&q->mutex, NULL);
-    pthread_cond_init(&q->not_empty, NULL);
-    pthread_cond_init(&q->not_full, NULL);
-}
-void queue_stop(struct queue_t *q) {
-    q->stop=1;
-    pthread_mutex_lock(&q->mutex);
-    pthread_cond_broadcast(&q->not_empty);
-    pthread_cond_broadcast(&q->not_full);
-    pthread_mutex_unlock(&q->mutex);
-}
-void queue_destroy(struct queue_t *q) {
-    pthread_mutex_destroy(&q->mutex);
-    pthread_cond_destroy(&q->not_empty);
-    pthread_cond_destroy(&q->not_full);
-}
-int queue_push(struct queue_t *q, void *elem) {
-    pthread_mutex_lock(&q->mutex);
-    while (q->count >= q->cap && !q->stop) {
-        pthread_cond_wait(&q->not_full, &q->mutex);
-    }
-    if (q->stop) {
-        pthread_mutex_unlock(&q->mutex);
-        return EXIT_FAILURE;
-    }
-    q->elems[q->tail] = elem;
-    q->tail = (q->tail + 1) % q->cap;
-    q->count++;
-    pthread_cond_signal(&q->not_empty);
-    pthread_mutex_unlock(&q->mutex);
-    return EXIT_SUCCESS;
-}
-void *queue_pop(struct queue_t *q) {
-    pthread_mutex_lock(&q->mutex);
-    while (q->count == 0 && !q->stop) {
-        pthread_cond_wait(&q->not_empty, &q->mutex);
-    }
-    if (q->stop && q->count == 0) {
-        pthread_mutex_unlock(&q->mutex);
-        return NULL;
-    }
-    void *elem = q->elems[q->head];
-    q->head = (q->head + 1) % q->cap;
-    q->count--;
-    pthread_cond_signal(&q->not_full);
-    pthread_mutex_unlock(&q->mutex);
-    return elem;
-}
-/*-------------------------------*/
 void *acceptor_thread(void *arg) {
     struct queue_t *q = arg;
     for (;;) {
@@ -98,13 +34,17 @@ void *worker_thread(void *arg) {
         if (q->stop) break;
         FCGX_Request *req = queue_pop(q);
         if (req == NULL) break;
-        char *uri = FCGX_GetParam("REQUEST_URI", req->envp);
+        const char *host = req_get_header(req, "FN_HANDLER");
+        const char *method = req_method(req);
+        const char *uri = req_uri(req);
         unsigned long tid = (unsigned long)pthread_self();
-        FCGX_FPrintF(req->out,
-            "Status: 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "\r\n"
-            "[Thread %lu] Hello! URI: %s\n", tid, uri ? uri : "/");
+        int rc = 0;
+        char buf[BUF_SIZE] = {0}; /* POST DATA */
+        if((rc=req_body(req, buf, sizeof(buf)))>0) {
+            buf[rc] = '\0';
+            fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
+        }
+        make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
         FCGX_Finish_r(req);
         free(req);
     }
