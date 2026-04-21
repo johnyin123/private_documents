@@ -1,5 +1,5 @@
 CROSS_COMPILE=aarch64-linux-gnu-
-EXE     ?=libHeaSecReadInfo.so
+EXE     ?=libHeaSecReadInfo.aarch64.so
 CFLAGS  +=-DCJSON_HIDE_SYMBOLS -DCURL_STATICLIB -DBUILDING_LIBRARY
 CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -flto -funroll-loops
 LDFLAGS +=-shared
