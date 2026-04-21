@@ -75,6 +75,7 @@ void *queue_pop(struct queue_t *q) {
 void *acceptor_thread(void *arg) {
     struct queue_t *q = arg;
     for (;;) {
+        if (q->stop) break;
         FCGX_Request *req = malloc(sizeof(FCGX_Request));
         if (FCGX_InitRequest(req, env.sock, 0) != 0) {
             free(req);
@@ -94,6 +95,7 @@ void *acceptor_thread(void *arg) {
 void *worker_thread(void *arg) {
     struct queue_t *q = arg;
     for (;;) {
+        if (q->stop) break;
         FCGX_Request *req = queue_pop(q);
         if (req == NULL) break;
         char *uri = FCGX_GetParam("REQUEST_URI", req->envp);
@@ -127,7 +129,7 @@ int main(int argc, char *argv[]) {
     for (int i=0; i<4; i++) {
         pthread_create(&workers[i], NULL, worker_thread, &queue);
     }
-    printf("Running. Press Ctrl+C to stop.\n");
+    fprintf(stderr, "Running. Press Ctrl+C to stop.\n");
     getchar();
     queue_stop(&queue);
     pthread_join(acceptor, NULL);
