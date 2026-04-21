@@ -1,13 +1,12 @@
 #include <fcgiapp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 struct env_t {
     int sock;
-    volatile int stop;
 } env = {
     .sock  = -1,
-    .stop  = 0,
 };
 #define MAX_CONNS 128
 struct queue_t {
@@ -16,12 +15,20 @@ struct queue_t {
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
+    volatile int stop;
 };
 void queue_init(struct queue_t *q) {
-    q->head = q->tail = q->count = 0;
+    memset(q, 0, sizeof(*q));
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->not_empty, NULL);
     pthread_cond_init(&q->not_full, NULL);
+}
+void queue_stop(struct queue_t *q) {
+    q->stop=1;
+    pthread_mutex_lock(&q->mutex);
+    pthread_cond_broadcast(&q->not_empty);
+    pthread_cond_broadcast(&q->not_full);
+    pthread_mutex_unlock(&q->mutex);
 }
 void queue_destroy(struct queue_t *q) {
     pthread_mutex_destroy(&q->mutex);
@@ -30,10 +37,10 @@ void queue_destroy(struct queue_t *q) {
 }
 int queue_push(struct queue_t *q, void *elem) {
     pthread_mutex_lock(&q->mutex);
-    while (q->count >= MAX_CONNS && !env.stop) {
+    while (q->count >= MAX_CONNS && !q->stop) {
         pthread_cond_wait(&q->not_full, &q->mutex);
     }
-    if (env.stop) {
+    if (q->stop) {
         pthread_mutex_unlock(&q->mutex);
         return EXIT_FAILURE;
     }
@@ -46,10 +53,10 @@ int queue_push(struct queue_t *q, void *elem) {
 }
 void *queue_pop(struct queue_t *q) {
     pthread_mutex_lock(&q->mutex);
-    while (q->count == 0 && !env.stop) {
+    while (q->count == 0 && !q->stop) {
         pthread_cond_wait(&q->not_empty, &q->mutex);
     }
-    if (env.stop && q->count == 0) {
+    if (q->stop && q->count == 0) {
         pthread_mutex_unlock(&q->mutex);
         return NULL;
     }
@@ -61,7 +68,7 @@ void *queue_pop(struct queue_t *q) {
     return elem;
 }
 void *acceptor_thread(void *arg) {
-    struct queue_t *queue = arg;
+    struct queue_t *q = arg;
     for (;;) {
         FCGX_Request *req = malloc(sizeof(FCGX_Request));
         if (FCGX_InitRequest(req, env.sock, 0) != 0) {
@@ -72,17 +79,17 @@ void *acceptor_thread(void *arg) {
         if (rc < 0) {
             fprintf(stderr, "Accept failed: %d\n", rc);
             free(req);
-            if (env.stop) break;
+            if (q->stop) break;
             continue;
         }
-        queue_push(queue, req);
+        queue_push(q, req);
     }
     return NULL;
 }
 void *worker_thread(void *arg) {
-    struct queue_t *queue = arg;
+    struct queue_t *q = arg;
     for (;;) {
-        FCGX_Request *req = queue_pop(queue);
+        FCGX_Request *req = queue_pop(q);
         if (req == NULL) break;
         char *uri = FCGX_GetParam("REQUEST_URI", req->envp);
         unsigned long tid = (unsigned long)pthread_self();
@@ -116,9 +123,7 @@ int main(int argc, char *argv[]) {
     }
     printf("Running. Press Ctrl+C to stop.\n");
     getchar();
-    env.stop = 1;
-    pthread_cond_broadcast(&queue.not_empty);
-    pthread_cond_broadcast(&queue.not_full);
+    queue_stop(&queue);
     pthread_join(acceptor, NULL);
     for (int i=0; i<4; i++) {
         pthread_join(workers[i], NULL);
