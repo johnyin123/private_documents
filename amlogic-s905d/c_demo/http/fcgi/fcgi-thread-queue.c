@@ -12,13 +12,11 @@ struct queue_t {
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
 };
-
 struct env_t {
     struct queue_t queue;
     int sock;
     int stop;
 } env = {
-    .queue = {0},
     .sock  = -1,
     .stop  = 0,
 };
@@ -105,7 +103,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     queue_init(&env.queue);
-    // 1 个 acceptor + 4 个 worker
+    /* 1 acceptor + 4 worker */
     pthread_t acceptor;
     pthread_create(&acceptor, NULL, acceptor_thread, NULL);
     pthread_t workers[4];
