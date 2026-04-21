@@ -1,30 +1,51 @@
 #include <fcgiapp.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#define UNUSED(x)             ((void)(x))
-void dump_fcgx_request(FCGX_Request *req) {
-    fprintf(stderr, "=== FCGX_Request Dump ===\n");
-    fprintf(stderr, "    requestId: %d\n", req->requestId);
-    fprintf(stderr, "    role: %d\n", req->role);
-    fprintf(stderr, "    ipcFd: %d\n", req->ipcFd);
-    fprintf(stderr, "    isBeginProcessed: %d\n", req->isBeginProcessed);
-    fprintf(stderr, "    keepConnection: %d\n", req->keepConnection);
-    fprintf(stderr, "    appStatus: %d\n", req->appStatus);
-    fprintf(stderr, "    nWriters: %d\n", req->nWriters);
-    fprintf(stderr, "    flags: %d\n", req->flags);
-    fprintf(stderr, "    listen_sock: %d\n", req->listen_sock);
-    fprintf(stderr, "\n--- Environment Variables ---\n");
-    if (req->envp) {
-        for(char **env = req->envp; *env; env++) fprintf(stderr, "    %s\n", *env);
+#define BUF_SIZE      (8*1024)
+#define SRV_INFO      "Server: inner"
+#define UNUSED(x)     ((void)(x))
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+
+#define S_METHOD(X) \
+    X(METHOD_NONE,     NONE) \
+    X(METHOD_GET,      GET) \
+    X(METHOD_POST,     POST) \
+    X(METHOD_HEAD,     HEAD)
+
+#define S_MIME_TYPE(X) \
+    X(MIME_BIN,       application/octet-stream) \
+    X(MIME_JSON,      application/json; charset=utf-8) \
+    X(MIME_TEXT,      text/plain; charset=utf-8)
+
+#define _ITEM(c, n)   c,
+    enum method_t         { S_METHOD(_ITEM) };
+    enum mime_t           { S_MIME_TYPE(_ITEM) };
+#undef _ITEM
+#define _ITEM(c, n)   [c] = #n,
+    static const char *method_map[] = { S_METHOD(_ITEM) };
+    static const int method_map_len = ARRAY_LEN(method_map);
+    #define METHOD_STR(c) code2str((c), method_map, method_map_len, "NONE")
+    static const char *mime_type[] = { S_MIME_TYPE(_ITEM) };
+    static const int mime_type_len = ARRAY_LEN(mime_type);
+    #define MIME_STR(c)   code2str((c), mime_type, mime_type_len, "application/octet-stream")
+#undef _ITEM
+static inline const char *code2str(const uint16_t code, const char *tbl[], const size_t len, const char *nodef) {
+    if(code<len) {
+        const char *s = tbl[code];
+        if(s) return s;
     }
-    // Stream pointers
-    fprintf(stderr, "\n--- Streams ---\n");
-    fprintf(stderr, "    in:  %p\n", (void*)req->in);
-    fprintf(stderr, "    out: %p\n", (void*)req->out);
-    fprintf(stderr, "    err: %p\n", (void*)req->err);
+    return nodef;
+}
+static inline enum method_t http_method(const char *m, size_t len) {
+    for(int i=0;i<method_map_len;i++) {
+        const char *s = METHOD_STR(i);
+        if(strlen(s)==len && memcmp(m, s, len)==0) return i;
+    }
+    return METHOD_NONE;
 }
 static inline const char* req_get_header(FCGX_Request *r, const char *key) {
     return FCGX_GetParam(key, r->envp);
@@ -90,6 +111,46 @@ static inline void url_decode(char *s) {
     }
     *dst = '\0';
 }
+int req_body(FCGX_Request *req, char *out, size_t out_len) {
+    int len = req_content_length(req);
+    if(len<=0||len>(int)out_len) return -1;
+    return FCGX_GetStr(out, out_len, req->in);
+}
+static inline void make_response(FCGX_Request *req, uint16_t status, enum mime_t mime, const char *format, ...) {
+    va_list args;
+    char json_str[BUF_SIZE]={0};
+    va_start(args, format);
+    int ret = vsnprintf(json_str, sizeof(json_str), format, args);
+    va_end(args);
+    if(ret < 0) return;
+    size_t len = strlen(json_str);
+    FCGX_FPrintF(req->out, "Status: %d\r\n"
+        "%s\r\nContent-Type: %s\r\nContent-Length: %d\r\n"
+        "\r\n"
+        "%s", status, SRV_INFO, MIME_STR(mime), len, json_str);
+}
+void dump_fcgx_request(FCGX_Request *req) {
+    fprintf(stderr, "=== FCGX_Request Dump ===\n");
+    fprintf(stderr, "    requestId: %d\n", req->requestId);
+    fprintf(stderr, "    role: %d\n", req->role);
+    fprintf(stderr, "    ipcFd: %d\n", req->ipcFd);
+    fprintf(stderr, "    isBeginProcessed: %d\n", req->isBeginProcessed);
+    fprintf(stderr, "    keepConnection: %d\n", req->keepConnection);
+    fprintf(stderr, "    appStatus: %d\n", req->appStatus);
+    fprintf(stderr, "    nWriters: %d\n", req->nWriters);
+    fprintf(stderr, "    flags: %d\n", req->flags);
+    fprintf(stderr, "    listen_sock: %d\n", req->listen_sock);
+    fprintf(stderr, "--- Environment Variables ---\n");
+    if (req->envp) {
+        for(char **env = req->envp; *env; env++) fprintf(stderr, "    %s\n", *env);
+    }
+    // Stream pointers
+    fprintf(stderr, "--- Streams ---\n");
+    fprintf(stderr, "    in:  %p\n", (void*)req->in);
+    fprintf(stderr, "    out: %p\n", (void*)req->out);
+    fprintf(stderr, "    err: %p\n", (void*)req->err);
+}
+
 int main(int argc, char *argv[]) {
     UNUSED(argc);UNUSED(argv);
     if (FCGX_Init() != 0) {
@@ -116,11 +177,12 @@ int main(int argc, char *argv[]) {
         const char *host = req_get_header(&request, "FN_HANDLER");
         const char *method = req_method(&request);
         const char *uri = req_uri(&request);
-        char buf[1024]; /* POST DATA */
-        while(FCGX_GetStr(buf, sizeof(buf), request.in) > 0)
-            ;
-        FCGX_FPrintF(request.out, "Content-Type: text/plain\r\n\r\n");
-        FCGX_FPrintF(request.out, "Hello, %s %s %s FastCGI\n", host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
+        char buf[BUF_SIZE] = {0}; /* POST DATA */
+        if((rc=req_body(&request, buf, sizeof(buf)))>0) {
+            buf[rc] = '\0';
+            fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
+        }
+        make_response(&request, 202, MIME_JSON, "{ \"key\":\"Hello, %s %s %s FastCGI\" }", host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
         //usleep(1000*1000*4);
         dump_fcgx_request(&request);
         FCGX_Finish_r(&request);
