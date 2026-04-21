@@ -3,22 +3,20 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <errno.h>
+struct env_t {
+    int sock;
+    volatile int stop;
+} env = {
+    .sock  = -1,
+    .stop  = 0,
+};
 #define MAX_CONNS 128
 struct queue_t {
-    FCGX_Request *requests[MAX_CONNS];
+    void *elems[MAX_CONNS];
     int head, tail, count;
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
-};
-struct env_t {
-    struct queue_t queue;
-    int sock;
-    int stop;
-} env = {
-    .sock  = -1,
-    .stop  = 0,
 };
 void queue_init(struct queue_t *q) {
     q->head = q->tail = q->count = 0;
@@ -26,22 +24,28 @@ void queue_init(struct queue_t *q) {
     pthread_cond_init(&q->not_empty, NULL);
     pthread_cond_init(&q->not_full, NULL);
 }
-void queue_push(struct queue_t *q, FCGX_Request *req) {
+void queue_destroy(struct queue_t *q) {
+    pthread_mutex_destroy(&q->mutex);
+    pthread_cond_destroy(&q->not_empty);
+    pthread_cond_destroy(&q->not_full);
+}
+int queue_push(struct queue_t *q, void *req) {
     pthread_mutex_lock(&q->mutex);
     while (q->count >= MAX_CONNS && !env.stop) {
         pthread_cond_wait(&q->not_full, &q->mutex);
     }
     if (env.stop) {
         pthread_mutex_unlock(&q->mutex);
-        return;
+        return EXIT_FAILURE;
     }
-    q->requests[q->tail] = req;
+    q->elems[q->tail] = req;
     q->tail = (q->tail + 1) % MAX_CONNS;
     q->count++;
     pthread_cond_signal(&q->not_empty);
     pthread_mutex_unlock(&q->mutex);
+    return EXIT_SUCCESS;
 }
-FCGX_Request *queue_pop(struct queue_t *q) {
+void *queue_pop(struct queue_t *q) {
     pthread_mutex_lock(&q->mutex);
     while (q->count == 0 && !env.stop) {
         pthread_cond_wait(&q->not_empty, &q->mutex);
@@ -50,7 +54,7 @@ FCGX_Request *queue_pop(struct queue_t *q) {
         pthread_mutex_unlock(&q->mutex);
         return NULL;
     }
-    FCGX_Request *req = q->requests[q->head];
+    void *req = q->elems[q->head];
     q->head = (q->head + 1) % MAX_CONNS;
     q->count--;
     pthread_cond_signal(&q->not_full);
@@ -58,6 +62,7 @@ FCGX_Request *queue_pop(struct queue_t *q) {
     return req;
 }
 void *acceptor_thread(void *arg) {
+    struct queue_t *queue = arg;
     for (;;) {
         FCGX_Request *req = malloc(sizeof(FCGX_Request));
         if (FCGX_InitRequest(req, env.sock, 0) != 0) {
@@ -71,28 +76,29 @@ void *acceptor_thread(void *arg) {
             if (env.stop) break;
             continue;
         }
-        queue_push(&env.queue, req);
+        queue_push(queue, req);
     }
     return NULL;
 }
 void *worker_thread(void *arg) {
-    int tid = *(int *)arg;
-    free(arg);
+    struct queue_t *queue = arg;
     for (;;) {
-        FCGX_Request *req = queue_pop(&env.queue);
+        FCGX_Request *req = queue_pop(queue);
         if (req == NULL) break;
         char *uri = FCGX_GetParam("REQUEST_URI", req->envp);
+        unsigned long tid = (unsigned long)pthread_self();
         FCGX_FPrintF(req->out,
             "Status: 200 OK\r\n"
             "Content-Type: text/plain\r\n"
             "\r\n"
-            "[Thread %d] Hello! URI: %s\n", tid, uri ? uri : "/");
+            "[Thread %lu] Hello! URI: %s\n", tid, uri ? uri : "/");
         FCGX_Finish_r(req);
         free(req);
     }
     return NULL;
 }
 int main(int argc, char *argv[]) {
+    struct queue_t queue;
     if (FCGX_Init() != 0) {
         fprintf(stderr, "FCGX_Init failed\n");
         return 1;
@@ -102,24 +108,22 @@ int main(int argc, char *argv[]) {
         perror("FCGX_OpenSocket");
         return 1;
     }
-    queue_init(&env.queue);
+    queue_init(&queue);
     /* 1 acceptor + 4 worker */
-    pthread_t acceptor;
-    pthread_create(&acceptor, NULL, acceptor_thread, NULL);
-    pthread_t workers[4];
-    for (int i = 0; i < 4; i++) {
-        int *tid = malloc(sizeof(int));
-        *tid = i;
-        pthread_create(&workers[i], NULL, worker_thread, tid);
+    pthread_t acceptor, workers[4];
+    pthread_create(&acceptor, NULL, acceptor_thread, &queue);
+    for (int i=0; i<4; i++) {
+        pthread_create(&workers[i], NULL, worker_thread, &queue);
     }
     printf("Running. Press Ctrl+C to stop.\n");
     getchar();
     env.stop = 1;
-    pthread_cond_broadcast(&env.queue.not_empty);
-    pthread_cond_broadcast(&env.queue.not_full);
+    pthread_cond_broadcast(&queue.not_empty);
+    pthread_cond_broadcast(&queue.not_full);
     pthread_join(acceptor, NULL);
-    for (int i = 0; i < 4; i++) {
+    for (int i=0; i<4; i++) {
         pthread_join(workers[i], NULL);
     }
+    queue_destroy(&queue);
     return 0;
 }
