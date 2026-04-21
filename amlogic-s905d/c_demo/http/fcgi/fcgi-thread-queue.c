@@ -1,24 +1,28 @@
 #include <fcgiapp.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
 struct env_t {
     int sock;
 } env = {
     .sock  = -1,
 };
-#define MAX_CONNS 128
+/*-------------------------------*/
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define MAX_CONNS     128
 struct queue_t {
-    void *elems[MAX_CONNS];
+    void **elems; int cap;
     int head, tail, count;
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
     volatile int stop;
 };
-void queue_init(struct queue_t *q) {
+void queue_init(struct queue_t *q, void *elems, size_t size) {
     memset(q, 0, sizeof(*q));
+    q->elems = elems;
+    q->cap = size;
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->not_empty, NULL);
     pthread_cond_init(&q->not_full, NULL);
@@ -37,7 +41,7 @@ void queue_destroy(struct queue_t *q) {
 }
 int queue_push(struct queue_t *q, void *elem) {
     pthread_mutex_lock(&q->mutex);
-    while (q->count >= MAX_CONNS && !q->stop) {
+    while (q->count >= q->cap && !q->stop) {
         pthread_cond_wait(&q->not_full, &q->mutex);
     }
     if (q->stop) {
@@ -45,7 +49,7 @@ int queue_push(struct queue_t *q, void *elem) {
         return EXIT_FAILURE;
     }
     q->elems[q->tail] = elem;
-    q->tail = (q->tail + 1) % MAX_CONNS;
+    q->tail = (q->tail + 1) % q->cap;
     q->count++;
     pthread_cond_signal(&q->not_empty);
     pthread_mutex_unlock(&q->mutex);
@@ -61,12 +65,13 @@ void *queue_pop(struct queue_t *q) {
         return NULL;
     }
     void *elem = q->elems[q->head];
-    q->head = (q->head + 1) % MAX_CONNS;
+    q->head = (q->head + 1) % q->cap;
     q->count--;
     pthread_cond_signal(&q->not_full);
     pthread_mutex_unlock(&q->mutex);
     return elem;
 }
+/*-------------------------------*/
 void *acceptor_thread(void *arg) {
     struct queue_t *q = arg;
     for (;;) {
@@ -104,6 +109,7 @@ void *worker_thread(void *arg) {
     return NULL;
 }
 int main(int argc, char *argv[]) {
+    FCGX_Request *reqs[MAX_CONNS];
     struct queue_t queue;
     if (FCGX_Init() != 0) {
         fprintf(stderr, "FCGX_Init failed\n");
@@ -114,7 +120,7 @@ int main(int argc, char *argv[]) {
         perror("FCGX_OpenSocket");
         return 1;
     }
-    queue_init(&queue);
+    queue_init(&queue, reqs, ARRAY_LEN(reqs));
     /* 1 acceptor + 4 worker */
     pthread_t acceptor, workers[4];
     pthread_create(&acceptor, NULL, acceptor_thread, &queue);
