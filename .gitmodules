@@ -7,3 +7,6 @@
 [submodule "amlogic-s905d/linux-aml"]
 	path = amlogic-s905d/linux-aml
 	url = https://gitlab.manjaro.org/manjaro-arm/packages/core/linux-aml.git
+[submodule "amlogic-s905d/c_demo/http/fcgi/fcgi2"]
+	path = amlogic-s905d/c_demo/http/fcgi/fcgi2
+	url = https://github.com/FastCGI-Archives/fcgi2.git
