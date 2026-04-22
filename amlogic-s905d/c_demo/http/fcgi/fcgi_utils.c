@@ -112,6 +112,19 @@ void make_response(FCGX_Request *req, uint16_t status, enum mime_t mime, const c
         "\r\n"
         "%s", status, SRV_INFO, MIME_STR(mime), len, json_str);
 }
+int get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) { buf[0] = '\0'; return EXIT_FAILURE; }
+    size_t n = fread(buf, 1, buf_len - 1, pipe);
+    if (ferror(pipe)) {
+        fclose(pipe);
+        buf[0] = '\0';
+        return EXIT_FAILURE;
+    }
+    pclose(pipe);
+    buf[n] = '\0';
+    return EXIT_SUCCESS;
+}
 /*-------------------------------*/
 void queue_init(struct queue_t *q, void *elems, size_t size) {
     memset(q, 0, sizeof(*q));
@@ -165,4 +178,3 @@ void *queue_pop(struct queue_t *q) {
     pthread_mutex_unlock(&q->mutex);
     return elem;
 }
-

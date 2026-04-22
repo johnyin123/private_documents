@@ -100,6 +100,7 @@ static inline void _dump_request(FILE *fp, const char *s, FCGX_Request *req, con
     fprintf(fp, "    err: %p\n", (void*)req->err);
 }
 #define dump_request(s, req) { if(g_env.trace_level>LOG_DEBUG) _dump_request(stderr, s, req, __FILE__, __LINE__); }
+int get_cmd_output(const char* cmd, char *buf, size_t buf_len);
 /*-------------------------------*/
 #include <pthread.h>
 struct queue_t {
