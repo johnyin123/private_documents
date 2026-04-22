@@ -764,7 +764,7 @@ int get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
     if (!pipe) { buf[0] = '\0'; return EXIT_FAILURE; }
     size_t n = fread(buf, 1, buf_len - 1, pipe);
     if (ferror(pipe)) {
-        fclose(pipe);
+        pclose(pipe);
         buf[0] = '\0';
         return EXIT_FAILURE;
     }

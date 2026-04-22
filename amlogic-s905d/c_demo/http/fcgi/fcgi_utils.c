@@ -112,18 +112,15 @@ void make_response(FCGX_Request *req, uint16_t status, enum mime_t mime, const c
         "\r\n"
         "%s", status, SRV_INFO, MIME_STR(mime), len, json_str);
 }
-int get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
+bool get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
+    if(!buf || buf_len<=1) return false;
     FILE* pipe = popen(cmd, "r");
-    if (!pipe) { buf[0] = '\0'; return EXIT_FAILURE; }
+    if(!pipe) { buf[0] = '\0'; return false; }
     size_t n = fread(buf, 1, buf_len - 1, pipe);
-    if (ferror(pipe)) {
-        fclose(pipe);
-        buf[0] = '\0';
-        return EXIT_FAILURE;
-    }
+    if(ferror(pipe)) n = 0;
     pclose(pipe);
     buf[n] = '\0';
-    return EXIT_SUCCESS;
+    return (n>0);
 }
 bool starts_with(const char *str, const char *prefix) {
     return strncmp(str, prefix, strlen(prefix)) == 0;
@@ -139,12 +136,12 @@ bool ends_with(const char *str, const char *suffix) {
 bool read_file(const char *path, char *buf, size_t sz) {
     if(!buf || sz<=1) return false;
     FILE *f = fopen(path, "r");
-    if (!f) { buf[0] = '\0'; return false; }
+    if(!f) { buf[0] = '\0'; return false; }
     size_t n = fread(buf, 1, sz - 1, f);
-    if (ferror(f)) n = 0;
+    if(ferror(f)) n = 0;
     fclose(f);
     buf[n] = '\0';
-    return (n != 0);
+    return (n>0);
 }
 /*-------------------------------*/
 void queue_init(struct queue_t *q, void *elems, size_t size) {
