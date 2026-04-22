@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+struct env g_env = {
+    .trace_level = 0,
+};
+
 #define _ITEM(c, n)   [c] = #n,
 static const char *method_map[] = { S_METHOD(_ITEM) };
 static const int method_map_len = ARRAY_LEN(method_map);
@@ -118,7 +122,7 @@ void queue_init(struct queue_t *q, void *elems, size_t size) {
     pthread_cond_init(&q->not_full, NULL);
 }
 void queue_stop(struct queue_t *q) {
-    q->stop=1;
+    q->stop=true;
     pthread_mutex_lock(&q->mutex);
     pthread_cond_broadcast(&q->not_empty);
     pthread_cond_broadcast(&q->not_full);

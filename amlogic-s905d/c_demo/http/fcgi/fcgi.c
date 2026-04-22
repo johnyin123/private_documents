@@ -1,35 +1,14 @@
 #include "fcgi_utils.h"
 #include <stdio.h>
-
-void dump_fcgx_request(FCGX_Request *req) {
-    fprintf(stderr, "=== FCGX_Request Dump ===\n");
-    fprintf(stderr, "    requestId: %d\n", req->requestId);
-    fprintf(stderr, "    role: %d\n", req->role);
-    fprintf(stderr, "    ipcFd: %d\n", req->ipcFd);
-    fprintf(stderr, "    isBeginProcessed: %d\n", req->isBeginProcessed);
-    fprintf(stderr, "    keepConnection: %d\n", req->keepConnection);
-    fprintf(stderr, "    appStatus: %d\n", req->appStatus);
-    fprintf(stderr, "    nWriters: %d\n", req->nWriters);
-    fprintf(stderr, "    flags: %d\n", req->flags);
-    fprintf(stderr, "    listen_sock: %d\n", req->listen_sock);
-    fprintf(stderr, "--- Environment Variables ---\n");
-    if (req->envp) {
-        for(char **env = req->envp; *env; env++) fprintf(stderr, "    %s\n", *env);
-    }
-    // Stream pointers
-    fprintf(stderr, "--- Streams ---\n");
-    fprintf(stderr, "    in:  %p\n", (void*)req->in);
-    fprintf(stderr, "    out: %p\n", (void*)req->out);
-    fprintf(stderr, "    err: %p\n", (void*)req->err);
-}
 int main(int argc, char *argv[]) {
     UNUSED(argc);UNUSED(argv);
+    const char* env_val = getenv("TRACE");
+    if(env_val) g_env.trace_level = atoi(env_val);
     if (FCGX_Init() != 0) {
         fprintf(stderr, "FCGX_Init failed\n");
         return 1;
     }
-    int backlog = 8;
-    int sock = FCGX_OpenSocket("localhost:9999", backlog);
+    int sock = FCGX_OpenSocket("localhost:9999", 128);
     if (sock < 0) {
         perror("FCGX_OpenSocket");
         return 1;
@@ -55,7 +34,7 @@ int main(int argc, char *argv[]) {
         }
         make_response(&request, 202, MIME_JSON, "{ \"key\":\"Hello, %s %s %s FastCGI\" }", host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
         //usleep(1000*1000*4);
-        dump_fcgx_request(&request);
+        dump_request("fcgi", &request);
         FCGX_Finish_r(&request);
     }
     return 0;

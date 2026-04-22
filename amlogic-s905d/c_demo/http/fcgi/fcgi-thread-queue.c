@@ -45,12 +45,15 @@ void *worker_thread(void *arg) {
             fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
         }
         make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
+        dump_request("fcgi", req);
         FCGX_Finish_r(req);
         free(req);
     }
     return NULL;
 }
 int main(int argc, char *argv[]) {
+    const char* env_val = getenv("TRACE");
+    if(env_val) g_env.trace_level = atoi(env_val);
     FCGX_Request *reqs[MAX_CONNS];
     struct queue_t queue;
     if (FCGX_Init() != 0) {
