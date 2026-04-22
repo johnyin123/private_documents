@@ -143,6 +143,24 @@ bool read_file(const char *path, char *buf, size_t sz) {
     buf[n] = '\0';
     return (n>0);
 }
+/* col1|col2|....| */
+bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm) {
+    const char *start = src;
+    const char *end;
+    int current_col = 1;
+    while (current_col < idx) {
+        start = strchr(start, delm);
+        if (!start) return false; /* out of bounds */
+        start++;
+        current_col++;
+    }
+    end = strchr(start, delm);
+    size_t len = end ? (size_t)(end - start) : strlen(start);
+    if(len >= out_len) len = out_len - 1;
+    memcpy(out, start, len);
+    out[len] = '\0';
+    return true;
+}
 /*-------------------------------*/
 void queue_init(struct queue_t *q, void *elems, size_t size) {
     memset(q, 0, sizeof(*q));

@@ -104,6 +104,7 @@ bool get_cmd_output(const char* cmd, char *buf, size_t buf_len);
 bool starts_with(const char *str, const char *prefix);
 bool ends_with(const char *str, const char *suffix);
 bool read_file(const char *path, char *buf, size_t sz);
+bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm);
 /*-------------------------------*/
 #include <pthread.h>
 struct queue_t {
