@@ -55,6 +55,7 @@ server {
         limit_conn_status 403;
         allow 127.0.0.1;
         deny all;
+        fastcgi_keep_conn on;
         if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
