@@ -125,6 +125,27 @@ int get_cmd_output(const char* cmd, char *buf, size_t buf_len) {
     buf[n] = '\0';
     return EXIT_SUCCESS;
 }
+bool starts_with(const char *str, const char *prefix) {
+    return strncmp(str, prefix, strlen(prefix)) == 0;
+}
+bool ends_with(const char *str, const char *suffix) {
+    if (!str || !suffix) return false;
+    size_t lenstr = strlen(str);
+    size_t lensuffix = strlen(suffix);
+    if (lensuffix > lenstr) return false;
+    // Use GCC __builtin_memcmp for optimization potential
+    return __builtin_memcmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+bool read_file(const char *path, char *buf, size_t sz) {
+    if(!buf || sz<=1) return false;
+    FILE *f = fopen(path, "r");
+    if (!f) { buf[0] = '\0'; return false; }
+    size_t n = fread(buf, 1, sz - 1, f);
+    if (ferror(f)) n = 0;
+    fclose(f);
+    buf[n] = '\0';
+    return (n != 0);
+}
 /*-------------------------------*/
 void queue_init(struct queue_t *q, void *elems, size_t size) {
     memset(q, 0, sizeof(*q));

@@ -101,6 +101,9 @@ static inline void _dump_request(FILE *fp, const char *s, FCGX_Request *req, con
 }
 #define dump_request(s, req) { if(g_env.trace_level>LOG_DEBUG) _dump_request(stderr, s, req, __FILE__, __LINE__); }
 int get_cmd_output(const char* cmd, char *buf, size_t buf_len);
+bool starts_with(const char *str, const char *prefix);
+bool ends_with(const char *str, const char *suffix);
+bool read_file(const char *path, char *buf, size_t sz);
 /*-------------------------------*/
 #include <pthread.h>
 struct queue_t {
