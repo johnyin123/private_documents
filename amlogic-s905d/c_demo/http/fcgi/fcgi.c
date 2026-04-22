@@ -1,16 +1,13 @@
 #include "fcgi_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
 int main(int argc, char *argv[]) {
     UNUSED(argc);UNUSED(argv);
     const char* env_val = getenv("TRACE");
     if(env_val) g_env.trace_level = atoi(env_val);
-    if (FCGX_Init() != 0) {
-        fprintf(stderr, "FCGX_Init failed\n");
-        return 1;
-    }
-    int sock = FCGX_OpenSocket("localhost:9999", 128);
-    if (sock < 0) {
-        perror("FCGX_OpenSocket");
+    int sock = -1;
+    if ((FCGX_Init()!=0) || ((sock = FCGX_OpenSocket("localhost:9999", 128)) < 0)) {
+        perror("FCGX INIT");
         return 1;
     }
     FCGX_Request request;

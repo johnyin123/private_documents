@@ -2,37 +2,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define MAX_CONNS  128
-
-struct env_t {
+struct thread_arg_t {
     int sock;
-} env = {
-    .sock  = -1,
+    FCGX_Request *reqs[MAX_CONNS];
+    struct queue_t queue;
 };
 void *acceptor_thread(void *arg) {
-    struct queue_t *q = arg;
+    struct thread_arg_t *t_args = arg;
     for (;;) {
-        if (q->stop) break;
+        if (t_args->queue.stop) break;
         FCGX_Request *req = malloc(sizeof(FCGX_Request));
-        if (FCGX_InitRequest(req, env.sock, 0) != 0) {
+        if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0)) {
             free(req);
             continue;
         }
-        int rc = FCGX_Accept_r(req);
-        if (rc < 0) {
-            fprintf(stderr, "Accept failed: %d\n", rc);
-            free(req);
-            if (q->stop) break;
-            continue;
-        }
-        queue_push(q, req);
+        if (EXIT_SUCCESS != queue_push(&t_args->queue, req)) break;
     }
     return NULL;
 }
 void *worker_thread(void *arg) {
-    struct queue_t *q = arg;
+    struct thread_arg_t *t_args = arg;
     for (;;) {
-        if (q->stop) break;
-        FCGX_Request *req = queue_pop(q);
+        if (t_args->queue.stop) break;
+        FCGX_Request *req = queue_pop(&t_args->queue);
         if (req == NULL) break;
         const char *host = req_get_header(req, "FN_HANDLER");
         const char *method = req_method(req);
@@ -54,31 +46,25 @@ void *worker_thread(void *arg) {
 int main(int argc, char *argv[]) {
     const char* env_val = getenv("TRACE");
     if(env_val) g_env.trace_level = atoi(env_val);
-    FCGX_Request *reqs[MAX_CONNS];
-    struct queue_t queue;
-    if (FCGX_Init() != 0) {
-        fprintf(stderr, "FCGX_Init failed\n");
+    struct thread_arg_t thread_arg = { .sock = -1, };
+    if ((FCGX_Init()!=0) || ((thread_arg.sock = FCGX_OpenSocket("localhost:9999", 128)) < 0)) {
+        perror("FCGX INIT");
         return 1;
     }
-    env.sock = FCGX_OpenSocket("localhost:9999", 128);
-    if (env.sock < 0) {
-        perror("FCGX_OpenSocket");
-        return 1;
-    }
-    queue_init(&queue, reqs, ARRAY_LEN(reqs));
+    queue_init(&thread_arg.queue, thread_arg.reqs, ARRAY_LEN(thread_arg.reqs));
     /* 1 acceptor + 4 worker */
     pthread_t acceptor, workers[4];
-    pthread_create(&acceptor, NULL, acceptor_thread, &queue);
+    pthread_create(&acceptor, NULL, acceptor_thread, &thread_arg);
     for (int i=0; i<4; i++) {
-        pthread_create(&workers[i], NULL, worker_thread, &queue);
+        pthread_create(&workers[i], NULL, worker_thread, &thread_arg);
     }
     fprintf(stderr, "Running. Press Ctrl+C to stop.\n");
     getchar();
-    queue_stop(&queue);
+    queue_stop(&thread_arg.queue);
     pthread_join(acceptor, NULL);
     for (int i=0; i<4; i++) {
         pthread_join(workers[i], NULL);
     }
-    queue_destroy(&queue);
+    queue_destroy(&thread_arg.queue);
     return 0;
 }
