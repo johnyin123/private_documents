@@ -32,7 +32,7 @@ void *worker_thread(void *arg) {
         unsigned long tid = (unsigned long)pthread_self();
         int rc = 0;
         char buf[BUF_SIZE] = {0}; /* POST DATA */
-        if((rc=req_body(req, buf, sizeof(buf)))>0) {
+        if((rc=req_body(req, buf, ARRAY_LEN(buf)))>0) {
             buf[rc] = '\0';
             fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
         }

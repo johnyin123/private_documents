@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
         const char *method = req_method(&request);
         const char *uri = req_uri(&request);
         char buf[BUF_SIZE] = {0}; /* POST DATA */
-        if((rc=req_body(&request, buf, sizeof(buf)))>0) {
+        if((rc=req_body(&request, buf, ARRAY_LEN(buf)))>0) {
             buf[rc] = '\0';
             fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
         }
