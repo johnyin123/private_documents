@@ -53,6 +53,8 @@ server {
     location / {
         limit_conn connperserver 1;
         limit_conn_status 403;
+        allow 127.0.0.1;
+        deny all;
         if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
