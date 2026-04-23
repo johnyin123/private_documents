@@ -107,97 +107,95 @@ bool read_file(const char *path, char *buf, size_t sz);
 bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm);
 /*-------------------------------*/
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
-/* Only one producer owns a slot between reserve → write → commit  */
-/* Only one consumer owns a slot between peek    → read  → release */
-struct queue_core {
-    int cap, head, tail, count;
-    pthread_mutex_t mutex;
-    pthread_cond_t not_empty;
-    pthread_cond_t not_full;
-    bool stop;
-};
-static inline void queue_core_init(struct queue_core *q, int cap) {
-    memset(q, 0, sizeof(*q));
-    q->cap = cap;
-    pthread_mutex_init(&q->mutex, NULL);
-    pthread_cond_init(&q->not_empty, NULL);
-    pthread_cond_init(&q->not_full, NULL);
+//static inline bool is_power_of_2(uint32_t n) { return n > 0 && (n & (n - 1)) == 0; }
+#if __STDC_VERSION__ >= 201112L
+    #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#else
+    #define STATIC_ASSERT(cond, msg) typedef char static_assert_##msg[(cond)?1:-1]
+#endif
+
+#define IS_POWER_OF_TWO(x) ((x) && !((x) & ((x) - 1)))
+typedef struct {
+    void *data;
+    atomic_uint seq;
+} mpmc_cell_t;
+typedef struct {
+    mpmc_cell_t *buffer;
+    uint32_t mask;
+    atomic_uint head;
+    atomic_uint tail;
+} mpmc_queue_t;
+static inline void __mpmc_init(mpmc_queue_t *q, mpmc_cell_t *buffer, uint32_t cap) {
+    q->buffer = buffer;
+    q->mask = cap - 1;
+    atomic_store(&q->head, 0);
+    atomic_store(&q->tail, 0);
+    for (uint32_t i = 0; i < cap; i++) {
+        atomic_store(&buffer[i].seq, i);
+        buffer[i].data = NULL;
+    }
+}
+static inline bool __mpmc_push(mpmc_queue_t *q, void *item) {
+    mpmc_cell_t *cell;
+    uint32_t pos;
+    for (;;) {
+        pos = atomic_load_explicit(&q->tail, memory_order_relaxed);
+        cell = &q->buffer[pos & q->mask];
+        uint32_t seq = atomic_load_explicit(&cell->seq, memory_order_acquire);
+        int32_t diff = (int32_t)seq - (int32_t)pos;
+        if (diff == 0) {
+            if (atomic_compare_exchange_weak_explicit(&q->tail, &pos, pos + 1, memory_order_relaxed, memory_order_relaxed))
+                break;
+        } else if (diff < 0) {
+            return false; // full
+        }
+    }
+    cell->data = item;
+    atomic_store_explicit(&cell->seq, pos + 1, memory_order_release);
+    return true;
+}
+static inline void *__mpmc_pop(mpmc_queue_t *q) {
+    mpmc_cell_t *cell;
+    uint32_t pos;
+    for (;;) {
+        pos = atomic_load_explicit(&q->head, memory_order_relaxed);
+        cell = &q->buffer[pos & q->mask];
+        uint32_t seq = atomic_load_explicit(&cell->seq, memory_order_acquire);
+        int32_t diff = (int32_t)seq - (int32_t)(pos + 1);
+        if (diff == 0) {
+            if (atomic_compare_exchange_weak_explicit(&q->head, &pos, pos + 1, memory_order_relaxed, memory_order_relaxed))
+                break;
+        } else if (diff < 0) {
+            return NULL; // empty
+        }
+    }
+    void *item = cell->data;
+    atomic_store_explicit(&cell->seq, pos + q->mask + 1, memory_order_release);
+    return item;
 }
 
-static inline void queue_core_destroy(struct queue_core *q) {
-    pthread_mutex_destroy(&q->mutex);
-    pthread_cond_destroy(&q->not_empty);
-    pthread_cond_destroy(&q->not_full);
-}
-
-#define DEFINE_QUEUE_TYPE(T, name, CAP)                                  \
-                                                                         \
-typedef struct {                                                         \
-    struct queue_core core;                                              \
-    T buf[CAP];                                                          \
-} name##_t;                                                              \
-                                                                         \
-static inline void name##_init(name##_t *q) {                            \
-    queue_core_init(&q->core, CAP);                                      \
-}                                                                        \
-                                                                         \
-static inline void name##_destroy(name##_t *q) {                         \
-    queue_core_destroy(&q->core);                                        \
-}                                                                        \
-                                                                         \
-static inline bool name##_is_stop(name##_t *q) {                         \
-    return q->core.stop;                                                 \
-}                                                                        \
-                                                                         \
-static inline void name##_stop(name##_t *q) {                            \
-    pthread_mutex_lock(&q->core.mutex);                                  \
-    q->core.stop = true;                                                 \
-    pthread_cond_broadcast(&q->core.not_empty);                          \
-    pthread_cond_broadcast(&q->core.not_full);                           \
-    pthread_mutex_unlock(&q->core.mutex);                                \
-}                                                                        \
-static inline T* name##_reserve(name##_t *q) {                           \
-    pthread_mutex_lock(&q->core.mutex);                                  \
-    while (q->core.count >= q->core.cap && !q->core.stop)                \
-        pthread_cond_wait(&q->core.not_full, &q->core.mutex);            \
-    if (q->core.stop) {                                                  \
-        pthread_mutex_unlock(&q->core.mutex);                            \
-        return NULL;                                                     \
-    }                                                                    \
-    T *slot = &q->buf[q->core.tail];                                     \
-    pthread_mutex_unlock(&q->core.mutex);                                \
-    return slot;                                                         \
-}                                                                        \
-                                                                         \
-static inline void name##_commit(name##_t *q) {                          \
-    pthread_mutex_lock(&q->core.mutex);                                  \
-    q->core.tail = (q->core.tail + 1) % q->core.cap;                     \
-    q->core.count++;                                                     \
-    pthread_cond_signal(&q->core.not_empty);                             \
-    pthread_mutex_unlock(&q->core.mutex);                                \
-}                                                                        \
-                                                                         \
-static inline T* name##_peek(name##_t *q) {                              \
-    pthread_mutex_lock(&q->core.mutex);                                  \
-    while (q->core.count == 0 && !q->core.stop)                          \
-        pthread_cond_wait(&q->core.not_empty, &q->core.mutex);           \
-    if (q->core.stop && q->core.count == 0) {                            \
-        pthread_mutex_unlock(&q->core.mutex);                            \
-        return NULL;                                                     \
-    }                                                                    \
-    T *slot = &q->buf[q->core.head];                                     \
-    pthread_mutex_unlock(&q->core.mutex);                                \
-    return slot;                                                         \
-}                                                                        \
-                                                                         \
-static inline void name##_release(name##_t *q) {                         \
-    pthread_mutex_lock(&q->core.mutex);                                  \
-    q->core.head = (q->core.head + 1) % q->core.cap;                     \
-    q->core.count--;                                                     \
-    pthread_cond_signal(&q->core.not_full);                              \
-    pthread_mutex_unlock(&q->core.mutex);                                \
+#define DEFINE_QUEUE_TYPE(type, name, CAP)                  \
+                                                            \
+STATIC_ASSERT(IS_POWER_OF_TWO(CAP), size_NOT_power_of_two); \
+                                                            \
+typedef struct {                                            \
+    mpmc_queue_t core;                                      \
+    mpmc_cell_t buffer[CAP];                                \
+} name##_t;                                                 \
+                                                            \
+static inline void name##_init(name##_t *q) {               \
+    __mpmc_init(&q->core, q->buffer, CAP);                  \
+}                                                           \
+                                                            \
+static inline int name##_push(name##_t *q, type *item) {    \
+    return __mpmc_push(&q->core, item);                     \
+}                                                           \
+                                                            \
+static inline type *name##_pop(name##_t *q) {               \
+    return (type *)__mpmc_pop(&q->core);                    \
 }
 /*-------------------------------*/
 

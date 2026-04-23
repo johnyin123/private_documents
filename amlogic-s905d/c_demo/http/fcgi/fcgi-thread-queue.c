@@ -1,22 +1,31 @@
 #include "fcgi_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#define N_WORKERS  5
 #define MAX_CONNS  128
-
 DEFINE_QUEUE_TYPE(FCGX_Request, req_queue, MAX_CONNS)
 struct thread_arg_t {
     int sock;
-    req_queue_t queue;
+    req_queue_t free_q, used_q;
+    FCGX_Request reqs[MAX_CONNS];
 };
 void *acceptor_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
+    FCGX_Request *req;
     for (;;) {
-        if (req_queue_is_stop(&t_args->queue)) break;
-        FCGX_Request *req = req_queue_reserve(&t_args->queue);
-        if (!req) break;
-        if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0))
+        //stop
+        while (!(req = req_queue_pop(&t_args->free_q))) {
+            sched_yield();
+        }
+        if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0)) {
+            while (!req_queue_push(&t_args->free_q, req)) {
+                sched_yield();
+            }
             continue;
-        req_queue_commit(&t_args->queue);
+        }
+        while (!req_queue_push(&t_args->used_q, req)) {
+            sched_yield();
+        }
     }
     log_error("accept thread exit");
     return NULL;
@@ -34,16 +43,19 @@ static void deal(FCGX_Request *req) {
     }
     make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
     dump_request("fcgi", req);
-    FCGX_Finish_r(req);
 }
 void *worker_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
+    FCGX_Request *req;
     for (;;) {
-        if(req_queue_is_stop(&t_args->queue)) break;
-        FCGX_Request *req=req_queue_peek(&t_args->queue);
-        if(!req) continue;
+        while (!(req = req_queue_pop(&t_args->used_q))) {
+            sched_yield();
+        }
         deal(req);
-        req_queue_release(&t_args->queue);
+        FCGX_Finish_r(req);
+        while (!req_queue_push(&t_args->free_q, req)) {
+            sched_yield();
+        }
     }
     log_error("worker thread exit");
     return NULL;
@@ -56,20 +68,22 @@ int main(int argc, char *argv[]) {
         perror("FCGX INIT");
         return 1;
     }
-    req_queue_init(&thread_arg.queue);
-    /* 1 acceptor + 4 worker */
-    pthread_t acceptor, workers[4];
+    req_queue_init(&thread_arg.free_q);
+    req_queue_init(&thread_arg.used_q);
+    for (int i=0; i<MAX_CONNS; i++) {
+        while (!req_queue_push(&thread_arg.free_q, &thread_arg.reqs[i])) { }
+    }
+    /* 1 acceptor + N_WORKERS worker */
+    pthread_t acceptor, workers[N_WORKERS];
     pthread_create(&acceptor, NULL, acceptor_thread, &thread_arg);
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<N_WORKERS; i++) {
         pthread_create(&workers[i], NULL, worker_thread, &thread_arg);
     }
     fprintf(stderr, "Running. Press Ctrl+C to stop.\n");
     getchar();
-    req_queue_stop(&thread_arg.queue);
     pthread_join(acceptor, NULL);
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<N_WORKERS; i++) {
         pthread_join(workers[i], NULL);
     }
-    req_queue_destroy(&thread_arg.queue);
     return 0;
 }
