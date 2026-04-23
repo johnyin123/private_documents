@@ -162,7 +162,7 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
     return true;
 }
 /*-------------------------------*/
-void queue_init(struct queue_t *q, void *elems, size_t size) {
+void __queue_init(struct queue_t *q, void **elems, size_t size) {
     memset(q, 0, sizeof(*q));
     q->elems = elems;
     q->cap = size;
@@ -171,8 +171,8 @@ void queue_init(struct queue_t *q, void *elems, size_t size) {
     pthread_cond_init(&q->not_full, NULL);
 }
 void queue_stop(struct queue_t *q) {
-    q->stop=true;
     pthread_mutex_lock(&q->mutex);
+    q->stop=true;
     pthread_cond_broadcast(&q->not_empty);
     pthread_cond_broadcast(&q->not_full);
     pthread_mutex_unlock(&q->mutex);

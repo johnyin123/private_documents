@@ -115,7 +115,8 @@ struct queue_t {
     pthread_cond_t not_full;
     volatile bool stop;
 };
-void queue_init(struct queue_t *q, void *elems, size_t size);
+void __queue_init(struct queue_t *q, void **elems, size_t size);
+#define queue_init(q, arr, cap) __queue_init((q), (void **)(arr), (cap))
 void queue_stop(struct queue_t *q);
 void queue_destroy(struct queue_t *q);
 int queue_push(struct queue_t *q, void *elem);
