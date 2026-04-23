@@ -2,30 +2,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define MAX_CONNS  128
+
+DEFINE_QUEUE_TYPE(FCGX_Request *, req_queue, MAX_CONNS)
 struct thread_arg_t {
     int sock;
-    FCGX_Request *reqs[MAX_CONNS];
-    struct queue_t queue;
+    req_queue_t queue;
 };
 void *acceptor_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
     for (;;) {
-        if (t_args->queue.stop) break;
+        if(req_queue_is_stop(&t_args->queue)) break;
         FCGX_Request *req = malloc(sizeof(FCGX_Request));
         if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0)) {
             free(req);
             continue;
         }
-        if (EXIT_SUCCESS != queue_push(&t_args->queue, req)) break;
+        if(0!=req_queue_push(&t_args->queue, req)) break;
     }
     return NULL;
 }
 void *worker_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
     for (;;) {
-        if (t_args->queue.stop) break;
-        FCGX_Request *req = queue_pop(&t_args->queue);
-        if (req == NULL) break;
+        FCGX_Request *req = NULL;
+        if(req_queue_is_stop(&t_args->queue)) break;
+        if(0!=req_queue_pop(&t_args->queue, &req)) break;
         const char *host = req_get_header(req, "FN_HANDLER");
         const char *method = req_method(req);
         const char *uri = req_uri(req);
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
         perror("FCGX INIT");
         return 1;
     }
-    queue_init(&thread_arg.queue, thread_arg.reqs, ARRAY_LEN(thread_arg.reqs));
+    req_queue_init(&thread_arg.queue);
     /* 1 acceptor + 4 worker */
     pthread_t acceptor, workers[4];
     pthread_create(&acceptor, NULL, acceptor_thread, &thread_arg);
@@ -60,11 +61,11 @@ int main(int argc, char *argv[]) {
     }
     fprintf(stderr, "Running. Press Ctrl+C to stop.\n");
     getchar();
-    queue_stop(&thread_arg.queue);
+    req_queue_stop(&thread_arg.queue);
     pthread_join(acceptor, NULL);
     for (int i=0; i<4; i++) {
         pthread_join(workers[i], NULL);
     }
-    queue_destroy(&thread_arg.queue);
+    req_queue_destroy(&thread_arg.queue);
     return 0;
 }

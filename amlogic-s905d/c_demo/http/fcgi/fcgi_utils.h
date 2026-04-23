@@ -107,20 +107,91 @@ bool read_file(const char *path, char *buf, size_t sz);
 bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm);
 /*-------------------------------*/
 #include <pthread.h>
-struct queue_t {
-    void **elems; int cap;
+#include <stdbool.h>
+#include <string.h>
+struct queue_core {
+    void *buf; size_t elem_size; int cap;
     int head, tail, count;
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
     bool stop;
 };
-void __queue_init(struct queue_t *q, void **elems, size_t size);
-#define queue_init(q, arr, cap) __queue_init((q), (void **)(arr), (cap))
-void queue_stop(struct queue_t *q);
-void queue_destroy(struct queue_t *q);
-int queue_push(struct queue_t *q, void *elem);
-void *queue_pop(struct queue_t *q);
+static inline void queue_core_init(struct queue_core *q, void *buf, size_t elem_size, int cap)
+{
+    memset(q, 0, sizeof(*q));
+    q->buf = buf;
+    q->elem_size = elem_size;
+    q->cap = cap;
+    pthread_mutex_init(&q->mutex, NULL);
+    pthread_cond_init(&q->not_empty, NULL);
+    pthread_cond_init(&q->not_full, NULL);
+}
+
+static inline void queue_core_destroy(struct queue_core *q) {
+    pthread_mutex_destroy(&q->mutex);
+    pthread_cond_destroy(&q->not_empty);
+    pthread_cond_destroy(&q->not_full);
+}
+
+#define DEFINE_QUEUE_TYPE(T, name, CAP)                                  \
+                                                                         \
+typedef struct {                                                         \
+    struct queue_core core;                                              \
+    T buf[CAP];                                                          \
+} name##_t;                                                              \
+                                                                         \
+static inline void name##_init(name##_t *q) {                            \
+    queue_core_init(&q->core, q->buf, sizeof(T), CAP);                   \
+}                                                                        \
+                                                                         \
+static inline void name##_destroy(name##_t *q) {                         \
+    queue_core_destroy(&q->core);                                        \
+}                                                                        \
+                                                                         \
+static inline bool name##_is_stop(name##_t *q) {                         \
+    return q->core.stop;                                                 \
+}                                                                        \
+                                                                         \
+static inline void name##_stop(name##_t *q) {                            \
+    pthread_mutex_lock(&q->core.mutex);                                  \
+    q->core.stop = true;                                                 \
+    pthread_cond_broadcast(&q->core.not_empty);                          \
+    pthread_cond_broadcast(&q->core.not_full);                           \
+    pthread_mutex_unlock(&q->core.mutex);                                \
+}                                                                        \
+                                                                         \
+static inline int name##_push(name##_t *q, T value) {                    \
+    pthread_mutex_lock(&q->core.mutex);                                  \
+    while (q->core.count >= q->core.cap && !q->core.stop)                \
+        pthread_cond_wait(&q->core.not_full, &q->core.mutex);            \
+    if (q->core.stop) {                                                  \
+        pthread_mutex_unlock(&q->core.mutex);                            \
+        return -1;                                                       \
+    }                                                                    \
+    q->buf[q->core.tail] = value;                                        \
+    q->core.tail = (q->core.tail + 1) % q->core.cap;                     \
+    q->core.count++;                                                     \
+    pthread_cond_signal(&q->core.not_empty);                             \
+    pthread_mutex_unlock(&q->core.mutex);                                \
+    return 0;                                                            \
+}                                                                        \
+                                                                         \
+static inline int name##_pop(name##_t *q, T *out) {                      \
+    pthread_mutex_lock(&q->core.mutex);                                  \
+    while (q->core.count == 0 && !q->core.stop)                          \
+        pthread_cond_wait(&q->core.not_empty, &q->core.mutex);           \
+    if (q->core.stop && q->core.count == 0) {                            \
+        pthread_mutex_unlock(&q->core.mutex);                            \
+        return -1;                                                       \
+    }                                                                    \
+    *out = q->buf[q->core.head];                                         \
+    q->core.head = (q->core.head + 1) % q->core.cap;                     \
+    q->core.count--;                                                     \
+    pthread_cond_signal(&q->core.not_full);                              \
+    pthread_mutex_unlock(&q->core.mutex);                                \
+    return 0;                                                            \
+}
 /*-------------------------------*/
 
 #ifdef __cplusplus
