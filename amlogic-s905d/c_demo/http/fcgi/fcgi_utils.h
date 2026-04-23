@@ -109,19 +109,17 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
 #include <pthread.h>
 #include <stdbool.h>
 #include <string.h>
+/* Only one producer owns a slot between reserve → write → commit  */
+/* Only one consumer owns a slot between peek    → read  → release */
 struct queue_core {
-    void *buf; size_t elem_size; int cap;
-    int head, tail, count;
+    int cap, head, tail, count;
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
     bool stop;
 };
-static inline void queue_core_init(struct queue_core *q, void *buf, size_t elem_size, int cap)
-{
+static inline void queue_core_init(struct queue_core *q, int cap) {
     memset(q, 0, sizeof(*q));
-    q->buf = buf;
-    q->elem_size = elem_size;
     q->cap = cap;
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->not_empty, NULL);
@@ -142,7 +140,7 @@ typedef struct {                                                         \
 } name##_t;                                                              \
                                                                          \
 static inline void name##_init(name##_t *q) {                            \
-    queue_core_init(&q->core, q->buf, sizeof(T), CAP);                   \
+    queue_core_init(&q->core, CAP);                                      \
 }                                                                        \
                                                                          \
 static inline void name##_destroy(name##_t *q) {                         \
@@ -160,37 +158,46 @@ static inline void name##_stop(name##_t *q) {                            \
     pthread_cond_broadcast(&q->core.not_full);                           \
     pthread_mutex_unlock(&q->core.mutex);                                \
 }                                                                        \
-                                                                         \
-static inline int name##_push(name##_t *q, T value) {                    \
+static inline T* name##_reserve(name##_t *q) {                           \
     pthread_mutex_lock(&q->core.mutex);                                  \
     while (q->core.count >= q->core.cap && !q->core.stop)                \
         pthread_cond_wait(&q->core.not_full, &q->core.mutex);            \
     if (q->core.stop) {                                                  \
         pthread_mutex_unlock(&q->core.mutex);                            \
-        return -1;                                                       \
+        return NULL;                                                     \
     }                                                                    \
-    q->buf[q->core.tail] = value;                                        \
+    T *slot = &q->buf[q->core.tail];                                     \
+    pthread_mutex_unlock(&q->core.mutex);                                \
+    return slot;                                                         \
+}                                                                        \
+                                                                         \
+static inline void name##_commit(name##_t *q) {                          \
+    pthread_mutex_lock(&q->core.mutex);                                  \
     q->core.tail = (q->core.tail + 1) % q->core.cap;                     \
     q->core.count++;                                                     \
     pthread_cond_signal(&q->core.not_empty);                             \
     pthread_mutex_unlock(&q->core.mutex);                                \
-    return 0;                                                            \
 }                                                                        \
                                                                          \
-static inline int name##_pop(name##_t *q, T *out) {                      \
+static inline T* name##_peek(name##_t *q) {                              \
     pthread_mutex_lock(&q->core.mutex);                                  \
     while (q->core.count == 0 && !q->core.stop)                          \
         pthread_cond_wait(&q->core.not_empty, &q->core.mutex);           \
     if (q->core.stop && q->core.count == 0) {                            \
         pthread_mutex_unlock(&q->core.mutex);                            \
-        return -1;                                                       \
+        return NULL;                                                     \
     }                                                                    \
-    *out = q->buf[q->core.head];                                         \
+    T *slot = &q->buf[q->core.head];                                     \
+    pthread_mutex_unlock(&q->core.mutex);                                \
+    return slot;                                                         \
+}                                                                        \
+                                                                         \
+static inline void name##_release(name##_t *q) {                         \
+    pthread_mutex_lock(&q->core.mutex);                                  \
     q->core.head = (q->core.head + 1) % q->core.cap;                     \
     q->core.count--;                                                     \
     pthread_cond_signal(&q->core.not_full);                              \
     pthread_mutex_unlock(&q->core.mutex);                                \
-    return 0;                                                            \
 }
 /*-------------------------------*/
 

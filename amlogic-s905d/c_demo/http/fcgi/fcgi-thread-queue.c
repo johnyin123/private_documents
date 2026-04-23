@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #define MAX_CONNS  128
 
-DEFINE_QUEUE_TYPE(FCGX_Request *, req_queue, MAX_CONNS)
+DEFINE_QUEUE_TYPE(FCGX_Request, req_queue, MAX_CONNS)
 struct thread_arg_t {
     int sock;
     req_queue_t queue;
@@ -11,37 +11,41 @@ struct thread_arg_t {
 void *acceptor_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
     for (;;) {
-        if(req_queue_is_stop(&t_args->queue)) break;
-        FCGX_Request *req = malloc(sizeof(FCGX_Request));
-        if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0)) {
-            free(req);
+        if (req_queue_is_stop(&t_args->queue)) break;
+        FCGX_Request *req = req_queue_reserve(&t_args->queue);
+        if (!req) break;
+        if ((FCGX_InitRequest(req, t_args->sock, 0) != 0) || (FCGX_Accept_r(req) < 0))
             continue;
-        }
-        if(0!=req_queue_push(&t_args->queue, req)) break;
+        req_queue_commit(&t_args->queue);
     }
+    log_error("accept thread exit");
     return NULL;
+}
+static void deal(FCGX_Request *req) {
+    const char *host = req_get_header(req, "FN_HANDLER");
+    const char *method = req_method(req);
+    const char *uri = req_uri(req);
+    unsigned long tid = (unsigned long)pthread_self();
+    int rc = 0;
+    char buf[BUF_SIZE] = {0}; /* POST DATA */
+    if((rc=req_body(req, buf, ARRAY_LEN(buf)))>0) {
+        buf[rc] = '\0';
+        fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
+    }
+    make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
+    dump_request("fcgi", req);
+    FCGX_Finish_r(req);
 }
 void *worker_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
     for (;;) {
-        FCGX_Request *req = NULL;
         if(req_queue_is_stop(&t_args->queue)) break;
-        if(0!=req_queue_pop(&t_args->queue, &req)) break;
-        const char *host = req_get_header(req, "FN_HANDLER");
-        const char *method = req_method(req);
-        const char *uri = req_uri(req);
-        unsigned long tid = (unsigned long)pthread_self();
-        int rc = 0;
-        char buf[BUF_SIZE] = {0}; /* POST DATA */
-        if((rc=req_body(req, buf, ARRAY_LEN(buf)))>0) {
-            buf[rc] = '\0';
-            fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
-        }
-        make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
-        dump_request("fcgi", req);
-        FCGX_Finish_r(req);
-        free(req);
+        FCGX_Request *req=req_queue_peek(&t_args->queue);
+        if(!req) continue;
+        deal(req);
+        req_queue_release(&t_args->queue);
     }
+    log_error("worker thread exit");
     return NULL;
 }
 int main(int argc, char *argv[]) {
