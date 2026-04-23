@@ -113,7 +113,7 @@ struct queue_t {
     pthread_mutex_t mutex;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
-    volatile bool stop;
+    bool stop;
 };
 void __queue_init(struct queue_t *q, void **elems, size_t size);
 #define queue_init(q, arr, cap) __queue_init((q), (void **)(arr), (cap))
