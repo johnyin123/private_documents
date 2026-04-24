@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #define N_WORKERS  4
 #define MAX_CONNS  128
-#define DEF_ADDR "localhost:9999"
+#define DEF_ADDR   "localhost:9999"
 struct thread_arg_t {
     int sock;
 };

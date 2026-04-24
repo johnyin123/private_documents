@@ -111,39 +111,32 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
 #include <string.h>
 #include <stdatomic.h>
 struct queue_core {
-    int cap, head, tail;
-    atomic_int count;
+    int cap, head, tail, count;
     atomic_bool closed;
-    pthread_mutex_t push_lock;
-    pthread_mutex_t pop_lock;
+    pthread_mutex_t lock;
     pthread_cond_t not_empty;
     pthread_cond_t not_full;
 };
 static inline void __queue_core_init(struct queue_core *q, int cap) {
-    q->head = q->tail = 0;
-    q->count = ATOMIC_VAR_INIT(0);
+    q->head = q->tail = q->count = 0;
     q->cap = cap;
-    q->closed = false;
-    pthread_mutex_init(&q->push_lock, NULL);
-    pthread_mutex_init(&q->pop_lock, NULL);
+    q->closed = ATOMIC_VAR_INIT(false);
+    pthread_mutex_init(&q->lock, NULL);
     pthread_cond_init(&q->not_empty, NULL);
     pthread_cond_init(&q->not_full, NULL);
 }
 static inline void __queue_core_destroy(struct queue_core *q) {
-    pthread_mutex_destroy(&q->push_lock);
-    pthread_mutex_destroy(&q->pop_lock);
+    pthread_mutex_destroy(&q->lock);
     pthread_cond_destroy(&q->not_empty);
     pthread_cond_destroy(&q->not_full);
 }
 
 static inline void __queue_core_close(struct queue_core *q) {
     atomic_store(&q->closed, true);
-    pthread_mutex_lock(&q->push_lock);
+    pthread_mutex_lock(&q->lock);
     pthread_cond_broadcast(&q->not_full);
-    pthread_mutex_unlock(&q->push_lock);
-    pthread_mutex_lock(&q->pop_lock);
     pthread_cond_broadcast(&q->not_empty);
-    pthread_mutex_unlock(&q->pop_lock);
+    pthread_mutex_unlock(&q->lock);
 }
 
 #define DEFINE_QUEUE_TYPE(T, name, CAP)                                       \
@@ -166,22 +159,22 @@ static inline void name##_destroy(name##_t *q) {                              \
 }                                                                             \
                                                                               \
 static inline bool name##_push(name##_t *q, T *item) {                        \
-    pthread_mutex_lock(&q->core.push_lock);                                   \
-    while (atomic_load(&q->core.count) >= q->core.cap &&                      \
+    pthread_mutex_lock(&q->core.lock);                                        \
+    while (q->core.count >= q->core.cap &&                                    \
             !atomic_load(&q->core.closed)) {                                  \
-        if(0 != pthread_cond_wait(&q->core.not_full, &q->core.push_lock)) {   \
-            pthread_mutex_unlock(&q->core.push_lock);                         \
+        if(0 != pthread_cond_wait(&q->core.not_full, &q->core.lock)) {        \
+            pthread_mutex_unlock(&q->core.lock);                              \
             return false;                                                     \
         }                                                                     \
     }                                                                         \
     if (atomic_load(&q->core.closed)) {                                       \
-        pthread_mutex_unlock(&q->core.push_lock);                             \
+        pthread_mutex_unlock(&q->core.lock);                                  \
         return false;                                                         \
     }                                                                         \
     q->buf[q->core.tail] = item;                                              \
     q->core.tail = (q->core.tail + 1) % q->core.cap;                          \
     int c = atomic_fetch_add(&q->core.count, 1) + 1;                          \
-    pthread_mutex_unlock(&q->core.push_lock);                                 \
+    pthread_mutex_unlock(&q->core.lock);                                      \
     if (c == 1) {                                                             \
         pthread_cond_broadcast(&q->core.not_empty);                           \
     }                                                                         \
@@ -189,23 +182,23 @@ static inline bool name##_push(name##_t *q, T *item) {                        \
 }                                                                             \
                                                                               \
 static inline T *name##_pop(name##_t *q) {                                    \
-    pthread_mutex_lock(&q->core.pop_lock);                                    \
-    while (atomic_load(&q->core.count) == 0 &&                                \
+    pthread_mutex_lock(&q->core.lock);                                        \
+    while (q->core.count == 0 &&                                              \
             !atomic_load(&q->core.closed)) {                                  \
-        if (pthread_cond_wait(&q->core.not_empty, &q->core.pop_lock) != 0) {  \
-            pthread_mutex_unlock(&q->core.pop_lock);                          \
+        if (pthread_cond_wait(&q->core.not_empty, &q->core.lock) != 0) {      \
+            pthread_mutex_unlock(&q->core.lock);                              \
             return NULL;                                                      \
         }                                                                     \
     }                                                                         \
-    if ((atomic_load(&q->core.count) == 0) && atomic_load(&q->core.closed)) { \
-        pthread_mutex_unlock(&q->core.pop_lock);                              \
+    if ((q->core.count == 0) && atomic_load(&q->core.closed)) {               \
+        pthread_mutex_unlock(&q->core.lock);                                  \
         return NULL; /* empty + closed */                                     \
     }                                                                         \
     T *item = q->buf[q->core.head];                                           \
     q->buf[q->core.head] = NULL;                                              \
     q->core.head = (q->core.head + 1) % q->core.cap;                          \
     int c = atomic_fetch_sub(&q->core.count, 1) - 1;                          \
-    pthread_mutex_unlock(&q->core.pop_lock);                                  \
+    pthread_mutex_unlock(&q->core.lock);                                      \
     if (c == q->core.cap - 1) {                                               \
         pthread_cond_broadcast(&q->core.not_full);                            \
     }                                                                         \
