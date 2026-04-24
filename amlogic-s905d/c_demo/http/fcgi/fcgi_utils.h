@@ -120,7 +120,7 @@ struct queue_core {
 static inline void __queue_core_init(struct queue_core *q, int cap) {
     q->head = q->tail = q->count = 0;
     q->cap = cap;
-    q->closed = ATOMIC_VAR_INIT(false);
+    atomic_init(&q->closed, false);
     pthread_mutex_init(&q->lock, NULL);
     pthread_cond_init(&q->not_empty, NULL);
     pthread_cond_init(&q->not_full, NULL);
@@ -174,10 +174,9 @@ static inline bool name##_push(name##_t *q, T *item) {                        \
     q->buf[q->core.tail] = item;                                              \
     q->core.tail = (q->core.tail + 1) % q->core.cap;                          \
     int c = atomic_fetch_add(&q->core.count, 1) + 1;                          \
+    if (c == 1)                                                               \
+        pthread_cond_signal(&q->core.not_empty);                              \
     pthread_mutex_unlock(&q->core.lock);                                      \
-    if (c == 1) {                                                             \
-        pthread_cond_broadcast(&q->core.not_empty);                           \
-    }                                                                         \
     return true;                                                              \
 }                                                                             \
                                                                               \
@@ -198,10 +197,9 @@ static inline T *name##_pop(name##_t *q) {                                    \
     q->buf[q->core.head] = NULL;                                              \
     q->core.head = (q->core.head + 1) % q->core.cap;                          \
     int c = atomic_fetch_sub(&q->core.count, 1) - 1;                          \
+    if (c == q->core.cap - 1)                                                 \
+        pthread_cond_signal(&q->core.not_full);                               \
     pthread_mutex_unlock(&q->core.lock);                                      \
-    if (c == q->core.cap - 1) {                                               \
-        pthread_cond_broadcast(&q->core.not_full);                            \
-    }                                                                         \
     return item;                                                              \
 }
 
