@@ -57,6 +57,7 @@ server {
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
         fastcgi_pass 127.0.0.1:9999;
+        # fastcgi_pass unix:/tmp/fastcgi.socket
     }
 }
 */
