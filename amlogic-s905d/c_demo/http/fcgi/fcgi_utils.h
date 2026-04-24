@@ -107,97 +107,110 @@ bool read_file(const char *path, char *buf, size_t sz);
 bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm);
 /*-------------------------------*/
 #include <pthread.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
-//static inline bool is_power_of_2(uint32_t n) { return n > 0 && (n & (n - 1)) == 0; }
-#if __STDC_VERSION__ >= 201112L
-    #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
-#else
-    #define STATIC_ASSERT(cond, msg) typedef char static_assert_##msg[(cond)?1:-1]
-#endif
-
-#define IS_POWER_OF_TWO(x) ((x) && !((x) & ((x) - 1)))
-typedef struct {
-    void *data;
-    atomic_uint seq;
-} mpmc_cell_t;
-typedef struct {
-    mpmc_cell_t *buffer;
-    uint32_t mask;
-    atomic_uint head;
-    atomic_uint tail;
-} mpmc_queue_t;
-static inline void __mpmc_init(mpmc_queue_t *q, mpmc_cell_t *buffer, uint32_t cap) {
-    q->buffer = buffer;
-    q->mask = cap - 1;
-    atomic_store(&q->head, 0);
-    atomic_store(&q->tail, 0);
-    for (uint32_t i = 0; i < cap; i++) {
-        atomic_store(&buffer[i].seq, i);
-        buffer[i].data = NULL;
-    }
+#include <stdatomic.h>
+struct queue_core {
+    int cap, head, tail;
+    atomic_int count;
+    atomic_bool closed;
+    pthread_mutex_t push_lock;
+    pthread_mutex_t pop_lock;
+    pthread_cond_t not_empty;
+    pthread_cond_t not_full;
+};
+static inline void __queue_core_init(struct queue_core *q, int cap) {
+    q->head = q->tail = 0;
+    q->count = ATOMIC_VAR_INIT(0);
+    q->cap = cap;
+    q->closed = false;
+    pthread_mutex_init(&q->push_lock, NULL);
+    pthread_mutex_init(&q->pop_lock, NULL);
+    pthread_cond_init(&q->not_empty, NULL);
+    pthread_cond_init(&q->not_full, NULL);
 }
-static inline bool __mpmc_push(mpmc_queue_t *q, void *item) {
-    mpmc_cell_t *cell;
-    uint32_t pos;
-    for (;;) {
-        pos = atomic_load_explicit(&q->tail, memory_order_relaxed);
-        cell = &q->buffer[pos & q->mask];
-        uint32_t seq = atomic_load_explicit(&cell->seq, memory_order_acquire);
-        int32_t diff = (int32_t)seq - (int32_t)pos;
-        if (diff == 0) {
-            if (atomic_compare_exchange_weak_explicit(&q->tail, &pos, pos + 1, memory_order_relaxed, memory_order_relaxed))
-                break;
-        } else if (diff < 0) {
-            return false; // full
-        }
-    }
-    cell->data = item;
-    atomic_store_explicit(&cell->seq, pos + 1, memory_order_release);
-    return true;
-}
-static inline void *__mpmc_pop(mpmc_queue_t *q) {
-    mpmc_cell_t *cell;
-    uint32_t pos;
-    for (;;) {
-        pos = atomic_load_explicit(&q->head, memory_order_relaxed);
-        cell = &q->buffer[pos & q->mask];
-        uint32_t seq = atomic_load_explicit(&cell->seq, memory_order_acquire);
-        int32_t diff = (int32_t)seq - (int32_t)(pos + 1);
-        if (diff == 0) {
-            if (atomic_compare_exchange_weak_explicit(&q->head, &pos, pos + 1, memory_order_relaxed, memory_order_relaxed))
-                break;
-        } else if (diff < 0) {
-            return NULL; // empty
-        }
-    }
-    void *item = cell->data;
-    atomic_store_explicit(&cell->seq, pos + q->mask + 1, memory_order_release);
-    return item;
+static inline void __queue_core_destroy(struct queue_core *q) {
+    pthread_mutex_destroy(&q->push_lock);
+    pthread_mutex_destroy(&q->pop_lock);
+    pthread_cond_destroy(&q->not_empty);
+    pthread_cond_destroy(&q->not_full);
 }
 
-#define DEFINE_QUEUE_TYPE(type, name, CAP)                  \
-                                                            \
-STATIC_ASSERT(IS_POWER_OF_TWO(CAP), size_NOT_power_of_two); \
-                                                            \
-typedef struct {                                            \
-    mpmc_queue_t core;                                      \
-    mpmc_cell_t buffer[CAP];                                \
-} name##_t;                                                 \
-                                                            \
-static inline void name##_init(name##_t *q) {               \
-    __mpmc_init(&q->core, q->buffer, CAP);                  \
-}                                                           \
-                                                            \
-static inline int name##_push(name##_t *q, type *item) {    \
-    return __mpmc_push(&q->core, item);                     \
-}                                                           \
-                                                            \
-static inline type *name##_pop(name##_t *q) {               \
-    return (type *)__mpmc_pop(&q->core);                    \
+static inline void __queue_core_close(struct queue_core *q) {
+    atomic_store(&q->closed, true);
+    pthread_mutex_lock(&q->push_lock);
+    pthread_cond_broadcast(&q->not_full);
+    pthread_mutex_unlock(&q->push_lock);
+    pthread_mutex_lock(&q->pop_lock);
+    pthread_cond_broadcast(&q->not_empty);
+    pthread_mutex_unlock(&q->pop_lock);
 }
-/*-------------------------------*/
+
+#define DEFINE_QUEUE_TYPE(T, name, CAP)                                       \
+                                                                              \
+typedef struct {                                                              \
+    struct queue_core core;                                                   \
+    T *buf[CAP];                                                              \
+} name##_t;                                                                   \
+                                                                              \
+static inline void name##_init(name##_t *q) {                                 \
+    __queue_core_init(&q->core, CAP);                                         \
+}                                                                             \
+                                                                              \
+static inline void name##_close(name##_t *q) {                                \
+    __queue_core_close(&q->core);                                             \
+}                                                                             \
+                                                                              \
+static inline void name##_destroy(name##_t *q) {                              \
+    __queue_core_destroy(&q->core);                                           \
+}                                                                             \
+                                                                              \
+static inline bool name##_push(name##_t *q, T *item) {                        \
+    pthread_mutex_lock(&q->core.push_lock);                                   \
+    while (atomic_load(&q->core.count) >= q->core.cap &&                      \
+            !atomic_load(&q->core.closed)) {                                  \
+        if(0 != pthread_cond_wait(&q->core.not_full, &q->core.push_lock)) {   \
+            pthread_mutex_unlock(&q->core.push_lock);                         \
+            return false;                                                     \
+        }                                                                     \
+    }                                                                         \
+    if (atomic_load(&q->core.closed)) {                                       \
+        pthread_mutex_unlock(&q->core.push_lock);                             \
+        return false;                                                         \
+    }                                                                         \
+    q->buf[q->core.tail] = item;                                              \
+    q->core.tail = (q->core.tail + 1) % q->core.cap;                          \
+    int c = atomic_fetch_add(&q->core.count, 1) + 1;                          \
+    pthread_mutex_unlock(&q->core.push_lock);                                 \
+    if (c == 1) {                                                             \
+        pthread_cond_broadcast(&q->core.not_empty);                           \
+    }                                                                         \
+    return true;                                                              \
+}                                                                             \
+                                                                              \
+static inline T *name##_pop(name##_t *q) {                                    \
+    pthread_mutex_lock(&q->core.pop_lock);                                    \
+    while (atomic_load(&q->core.count) == 0 &&                                \
+            !atomic_load(&q->core.closed)) {                                  \
+        if (pthread_cond_wait(&q->core.not_empty, &q->core.pop_lock) != 0) {  \
+            pthread_mutex_unlock(&q->core.pop_lock);                          \
+            return NULL;                                                      \
+        }                                                                     \
+    }                                                                         \
+    if ((atomic_load(&q->core.count) == 0) && atomic_load(&q->core.closed)) { \
+        pthread_mutex_unlock(&q->core.pop_lock);                              \
+        return NULL; /* empty + closed */                                     \
+    }                                                                         \
+    T *item = q->buf[q->core.head];                                           \
+    q->buf[q->core.head] = NULL;                                              \
+    q->core.head = (q->core.head + 1) % q->core.cap;                          \
+    int c = atomic_fetch_sub(&q->core.count, 1) - 1;                          \
+    pthread_mutex_unlock(&q->core.pop_lock);                                  \
+    if (c == q->core.cap - 1) {                                               \
+        pthread_cond_broadcast(&q->core.not_full);                            \
+    }                                                                         \
+    return item;                                                              \
+}
 
 #ifdef __cplusplus
 }
