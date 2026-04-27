@@ -57,6 +57,9 @@ static inline void list_remove(list_t *link)
 	     &pos->member != (list);				\
 	     pos = list_next(pos, member))
 /*
+static void *(*mem_alloc)(const size_t) = &malloc;
+static void (*mem_free)(void *) = &free;
+static void *(*mem_realloc)(void *, const size_t) = &realloc;
 void testcase()
 {
 	typedef struct tracker_t
@@ -66,7 +69,7 @@ void testcase()
 	}tracker_t;
 	tracert_t tracert;
 	list_init(&(tracert.link));
-	tracert_t *ptracert = malloc(sizeof(tracert_t));
+	tracert_t *ptracert = mem_malloc(sizeof(tracert_t));
 	list_append(&(tracert.link), &ptracker->link);
 	list_for_each_entry(ptracker, &tracert.link, link)
 	{
