@@ -161,7 +161,7 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
     out[len] = '\0';
     return true;
 }
-#if 0
+#ifdef UTIL_TEST_MAIN
 /*----------------------------------------------------------------------------*/
 struct env_t {
     int trace_level;
@@ -174,9 +174,9 @@ struct cfg_t {
     struct env_t env;
 };
 extern struct cfg_t g_cfg;
-
+/*----------------------------------------------------------------------------*/
 //  X(TYPE, struct elem, json name,     decode func
-#define ENV_JSON_TYPE_MAP(X)            \
+#define ENV_JSON_TYPE_MAP(X)                     \
     X(INT,  trace_level, "trace_level", NULL)
 
 #define CONFIG_JSON_TYPE_MAP(X)                  \
@@ -185,7 +185,7 @@ extern struct cfg_t g_cfg;
     X(STR,  protocol,   "protocol",   NULL)      \
     X(BOOL, ssl_verify, "ssl_verify", NULL)      \
     X(OBJ,  env,        "env",        env_decode)
-/*----------------------------------------------------------------------------*/
+
 struct cfg_t g_cfg = {
     .protocol   = "http",
     .ssl_verify = true,
