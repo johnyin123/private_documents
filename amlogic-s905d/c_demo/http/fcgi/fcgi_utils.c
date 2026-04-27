@@ -161,3 +161,66 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
     out[len] = '\0';
     return true;
 }
+#if 0
+/*----------------------------------------------------------------------------*/
+struct env_t {
+    int trace_level;
+};
+struct cfg_t {
+    char ip[16];
+    uint16_t port;
+    char protocol[12];
+    bool ssl_verify;
+    struct env_t env;
+};
+extern struct cfg_t g_cfg;
+
+//  X(TYPE, struct elem, json name,     decode func
+#define ENV_JSON_TYPE_MAP(X)            \
+    X(INT,  trace_level, "trace_level", NULL)
+
+#define CONFIG_JSON_TYPE_MAP(X)                  \
+    X(STR,  ip,         "ip",         NULL)      \
+    X(INT,  port,       "port",       NULL)      \
+    X(STR,  protocol,   "protocol",   NULL)      \
+    X(BOOL, ssl_verify, "ssl_verify", NULL)      \
+    X(OBJ,  env,        "env",        env_decode)
+/*----------------------------------------------------------------------------*/
+struct cfg_t g_cfg = {
+    .protocol   = "http",
+    .ssl_verify = true,
+    .env = { .trace_level = 112, },
+};
+static int env_decode(cJSON *json, struct env_t *env) {
+    if (!json || !env) return EXIT_FAILURE;
+    #define X(kind, name, key, dec_func) DECODE_STEP(json, env, kind, name, key, dec_func)
+    ENV_JSON_TYPE_MAP(X)
+    #undef X
+    return EXIT_SUCCESS;
+}
+int cfg_decode(const char *json_string, struct cfg_t *cfg) {
+    cJSON *json = cJSON_Parse(json_string);
+    if (!json || !json_string || !cfg) return EXIT_FAILURE;
+    #define X(kind, name, key, dec_func) DECODE_STEP(json, cfg, kind, name, key, dec_func)
+    CONFIG_JSON_TYPE_MAP(X)
+    #undef X
+    cJSON_Delete(json);
+    return EXIT_SUCCESS;
+}
+void cfg_dump(const char *s, struct cfg_t *cfg, FILE *fp) {
+    fprintf(fp, "%s, Configuration Dump\n", s);
+    fprintf(fp, "    %s: %s\n", "ip", cfg->ip);
+    fprintf(fp, "    %s: %d\n", "port", cfg->port);
+    fprintf(fp, "    %s: %s\n", "protocol", cfg->protocol);
+    fprintf(fp, "    %s: %s\n", "ssl_verify", cfg->ssl_verify ? "true":"false");
+    fprintf(fp, "    %s:\n", "env");
+    fprintf(fp, "        %s: %d\n", "trace_level", cfg->env.trace_level);
+    fflush(fp);
+}
+int main() {
+    const char *src="{\"ip\":\"127.0.0.1\",\"port\":9999, \"protocol\":\"https\", \"env\":{ \"trace_level\":8888 } }";
+    cfg_dump("Before DECODE", &g_cfg, stderr);
+    cfg_decode(src, &g_cfg);
+    cfg_dump("After DECODE", &g_cfg, stderr);
+}
+#endif

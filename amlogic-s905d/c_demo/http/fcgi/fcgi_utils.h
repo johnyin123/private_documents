@@ -105,7 +105,14 @@ bool starts_with(const char *str, const char *prefix);
 bool ends_with(const char *str, const char *suffix);
 bool read_file(const char *path, char *buf, size_t sz);
 bool get_column(const char *src, int idx, char *out, size_t out_len, const char delm);
-/*-------------------------------*/
+/*----------------------------------------------------------------------------*/
+#include "cjson/cJSON.h"
+#define PARSE_STR(json, cfg, name, key, dec_func)  { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); if (item && cJSON_IsString(item) && item->valuestring) snprintf(cfg->name, sizeof(cfg->name), "%s", item->valuestring); }
+#define PARSE_INT(json, cfg, name, key, dec_func)  { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); if (item && cJSON_IsNumber(item)) cfg->name = item->valueint; }
+#define PARSE_BOOL(json, cfg, name, key, dec_func) { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); if (item && cJSON_IsBool(item)) cfg->name = cJSON_IsTrue(item); }
+#define PARSE_OBJ(json, cfg, name, key, dec_func)  { cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key); if (item && cJSON_IsObject(item)) dec_func(item, &cfg->name); }
+#define DECODE_STEP(json, cfg, kind, name, key, dec_func) PARSE_##kind(json, cfg, name, key, dec_func)
+/*----------------------------------------------------------------------------*/
 #include <pthread.h>
 #include <stdbool.h>
 #include <string.h>
