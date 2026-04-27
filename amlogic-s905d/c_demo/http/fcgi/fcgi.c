@@ -1,27 +1,61 @@
 #include "fcgi_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
-static void deal(FCGX_Request *req) {
-    const char *host = req_get_header(req, "FN_HANDLER");
-    const char *method = req_method(req);
-    const char *uri = req_uri(req);
-    unsigned long tid = (unsigned long)pthread_self();
+#define DEF_ADDR   "localhost:9999"
+
+struct act_t {
+    const enum method_t method;
+    size_t uri_len;
+    const char *s_uri;
+    void  (*on_resp)(FCGX_Request *req);
+};
+static inline const struct act_t *find_action(const enum method_t method, const char *s_uri) {
+    extern const int g_acts_len;
+    extern const struct act_t g_acts[];
+    for(int i=0;i<g_acts_len;i++) {
+        if((method==g_acts[i].method)&&(strcmp(s_uri, g_acts[i].s_uri)==0)) return &g_acts[i];
+    }
+    return NULL;
+}
+#define ACT(m, u, ...)     { m, sizeof(u)-1, u, __VA_ARGS__ }
+/*----------------------------------------------------------------------------*/
+static void post_small(FCGX_Request *req) {
     int rc = 0;
     char buf[BUF_SIZE] = {0}; /* POST DATA */
-    if((rc=req_body(req, buf, ARRAY_LEN(buf)))>0) {
+    if((rc=req_body(req, buf, sizeof(buf)))>0) {
         buf[rc] = '\0';
         fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
+        make_response(req, 200, MIME_TEXT, "echo:%s", buf);
+    } else {
+        make_response(req, 200, MIME_TEXT, "error, no body");
     }
-    make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
-    //dump_request("fcgi", req);
+}
+/*----------------------------------------------------------------------------*/
+const struct act_t g_acts[] = {
+    ACT(METHOD_POST, "/small", .on_resp=post_small),
+};
+const int g_acts_len = ARRAY_LEN(g_acts);
+
+static void dispach(FCGX_Request *req) {
+    const char *m = req_method(req);
+    enum method_t method = http_method(m, strlen(m));
+    const char *uri = req_uri(req);
+    const struct act_t *act = find_action(method, uri);
+    log_debug("uri=%s, method=%s, act=%p", uri, m, (void *)act);
+    if(!act) {
+        make_response(req, 403, MIME_TEXT, "no action");
+        return;
+    }
+    act->on_resp(req);
 }
 
 int main(int argc, char *argv[]) {
-    UNUSED(argc);UNUSED(argv);
+    fprintf(stderr, "LISTEN=/tmp/fastcgi.socket ./mycgi\n");
+    const char* addr = getenv("LISTEN");
     const char* env_val = getenv("TRACE");
     if (env_val) g_env.trace_level = atoi(env_val);
     int sock = -1;
-    if ((FCGX_Init()!=0) || ((sock = FCGX_OpenSocket("localhost:9999", 128))<0)) {
+    if ((FCGX_Init()!=0) || ((sock = FCGX_OpenSocket(addr ? addr : DEF_ADDR, 128))<0)) {
         perror("FCGX INIT");
         return 1;
     }
@@ -36,7 +70,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Accept failed: %d\n", rc);
             break;
         }
-        deal(&request);
+        dispach(&request);
         FCGX_Finish_r(&request);
     }
     return 0;
