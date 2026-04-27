@@ -25,7 +25,7 @@ void *worker_thread(void *arg) {
     struct thread_arg_t *t_args = arg;
     for (;;) {
         FCGX_Request req;
-        if ((FCGX_InitRequest(&req, t_args->sock, 0) != 0) || (FCGX_Accept_r(&req) < 0)) {
+        if ((FCGX_InitRequest(&req, t_args->sock, 0)!=0) || (FCGX_Accept_r(&req)!=0)) {
             FCGX_Finish_r(&req);
             continue;
         }
