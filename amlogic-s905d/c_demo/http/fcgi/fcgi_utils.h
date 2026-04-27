@@ -60,6 +60,15 @@ enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTIC
     X(MIME_JSON,      application/json; charset=utf-8) \
     X(MIME_TEXT,      text/plain; charset=utf-8)
 
+enum http_status_t {
+    HTTP_200 = 200,
+    HTTP_400 = 400,
+    HTTP_401 = 401,
+    HTTP_403 = 403,
+    HTTP_404 = 404,
+    HTTP_500 = 500,
+};
+
 #define _ITEM(c, n)   c,
 enum method_t         { S_METHOD(_ITEM) };
 enum mime_t           { S_MIME_TYPE(_ITEM) };

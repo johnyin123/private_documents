@@ -25,9 +25,9 @@ static void post_small(FCGX_Request *req) {
     if((rc=req_body(req, buf, sizeof(buf)))>0) {
         buf[rc] = '\0';
         fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
-        make_response(req, 200, MIME_TEXT, "echo:%s", buf);
+        make_response(req, HTTP_200, MIME_TEXT, "echo:%s", buf);
     } else {
-        make_response(req, 200, MIME_TEXT, "error, no body");
+        make_response(req, HTTP_200, MIME_TEXT, "error, no body");
     }
 }
 /*----------------------------------------------------------------------------*/
@@ -43,7 +43,7 @@ static void dispach(FCGX_Request *req) {
     const struct act_t *act = find_action(method, uri);
     log_debug("uri=%s, method=%s, act=%p", uri, m, (void *)act);
     if(!act) {
-        make_response(req, 403, MIME_TEXT, "no action");
+        make_response(req, HTTP_403, MIME_TEXT, "no action");
         return;
     }
     act->on_resp(req);

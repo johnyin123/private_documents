@@ -18,7 +18,7 @@ static void deal(FCGX_Request *req) {
         buf[rc] = '\0';
         fprintf(stderr, "POST SIZE = %d, %s\n", rc, buf);
     }
-    make_response(req, 200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
+    make_response(req, HTTP_200, MIME_TEXT, "[Thread %lu]%s %s FastCGI\" }", tid, host ? host : "(null)", method ? method : "(null)", uri ? uri : "(null)");
     //dump_request("fcgi", req);
 }
 void *worker_thread(void *arg) {
