@@ -1,5 +1,7 @@
 #!/usr/bin/env -S python3 -B
 # -*- coding: utf-8 -*-
+
+# ctypesgen/CoPy
 import ctypes, logging, os
 
 logging.basicConfig(encoding='utf-8', format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s', level=os.getenv('LOG', 'WARN').upper())
