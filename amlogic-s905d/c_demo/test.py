@@ -12,6 +12,7 @@ def main():
         my_library = cdll.LoadLibrary('./libneusoft.so')
     except OSError as e:
         logger.error(f'Error loading library: {e}')
+        return 1
     my_library.dllmain.argtypes = [c_int, POINTER(c_char_p)]    # int dllmain(int argc, char *argv[]);
     # # Optionally define the return type if it's not the default (int)
     # my_library.dllmain.restype = c_char_p 
