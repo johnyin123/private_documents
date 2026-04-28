@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8b973fbb[2025-08-01T13:25:16+08:00]:build.sh")
+VERSION+=("7d15995a[2026-02-28T09:29:50+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 # # apt -f install libelf-dev libssl-dev
@@ -955,18 +955,18 @@ log "default: USB host mode"
 cat ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb.host > ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
 
 read -n 1 -p "Press any key continue build kernel & modules..." value
-make V=1 -j$(nproc) Image modules
+make V=1 -j$(nproc) Image modules Image.gz
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
 
-log "INSTALL UNCOMPRESSED KERNEL"
-make install > /dev/null
+log "INSTALL COMPRESSED KERNEL"
+make zinstall > /dev/null
 
-[[ ${COMPRESS-true} =~ ^1|yes|true$ ]] && {
-    log "USE GZIP KERNEL OVERWRITE UNCOMPRESSED KERNEL"
-    make V=1 -j$(nproc) Image.gz
-    # cat arch/arm64/boot/Image | gzip -n -f -9 > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
-    cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
-}
+# [[ ${COMPRESS-true} =~ ^1|yes|true$ ]] && {
+#     log "USE GZIP KERNEL OVERWRITE UNCOMPRESSED KERNEL"
+#     make V=1 -j$(nproc) Image.gz
+#     # cat arch/arm64/boot/Image | gzip -n -f -9 > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
+#     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
+# }
 make -j$(nproc) modules_install > /dev/null
 log "install ${ARCH} linux-libc-dev headers"
 make -j$(nproc) headers > /dev/null
