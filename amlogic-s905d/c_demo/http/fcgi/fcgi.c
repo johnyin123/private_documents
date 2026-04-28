@@ -78,6 +78,11 @@ int main(int argc, char *argv[]) {
 /*
 # sudo apt install autoconf automake libtool
 # git clone https://github.com/FastCGI-Archives/fcgi2.git
+upstream fcgi_srvs {
+        server 127.0.0.1:9999;
+        server unix:/tmp/fastcgi.socket;
+        keepalive 16;
+}
 limit_conn_zone $server_name zone=connperserver:10m;
 server {
     listen 127.0.0.1:19999;
@@ -95,8 +100,7 @@ server {
         if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         include /etc/nginx/fastcgi_params;
         fastcgi_param YOURENV Profile;
-        fastcgi_pass 127.0.0.1:9999;
-        # fastcgi_pass unix:/tmp/fastcgi.socket
+        fastcgi_pass fcgi_srvs;
     }
 }
 */
