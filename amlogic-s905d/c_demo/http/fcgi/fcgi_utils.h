@@ -8,10 +8,21 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 extern struct env {
     int trace_level;
 } g_env;
+
+#if defined(__WIN32__)
+    #define RED
+    #define GREEN
+    #define RESET
+#else
+    #define RED   "\033[0;31m"
+    #define GREEN "\033[0;32m"
+    #define RESET "\033[0m"
+#endif
 
 #define BUF_SIZE      (8*1024)
 #define SRV_INFO      "Server: inner"
@@ -85,16 +96,6 @@ bool query_get(const char *qs, const char *key, char *out, size_t out_sz);
 void url_decode(char *s);
 int req_body(FCGX_Request *req, char *out, size_t out_len);
 void make_response(FCGX_Request *req, uint16_t status, enum mime_t mime, const char *format, ...);
-#if defined(__WIN32__)
-    #define RED
-    #define GREEN
-    #define RESET
-#else
-    #define RED   "\033[0;31m"
-    #define GREEN "\033[0;32m"
-    #define RESET "\033[0m"
-#endif
-#include <stdio.h>
 static inline void _dump_request(FILE *fp, const char *s, FCGX_Request *req, const char *f, int line) {
     fprintf(fp, GREEN "%s" RESET " Request Dump ===\n", s);
     fprintf(fp, "    requestId: %d\n", req->requestId);
