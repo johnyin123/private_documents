@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("37b09563[2025-07-18T10:47:58+08:00]:s905_debootstrap.sh")
+VERSION+=("fdfb91bf[2025-10-20T06:49:16+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -119,6 +119,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
     log "Enable Kernel TLS"
     grep -q "tls" /etc/modules 2>/dev/null || echo "tls" >> /etc/modules
 
+    cat <<EOF > /etc/modprobe.d/brcmfmac.conf
+options brcmfmac roamoff=1 feature_disable=0x282000
+EOF
     # cat << EOF > /etc/modprobe.d/brcmfmac.conf
     # options brcmfmac p2pon=1
     # EOF

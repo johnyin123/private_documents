@@ -124,7 +124,6 @@ bool get_column(const char *src, int idx, char *out, size_t out_len, const char 
 #define DECODE_STEP(json, cfg, kind, name, key, dec_func) PARSE_##kind(json, cfg, name, key, dec_func)
 /*----------------------------------------------------------------------------*/
 #include <pthread.h>
-#include <stdbool.h>
 #include <string.h>
 #include <stdatomic.h>
 struct queue_core {
