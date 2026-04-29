@@ -10,6 +10,16 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         self.wfile.write(b"Hello, world!")
+
+    def do_POST(self):
+        request_path = self.path
+        request_headers = self.headers
+        content_length = request_headers.get('content-length')
+        length = int(content_length) if content_length else 0
+        sjson = self.rfile.read(length).decode("utf-8")
+        print(f"content : {sjson}")
+        self.do_GET()
+
 server = HTTPServer(('localhost', 8080), SimpleHandler)
 server.serve_forever()
 '''
