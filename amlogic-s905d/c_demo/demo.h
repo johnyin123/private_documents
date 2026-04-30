@@ -5,7 +5,7 @@ extern "C" {
 #endif
 /* show export funcs: objdump -T libHeaSecReadInfo.so | grep 'DF .text' */
 /* mingw show exports: gendef - HeaSecReadInfo.dll */
-#if defined __WIN32__ || defined __CYGWIN__
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
     #define LIB_INIT
     #define LIB_DEINIT
     #ifdef BUILDING_LIBRARY
