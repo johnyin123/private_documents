@@ -31,7 +31,7 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
             }
         }
     }
-    while(fgets(buff,sizeof(buff),file)) {
+    while(pos < conf_len && fgets(buff,sizeof(buff),file)) {
         char *first_char = buff;
         while(__isspace((unsigned char)*first_char)) first_char++;
         if(*first_char == '#' || *first_char == '\0') continue;
