@@ -74,7 +74,7 @@ strip: $(EXE)
 
 $(EXE): $(OBJ)
 	@printf "\033[1;32m"
-	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
+	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) -o $@ $(LIBFLAGS) $(LDFLAGS)
 	@printf "\033[m"
 
 .PHONY : clean
