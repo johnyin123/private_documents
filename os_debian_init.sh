@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("60ec3795[2026-03-19T15:43:43+08:00]:os_debian_init.sh")
+VERSION+=("34c598d5[2026-04-13T08:32:49+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -586,12 +586,12 @@ func SetTitle()
         call setline(4, "extern \"C\" {")
         call setline(5, "#endif")
         call setline(6, "")
-        call setline(7, "#ifdef DEBUG")
-        call setline(8, "    #include <stdio.h>")
-        call setline(9, "    #define debugln(fmt,args...) fprintf(stderr, \"%s:%d == \"fmt\"\\n\", __FILE__, __LINE__, ##args) /* #define debugln(...) fprintf(stderr, __VA_ARGS__) #define debugln(M,...) fprintf(stderr, \"%s (func %s):%d: \" M \"\\n\", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__) */")
-        call setline(10, "#else")
-        call setline(11, "    #define debugln(...) do {} while (0)")
-        call setline(12, "#endif")
+        call setline(7, "#ifdef HAVE_CONFIG_H
+        call setline(8, "#  include "config.h"
+        call setline(9, "#endif
+        call setline(10, "")
+        call setline(12, "#include <stdio.h>")
+        call setline(12, "#define debugln(fmt,args...) fprintf(stderr, \"%s:%d == \"fmt\"\\n\", __FILE__, __LINE__, ##args) /* #define debugln(...) fprintf(stderr, __VA_ARGS__) #define debugln(M,...) fprintf(stderr, \"%s (func %s):%d: \" M \"\\n\", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__) */")
         call setline(13, "")
         call setline(14, "#ifdef __cplusplus")
         call setline(15, "}")
