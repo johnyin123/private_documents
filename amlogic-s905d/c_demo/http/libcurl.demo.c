@@ -164,3 +164,38 @@ int fetch_url(enum method_t method, const char *url, const char *body, char *out
     log_debug("%s OUTPUT:[%s]", url, output);
     return (int)ctx.used;
 }
+#ifdef TEST_CASE
+int main(int argc, char *argv[]) {
+    char buf[10*1024];
+    const char *s_get_url="http://127.0.0.1/info";
+    int n = get_url(s_get_url, buf, sizeof(buf));
+    if(n>0) printf("%s, return %d (%s)\n", s_get_url, n, buf);
+    else printf("%s, return %d\n", s_get_url, n);
+    const char *s_url="http://us:pass@1.2.3.4:8888/url1/url2/url3?parm=1&parm2=2";
+    struct url_t url;
+    n = split_url(s_url, &url);
+    if(n == EXIT_SUCCESS) {
+        printf(
+            "scheme   : %s\n"
+            "user     : %s\n"
+            "password : %s\n"
+            "options  : %s\n"
+            "host     : %s\n"
+            "port     : %s\n"
+            "path     : %s\n"
+            "query    : %s\n"
+            "fragment : %s\n",
+            url.scheme, url.user, url.password, url.options,
+            url.host, url.port, url.path, url.query, url.fragment
+        );
+    }
+    else {
+        printf("split_url %s, return %d\n", s_url, n);
+    }
+    const char *s_post_url="http://127.0.0.1:9999";
+    n = post_url(s_post_url, "abcd111", buf, sizeof(buf), POST_FORM);
+    if(n>0) printf("%s, return %d (%s)\n", s_post_url, n, buf);
+    else printf("%s, return %d\n", s_post_url, n);
+    return 0;
+}
+#endif
