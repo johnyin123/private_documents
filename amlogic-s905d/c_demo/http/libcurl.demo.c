@@ -1,3 +1,4 @@
+#include <curl/curl.h>
 //const char *my_ca_buffer = "-----BEGIN CERTIFICATE-----\n"
 //                       "-----END CERTIFICATE-----\n";
 //struct curl_blob blob;
@@ -6,6 +7,7 @@
 //blob.flags = CURL_BLOB_COPY; /* Use CURL_BLOB_COPY, buffer might be freed before the transfer completes*/
 //curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, &blob);    /* Set the CA bundle from the memory blob*/
 
+#define USERAGENT       "curl (Linux GCC) by johnyin"
 enum method_t { HTTP_GET, HTTP_POST };
 enum cont_type_t { POST_FORM=0, POST_JSON=1 };
 static const char *s_content[] = { "Content-Type: application/x-www-form-urlencoded; charset=utf-8", "Content-Type: application/json; charset=utf-8" };
@@ -14,8 +16,31 @@ int url_escape(const char *data, char *out, size_t out_size);
 int fetch_url(enum method_t method, const char *url, const char *body, char *output, size_t output_size, enum cont_type_t post_type);
 #define get_url(url, output, output_size) fetch_url(HTTP_GET, url, NULL, output, output_size, POST_FORM)
 #define post_url(url, body, output, output_size, cont_type) fetch_url(HTTP_POST, url, body, output, output_size, cont_type)
+struct url_t {
+    char scheme[8];
+    char user[32];
+    char password[32];
+    char options[64];
+    char host[128];
+    char port[8];
+    char path[1024];
+    char query[1024];
+    char fragment[32];
+};
+#define URL_SCHEME_DEFAULT_PORT_MAP(X) \
+    X("http",  "80")  \
+    X("ws",    "80")  \
+    X("https", "443") \
+    X("wss",   "443") \
+    X("ftp",   "21")
 int split_url(const char *s_url, struct url_t *url);
 /////////////////////////////////////////////////////////////////////////////
+#include <stdlib.h>
+#include <string.h>
+#define log_debug(fmt,args...)
+#define log_info(fmt,args...)
+#define log_error(fmt,args...)
+
 #define __PART_CPY(d, s) snprintf((d), sizeof(d), "%s", (s) ? (s) : "")
 #define __PART_GET(p, v) do { if (curl_url_get(h, p, &v, 0)) v = NULL; } while (0)
 #define __PART_FREE(p)   do { if (p) curl_free(p); } while (0)
@@ -109,14 +134,14 @@ int fetch_url(enum method_t method, const char *url, const char *body, char *out
     /* response handling */
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ctx);
-    if(!g_cfg.ssl_verify) {
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    }
+    // if(!g_cfg.ssl_verify) {
+    //     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    //     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    // }
     /* networking behavior */
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)g_cfg.TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)g_cfg.TIMEOUT);
+    // curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)g_cfg.TIMEOUT);
+    // curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)g_cfg.TIMEOUT);
     if (method == HTTP_POST) {    /* POST setup */
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
