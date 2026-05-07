@@ -5,6 +5,15 @@ WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
+cat <<'EOF'
+$(DIRNAME)/lib/libssl.a: $(ODIR)/$(OPENSSL)
+	@echo Building OpenSSL...
+	@$(SHELL) -c "cd $< && ./config $(OPENSSL_OPTS)"
+	@$(MAKE) -C $< depend
+	@$(MAKE) -C $<
+	@$(MAKE) -C $< install_sw
+	@touch $@
+EOF
 MYLIB_DEPS=${DIRNAME}/mylibs.${WIN_TGT}
 [ -d "${MYLIB_DEPS}" ] && { echo "${MYLIB_DEPS} exists!"; exit 1; }
 (cd openssl && { make distclean||true; } && ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
