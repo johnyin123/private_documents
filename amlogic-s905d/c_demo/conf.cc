@@ -19,7 +19,7 @@ static inline void trim_end(char *s) {
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
     char buff[CONF_KEY_LEN + CONF_VAL_LEN];
     FILE* file;
-    size_t pos = 0;
+    size_t rows = 0;
     snprintf(buff, sizeof(buff), "./%s.conf", appname);
     if(!(file=fopen(buff,"r"))) {
         snprintf(buff, sizeof(buff), "%s/%s.conf", getenv("HOME"), appname);
@@ -31,21 +31,26 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
             }
         }
     }
-    while(pos < conf_len && fgets(buff,sizeof(buff),file)) {
+    while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
         char *first_char = buff;
         while(__isspace((unsigned char)*first_char)) first_char++;
         if(*first_char == '#' || *first_char == '\0') continue;
         /*sscanf fmt skip blanks*/
-        if(sscanf(buff, " %" XSTR(CONF_KEY_LEN) "[^ \r\n=] = %" XSTR(CONF_VAL_LEN) "[^\r\n]", conf[pos].key, conf[pos].val) == 2) {
-            trim_end(conf[pos++].val);
+        if(sscanf(buff, " %" XSTR(CONF_KEY_LEN) "[^ \r\n=] = %" XSTR(CONF_VAL_LEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
+            trim_end(conf[rows++].val);
         }
     }
     fclose(file);
-    return pos;
+    return rows<=conf_len ? (int)rows : -1;
 }
-/*
-struct conf_kv_t myconf[32];
-int ret = get_conf("app", myconf, ARRAY_LEN(myconf));
-for(int i=0;i<ret;i++)
-    fprintf(stderr, "CONF: %s = %s\n", myconf[i].key, myconf[i].val);
-*/
+#ifdef TEST_CASE
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+int main(int argc, char *argv[]) {
+    struct conf_kv_t myconf[4];
+    int ret = get_conf("app", myconf, ARRAY_LEN(myconf));
+    fprintf(stderr, "RET: %d\n", ret);
+    for(int i=0;i<ret;i++)
+        fprintf(stderr, "CONF: %s = %s\n", myconf[i].key, myconf[i].val);
+    return 0;
+}
+#endif
