@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("62028f3a[2026-05-08T12:54:56+08:00]:build.sh")
+VERSION+=("100b5d07[2026-05-08T15:21:02+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -12,6 +12,9 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} <config> <kernel dir> [install dir]
+EOF
+    cat <<'EOF'
+for p in $(ls --sort=version ../src/patch-6.18.*); do xzcat $p | patch -p1; done
 EOF
 }
 CONFIG="${1:?$(usage)}"
