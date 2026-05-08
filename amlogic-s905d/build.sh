@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("5252350b[2026-04-28T15:38:36+08:00]:build.sh")
+VERSION+=("62028f3a[2026-05-08T12:54:56+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -16,7 +16,7 @@ EOF
 }
 CONFIG="${1:?$(usage)}"
 SRC="${2:?$(usage)}"
-OUTPUT=${DIRNAME}/build-output
+OUTPUT=${OUTPUT:-${DIRNAME}/build-output}
 CMD_MAKE="make -C ${SRC} -j$(nproc) O=${OUTPUT}"
 KERVERSION="$(${CMD_MAKE} --silent kernelversion)"
 ROOTFS=${3:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
