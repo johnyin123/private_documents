@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a3cad14d[2026-02-04T14:42:01+08:00]:mk_nginx.sh")
+VERSION+=("21fcf09b[2026-02-04T15:22:26+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -32,7 +32,7 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
-LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lcrypt -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -314,29 +314,31 @@ builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 show_option "${0}"
 log "BUILD-VERSION: ${builder_version}, PCRE: $pcre_version, ZLIB: ${zlib_version}"
 confirm "START BUILD NGINX(timeout 60s)?..........." 60
-stage_run zlib && cd ${ZLIB_DIR} &&  ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
-stage_run pcre && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
-stage_run openssl && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} no-shared no-threads ${KTLS:+enable-ktls} no-tests && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
-#########################otherlibs here################################
-stage_run otherlibs && opt_enable "${AUTH_JWT}" && {
-    log "[INFO] check jansson exist, if os not has it, download first"
-    pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
-        log "[INFO] Use download jansson"
-        check_requre_dirs "${JANSSON_DIR}"
-        export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
-        export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
-    # no shared lib for jansson, so jwt compile static janssonlib
-        cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
-    }
-    log "[INFO] check libjwt exist, if os not has it, download first"
-    pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
-        log "[INFO] Use download libjwt"
-        check_requre_dirs "${LIBJWT_DIR}"
-        log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
-        check_depends_lib gnutls
-        # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
-        # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-        cd "${LIBJWT_DIR}" && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
+[ -d "${MYLIB_DEPS}" ] || {
+    stage_run zlib && cd ${ZLIB_DIR} && ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
+    stage_run pcre && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
+    stage_run openssl && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} LIBDIR=lib no-shared no-threads ${KTLS:+enable-ktls} no-tests no-legacy no-apps no-docs && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
+    #########################otherlibs here################################
+    stage_run otherlibs && opt_enable "${AUTH_JWT}" && {
+        log "[INFO] check jansson exist, if os not has it, download first"
+        pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
+            log "[INFO] Use download jansson"
+            check_requre_dirs "${JANSSON_DIR}"
+            export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
+            export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
+        # no shared lib for jansson, so jwt compile static janssonlib
+            cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
+        }
+        log "[INFO] check libjwt exist, if os not has it, download first"
+        pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
+            log "[INFO] Use download libjwt"
+            check_requre_dirs "${LIBJWT_DIR}"
+            log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
+            check_depends_lib gnutls
+            # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
+            # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
+            cd "${LIBJWT_DIR}" && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
+        }
     }
 }
 opt_enable "${AUTH_JWT}" && {
