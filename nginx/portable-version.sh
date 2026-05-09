@@ -48,6 +48,11 @@ MYLIB_DEPS=${DIRNAME}/mylibs
     --http-fastcgi-temp-path=tmp/fastcgi_temp/ \
     --http-uwsgi-temp-path=tmp/uwsgi_temp/ \
     --http-scgi-temp-path=tmp/scgi_temp/ \
+    \
+    --with-pcre \
+    --with-pcre-jit \
+    --with-compat \
+    \
     --without-mail_pop3_module \
     --without-mail_imap_module \
     --without-mail_smtp_module \
@@ -89,10 +94,11 @@ MYLIB_DEPS=${DIRNAME}/mylibs
     --without-http_upstream_least_conn_module \
     --without-http_upstream_zone_module \
     --without-http-cache \
+    && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
 
-# nginx -p . -c conf/nginx.conf
+# cd NGX_DIR && ./nginx -p . -c conf/nginx.conf
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
 worker_processes  1;
