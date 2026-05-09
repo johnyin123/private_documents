@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("100b5d07[2026-05-08T15:21:02+08:00]:build.sh")
+VERSION+=("a286f8b1[2026-05-08T16:04:59+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -26,6 +26,7 @@ ROOTFS=${3:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 [ -e "${CONFIG}" ] || { log "${CONFIG} no found"; exit 1; }
 ${SRC}/scripts/diffconfig ${OUTPUT}/.config ${CONFIG} 2>/dev/null
 mkdir -p "${OUTPUT}" && cat ${CONFIG} > "${OUTPUT}"/.config
+[ -d "${ROOTFS}" ] && ROOTFS="$(readlink -f "${ROOTFS}")"
 ##################################################
 ##OPTION_START##
 # # apt -f install libelf-dev libssl-dev
