@@ -51,6 +51,8 @@ MYLIB_DEPS=${DIRNAME}/mylibs
     --with-pcre \
     --with-pcre-jit \
     --with-compat \
+    --with-cpu-opt=generic \
+    --with-http_ssl_module \
     \
     --without-mail_pop3_module \
     --without-mail_imap_module \
