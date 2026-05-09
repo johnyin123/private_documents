@@ -1,0 +1,39 @@
+./configure \
+    --prefix=. \
+    --sbin-path=bin/ \
+    --conf-path=conf/nginx.conf \
+    --error-log-path=logs/error.log \
+    --http-client-body-temp-path=tmp/client_body_temp/ \
+    --http-proxy-temp-path=tmp/proxy_temp/ \
+    --http-fastcgi-temp-path=tmp/fastcgi_temp/ \
+    --http-uwsgi-temp-path=tmp/uwsgi_temp/ \
+    --http-scgi-temp-path=tmp/scgi_temp/ > compile.log
+
+nginx -p . -c conf/nginx.conf
+
+cat <<EOF > conf/nginx.conf
+worker_processes  1;
+# Relative path for PID file
+pid logs/nginx.pid;
+events {
+    worker_connections  1024;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    # Relative paths for logs
+    access_log  logs/access.log;
+    error_log   logs/error.log;
+
+    server {
+        listen       8080;
+        server_name  localhost;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+}
+EOF
+
