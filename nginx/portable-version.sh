@@ -16,9 +16,8 @@ ${OUTDIR}/tmp/proxy_temp/ \
 ${OUTDIR}/tmp/fastcgi_temp/ \
 ${OUTDIR}/tmp/uwsgi_temp/ \
 ${OUTDIR}/tmp/scgi_temp/
-
-CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
-LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
+CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
+LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC"}
 MYLIB_DEPS=${DIRNAME}/mylibs
 [ -d "${MYLIB_DEPS}" ] || {
     (cd openssl && { make distclean||true; } && ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
