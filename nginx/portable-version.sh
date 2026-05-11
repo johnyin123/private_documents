@@ -37,7 +37,7 @@ MYLIB_DEPS=${DIRNAME}/mylibs
         && make -j "$(nproc)" \
         && make -j "$(nproc)" install) || { echo  'error~~pcre2'; exit 1; }
 }
-./configure \
+cd nginx && ./configure \
     --with-cc-opt="${CC_OPTS} -I${MYLIB_DEPS}/include" \
     --with-ld-opt="${LD_OPTS} -L${MYLIB_DEPS}/lib" \
     --prefix=. \
