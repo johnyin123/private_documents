@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("21fcf09b[2026-02-04T15:22:26+08:00]:mk_nginx.sh")
+VERSION+=("8f68f1a6[2026-05-09T16:40:36+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -324,10 +324,10 @@ confirm "START BUILD NGINX(timeout 60s)?..........." 60
         pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
             log "[INFO] Use download jansson"
             check_requre_dirs "${JANSSON_DIR}"
+            # no shared lib for jansson, so jwt compile static janssonlib
+            cd "${JANSSON_DIR}" && ./configure LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
             export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
             export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
-        # no shared lib for jansson, so jwt compile static janssonlib
-            cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
         }
         log "[INFO] check libjwt exist, if os not has it, download first"
         pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
@@ -337,7 +337,7 @@ confirm "START BUILD NGINX(timeout 60s)?..........." 60
             check_depends_lib gnutls
             # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
             # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-            cd "${LIBJWT_DIR}" && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
+            cd "${LIBJWT_DIR}" && ./configure LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
         }
     }
 }

@@ -69,3 +69,23 @@ unset LIBS
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) || { echo  'error~~pcre2'; exit 1; }
 
+(cd jansson && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    --prefix=${MYLIB_DEPS} \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~jansson'; exit 1; }
+
+# deps openssl(special verson), jansson
+#JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
+#JANSSON_LIBS=-L${MYLIB_DEPS}/lib
+#OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
+#OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
+(cd libjwt && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    --prefix=${MYLIB_DEPS} \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~libjwt'; exit 1; }
+
