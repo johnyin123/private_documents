@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8f68f1a6[2026-05-09T16:40:36+08:00]:mk_nginx.sh")
+VERSION+=("4461be8e[2026-05-11T12:14:11+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -32,7 +32,7 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lcrypt -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -48,7 +48,7 @@ HTTP2=${HTTP2-"1"}
 HTTP3=${HTTP3:-"1"}
 STREAM_QUIC=${STREAM_QUIC:-""}
 #patch need
-PROXY_CONNECT=${PROXY_CONNECT-"1"}
+PROXY_CONNECT=${PROXY_CONNECT-""}
 #static module
 LIMIT_SPEED=${LIMIT_SPEED:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
