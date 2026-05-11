@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4461be8e[2026-05-11T12:14:11+08:00]:mk_nginx.sh")
+VERSION+=("78856200[2026-05-11T13:03:32+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -339,6 +339,9 @@ confirm "START BUILD NGINX(timeout 60s)?..........." 60
             # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
             cd "${LIBJWT_DIR}" && ./configure LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
         }
+    }
+    stage_run otherlibs && opt_enable "${AUTH_LDAP}" && {
+        log "LDAP can static link. need make libldap.a in ${MYLIB_DEPS}/lib"
     }
 }
 opt_enable "${AUTH_JWT}" && {

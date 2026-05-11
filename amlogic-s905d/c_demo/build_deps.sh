@@ -89,3 +89,11 @@ unset LIBS
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) || { echo  'error~~libjwt'; exit 1; }
 
+(cd openldap && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    --prefix=${MYLIB_DEPS} \
+    --disable-debug --disable-dynamic --disable-syslog --disable-slapd --disable-backends --disable-overlays \
+    --with-tls=openssl \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~openldap'; exit 1; }
