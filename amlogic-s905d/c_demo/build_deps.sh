@@ -22,6 +22,7 @@ MYLIB_DEPS=${DIRNAME}/mylibs.${WIN_TGT}
     && perl configdata.pm --dump \
     && make LIBDIR=lib -j "$(nproc)" build_libs \
     && make LIBDIR=lib -j "$(nproc)" install_sw) || { echo  'error~~openssl'; exit 1; }
+
 (cd curl && { make distclean||true; } && ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
     --with-pic=yes --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes \
@@ -36,14 +37,35 @@ MYLIB_DEPS=${DIRNAME}/mylibs.${WIN_TGT}
 unset CPPFLAGS
 unset LIBS
 
-(cd expat && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS}} --prefix=${MYLIB_DEPS} \
+(cd expat && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS}} \
+    --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --enable-pic=yes \
     --without-xmlwf --without-examples --without-tests \
     --without-docbook && make -j "$(nproc)" \
     && make -j "$(nproc)" install) || { echo  'error~~expat'; exit 1; }
 
-(cd libiconv && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS}} --prefix=${MYLIB_DEPS} \
+(cd libiconv && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS}} \
+    --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --enable-pic=yes \
     --disable-largefile --disable-rpath \
     --disable-nls && make -j "$(nproc)" \
     && make -j "$(nproc)" install) || { echo  'error~~iconv'; exit 1; }
+
+(cd fcgi2 && { make distclean||true; } && ./autogen.sh && \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    --prefix=${MYLIB_DEPS} \
+    CFLAGS=-Wunused-const-variable \
+    --with-pic --enable-static=yes --enable-shared=no \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~fcgi2'; exit 1; }
+
+(cd zlib && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    --prefix=${MYLIB_DEPS} --static \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~zlib'; exit 1; }
+
+(cd pcre2 && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { echo  'error~~pcre2'; exit 1; }
+

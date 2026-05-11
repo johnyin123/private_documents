@@ -27,11 +27,13 @@ MYLIB_DEPS=${DIRNAME}/mylibs
         && make LIBDIR=lib -j "$(nproc)" build_libs \
         && make LIBDIR=lib -j "$(nproc)" install_sw) || { echo  'error~~openssl'; exit 1; }
 
-    (cd zlib && { make distclean||true; } && ./configure --prefix=${MYLIB_DEPS} --static \
+    (cd zlib && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+        --prefix=${MYLIB_DEPS} --static \
         && make -j "$(nproc)" \
         && make -j "$(nproc)" install) || { echo  'error~~zlib'; exit 1; }
 
-    (cd pcre2 && { make distclean||true; } && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
+    (cd pcre2 && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+        --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
         && make -j "$(nproc)" \
         && make -j "$(nproc)" install) || { echo  'error~~pcre2'; exit 1; }
 }
