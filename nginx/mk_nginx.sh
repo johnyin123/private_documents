@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
@@ -7,24 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("78856200[2026-05-11T13:03:32+08:00]:mk_nginx.sh")
-set -o errtrace
-set -o nounset
-set -o errexit
-declare -A stage=(
-    [doall]=100
-    [fpm]=10
-    [install]=20
-    [make]=30
-    [configure]=40
-    [otherlibs]=50
-    [openssl]=60
-    [pcre]=70
-    [zlib]=80
-)
-set +o nounset
-stage_level=${stage[${1:-doall}]}
-set -o nounset
+VERSION+=("0ca56d56[2026-05-11T16:01:38+08:00]:mk_nginx.sh")
 mydesc=""
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
@@ -144,17 +128,16 @@ confirm() {
     fi
     return 1
 }
-stage_level=${stage_level:?"$(usage)"}
 stage_run() {
     local level=${1}
-    [ ${stage_level} -ge ${stage[${level}]} ] && {
-        log "[STAGE RUN] ${level} START ................................"
-        return 0
-    } || return 1
+    log "[STAGE RUN] ${level} START ................................"
+    return 0
 }
 
-MYLIB_DEPS=${DIRNAME}/mylibs
-NGINX_DIR=${DIRNAME}/nginx
+NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
+MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
+NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
+MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
 ZLIB_DIR=${DIRNAME}/zlib
