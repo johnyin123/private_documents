@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("41fe74da[2026-05-12T10:06:56+08:00]:mk_nginx.sh")
+VERSION+=("d285293f[2026-05-12T16:15:19+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -71,23 +71,6 @@ show_option() {
 }
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 opt_enable() { [ "1" == "${1:-y}" ]; }
-usage() {
-    echo ""
-    echo "no need -lz, static build sqlite3"
-    echo "stage: [${!stage[@]}]"
-    echo "LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/otherlibs/openssl/pcre/zlib"
-    # # ngx_sqlite/config
-    echo 'CORE_LIBS="$CORE_LIBS -L$SQLITE_LIB -Wl,-Bstatic -lsqlite3 -Wl,-Bdynamic -lm"'
-    # # static link libjwt
-    echo 'CFLAGS=-fPIC ./configure --prefix=${MYLIB_DEPS} --enable-shared=no --enable-static=yes --without-examples --without-openssl'
-    echo 'configure --with-cc-opt="-static -static-libgcc" --with-ld-opt="-static" --with-cpu-opt=generic  --with-openssl=./openssl ......'
-    echo "remove --with-http_xslt_module"
-    echo "remove --with-http_image_filter_module"
-    echo "remove --with-http_geoip_module"
-    echo "CC_OPTS='-static -static-libgcc' LD_OPTS='-static' ./configure ..... && make, will static build"
-    show_option "${SCRIPTNAME}"
-    exit 0
-}
 check_requre_dirs() {
     local dir=""
     for dir in $@ ; do
