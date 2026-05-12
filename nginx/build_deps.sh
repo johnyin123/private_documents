@@ -145,4 +145,30 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" \
     && make -j "$(nproc)" -C libraries install) || { log "error build ${SRC_DIR}"; }
 
+# https://download.gnome.org/sources/libxml2/
+SRC_DIR=libxml2
+log "Building ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    --prefix=${MYLIB_DEPS} \
+    --without-debug --without-python \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+
+# https://download.gnome.org/sources/libxslt/
+SRC_DIR=libxslt
+log "Building ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    --prefix=${MYLIB_DEPS} \
+    --with-libxml-include-prefix=${MYLIB_DEPS}/include/libxml2 \
+    --with-libxml-libs-prefix=${MYLIB_DEPS}/lib \
+    --without-python --without-debug --without-debugger --without-profiler \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    && make -j "$(nproc)" -C libxslt && make -j "$(nproc)" -C libexslt \
+    && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install) || { log "error build ${SRC_DIR}"; }
+
 log "Building COMPLETE"
