@@ -8,15 +8,28 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0ca56d56[2026-05-11T16:01:38+08:00]:mk_nginx.sh")
+VERSION+=("41fe74da[2026-05-12T10:06:56+08:00]:mk_nginx.sh")
+
+NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
+MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
+NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
+MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
+OPENSSL_DIR=${DIRNAME}/openssl
+PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
+ZLIB_DIR=${DIRNAME}/zlib
+JANSSON_DIR=${DIRNAME}/jansson
+LIBJWT_DIR=${DIRNAME}/libjwt
+# export NJS_CC_OPT="-L${MYLIB_DEPS}/lib"
+# export NJS_LD_OPT="-lxml2 -lm"
+
 mydesc=""
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
 ## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
-CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC"}
+CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -133,17 +146,6 @@ stage_run() {
     log "[STAGE RUN] ${level} START ................................"
     return 0
 }
-
-NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
-MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
-NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
-MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
-OPENSSL_DIR=${DIRNAME}/openssl
-PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
-ZLIB_DIR=${DIRNAME}/zlib
-JANSSON_DIR=${DIRNAME}/jansson
-LIBJWT_DIR=${DIRNAME}/libjwt
-export NJS_CC_OPT="-L${MYLIB_DEPS}/lib"
 
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch release-1.24.0 https://github.com/nginx/nginx.git"
@@ -342,8 +344,8 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 stage_run configure && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
---with-cc-opt="${CC_OPTS} -I${MYLIB_DEPS}/include" \
---with-ld-opt="${LD_OPTS} -L${MYLIB_DEPS}/lib" \
+--with-cc-opt="${CC_OPTS}" \
+--with-ld-opt="${LD_OPTS}" \
 --with-pcre \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
