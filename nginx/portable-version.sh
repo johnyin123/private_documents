@@ -19,7 +19,7 @@ cd ${NGINX_DIR} && ./configure \
     --with-cc-opt="${CC_OPTS}" \
     --with-ld-opt="${LD_OPTS}" \
     --prefix=. \
-    --sbin-path=. \
+    --sbin-path=nginx \
     --conf-path=conf/nginx.conf \
     --error-log-path=logs/error.log \
     --http-client-body-temp-path=tmp/client_body_temp/ \

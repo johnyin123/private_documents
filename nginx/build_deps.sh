@@ -33,7 +33,7 @@ log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}................................
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
     LIBDIR=lib --prefix=${MYLIB_DEPS} ${KTLS:+enable-ktls} \
-    no-shared no-threads no-tests no-legacy no-apps no-docs \
+    no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs \
     && perl configdata.pm --dump \
     && make LIBDIR=lib -j "$(nproc)" build_libs \
     && make LIBDIR=lib -j "$(nproc)" install_sw) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
