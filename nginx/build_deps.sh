@@ -6,17 +6,13 @@ WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
+[ "${MYCROSS:-}" == "musl" ] && { MYCROSS=""; WIN_TGT=linux-musl; export CC=musl-gcc; MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"; }
 cat <<'EOF'
 KTLS=1 ./build_deps.sh [output libdir]
 MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
-
-$(DIRNAME)/lib/libssl.a: $(ODIR)/$(OPENSSL)
-	@echo Building OpenSSL...
-	@$(SHELL) -c "cd $< && ./config $(OPENSSL_OPTS)"
-	@$(MAKE) -C $< depend
-	@$(MAKE) -C $<
-	@$(MAKE) -C $< install_sw
-	@touch $@
+        i686-w64-mingw32
+        x86_64-w64-mingw32
+        musl
 EOF
 MYLIB_DEPS=${1:-${DIRNAME}/mylibs.${WIN_TGT}}
 [ -d "${MYLIB_DEPS}" ] && MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
@@ -26,13 +22,22 @@ GREEN='\033[32m'
 NC='\033[0m'
 log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n" "$@"; }
 [ -d "${MYLIB_DEPS}" ] && { log "${MYLIB_DEPS} exists!"; exit 1; }
+read -n 1 -p "Press any key continue build ..." value
 ################################################################################
+# $(DIRNAME)/lib/libssl.a: $(ODIR)/$(OPENSSL)
+# 	@echo Building OpenSSL...
+# 	@$(SHELL) -c "cd $< && ./config $(OPENSSL_OPTS)"
+# 	@$(MAKE) -C $< depend
+# 	@$(MAKE) -C $<
+# 	@$(MAKE) -C $< install_sw
+# 	@touch $@
+
 SRC_DIR=openssl
 log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}.................................."
 #no-zstd no-zlib \
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
-    LIBDIR=lib --prefix=${MYLIB_DEPS} ${KTLS:+enable-ktls} \
+    LIBDIR=lib --prefix=${MYLIB_DEPS} ${KTLS:+enable-ktls} ${MYSSL_INC:-} \
     no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs \
     && perl configdata.pm --dump \
     && make LIBDIR=lib -j "$(nproc)" build_libs \

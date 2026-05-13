@@ -2,20 +2,23 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
+NGINX_DIR="${1:? MUSL=1 $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
 NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
 MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
+# apt install -y musl-dev musl-tools
+MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64}
+
 OUTDIR=${DIRNAME}/portable_ngx/
 mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
-CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include"}
+CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 ${MUSL_CFLAGS} -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include"}
 LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib"}
 #
 # apt install -y musl-dev musl-tools
 # ./configure --with-cc="musl-gcc"
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-cd ${NGINX_DIR} && ./configure \
+cd ${NGINX_DIR} && ./configure ${MUSL:+--with-cc="musl-gcc"} \
     --with-cc-opt="${CC_OPTS}" \
     --with-ld-opt="${LD_OPTS}" \
     --prefix=. \
@@ -33,48 +36,6 @@ cd ${NGINX_DIR} && ./configure \
     --with-compat \
     --with-cpu-opt=generic \
     --with-http_ssl_module \
-    \
-    --without-mail_pop3_module \
-    --without-mail_imap_module \
-    --without-mail_smtp_module \
-    --without-stream_limit_conn_module \
-    --without-stream_access_module \
-    --without-stream_geo_module \
-    --without-stream_map_module \
-    --without-stream_split_clients_module \
-    --without-stream_return_module \
-    --without-stream_pass_module \
-    --without-stream_set_module \
-    --without-stream_upstream_hash_module \
-    --without-stream_upstream_least_conn_module \
-    --without-stream_upstream_random_module \
-    --without-stream_upstream_zone_module \
-    \
-    --without-quic_bpf_module \
-    --without-http_charset_module \
-    --without-http_gzip_module \
-    --without-http_ssi_module \
-    --without-http_userid_module \
-    --without-http_auth_basic_module \
-    --without-http_mirror_module \
-    --without-http_autoindex_module \
-    --without-http_geo_module \
-    --without-http_map_module \
-    --without-http_split_clients_module \
-    --without-http_referer_module \
-    --without-http_proxy_module \
-    --without-http_uwsgi_module \
-    --without-http_scgi_module \
-    --without-http_grpc_module \
-    --without-http_memcached_module \
-    --without-http_limit_req_module \
-    --without-http_empty_gif_module \
-    --without-http_browser_module \
-    --without-http_upstream_hash_module \
-    --without-http_upstream_ip_hash_module \
-    --without-http_upstream_least_conn_module \
-    --without-http_upstream_zone_module \
-    --without-http-cache \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
