@@ -36,7 +36,7 @@ log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}................................
     no-shared no-threads no-tests no-legacy no-apps no-docs \
     && perl configdata.pm --dump \
     && make LIBDIR=lib -j "$(nproc)" build_libs \
-    && make LIBDIR=lib -j "$(nproc)" install_sw) || { log "error build ${SRC_DIR}"; }
+    && make LIBDIR=lib -j "$(nproc)" install_sw) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=curl
 log "Building ${SRC_DIR} ....................................."
@@ -52,7 +52,7 @@ log "Building ${SRC_DIR} ....................................."
     --disable-docs \
     --disable-ipfs \
     --disable-rtsp && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=expat
 log "Building ${SRC_DIR} ....................................."
@@ -62,7 +62,7 @@ log "Building ${SRC_DIR} ....................................."
     --enable-shared=no --enable-static=yes --enable-pic=yes \
     --without-xmlwf --without-examples --without-tests \
     --without-docbook && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=libiconv
 log "Building ${SRC_DIR} ....................................."
@@ -72,7 +72,7 @@ log "Building ${SRC_DIR} ....................................."
     --enable-shared=no --enable-static=yes --enable-pic=yes \
     --disable-largefile --disable-rpath \
     --disable-nls && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=fcgi2
 log "Building ${SRC_DIR} ....................................."
@@ -82,18 +82,18 @@ log "Building ${SRC_DIR} ....................................."
     CFLAGS=-Wunused-const-variable \
     --with-pic --enable-static=yes --enable-shared=no \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=zlib
 log "Building ${SRC_DIR} ....................................."
-[ -z "${MYCROSS}" ] || {
+[ -z "${MYCROSS}" ] && { log "OK build ${SRC_DIR}"; } || {
    export CC=${MYCROSS}-gcc
 }
 export CFLAGS="-fPIC"
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure --prefix=${MYLIB_DEPS} --static \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 unset -v CC CFLAGS
 
 SRC_DIR=pcre
@@ -102,7 +102,7 @@ log "Building ${SRC_DIR} ....................................."
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=jansson
 log "Building ${SRC_DIR} ....................................."
@@ -112,7 +112,7 @@ log "Building ${SRC_DIR} ....................................."
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=libjwt
 log "Building ${SRC_DIR} ....................................."
@@ -128,7 +128,7 @@ log "Building ${SRC_DIR} ....................................."
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=openldap
 log "Building ${SRC_DIR} ....................................."
@@ -143,7 +143,7 @@ log "Building ${SRC_DIR} ....................................."
     --with-tls=openssl --with-yielding_select=yes \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" -C libraries install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" -C libraries install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 # https://download.gnome.org/sources/libxml2/
 SRC_DIR=libxml2
@@ -155,7 +155,7 @@ log "Building ${SRC_DIR} ....................................."
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 # https://download.gnome.org/sources/libxslt/
 SRC_DIR=libxslt
@@ -169,6 +169,6 @@ log "Building ${SRC_DIR} ....................................."
     --without-python --without-debug --without-debugger --without-profiler \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" -C libxslt && make -j "$(nproc)" -C libexslt \
-    && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install) || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 log "Building COMPLETE"
