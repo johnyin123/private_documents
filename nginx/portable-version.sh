@@ -1,45 +1,23 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
-WIN_TGT=linux-x86_64
-[ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
-[ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
-[ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
 
+NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
+MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
+NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
+MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 OUTDIR=${DIRNAME}/portable_ngx/
-mkdir -pv  \
-${OUTDIR}/conf \
-${OUTDIR}/logs \
-${OUTDIR}/tmp/client_body_temp/ \
-${OUTDIR}/tmp/proxy_temp/ \
-${OUTDIR}/tmp/fastcgi_temp/ \
-${OUTDIR}/tmp/uwsgi_temp/ \
-${OUTDIR}/tmp/scgi_temp/
-CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
-LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC"}
-MYLIB_DEPS=${DIRNAME}/mylibs
-[ -d "${MYLIB_DEPS}" ] || {
-    (cd openssl && { make distclean||true; } && ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
-        LIBDIR=lib --prefix=${MYLIB_DEPS} no-zstd no-zlib \
-        no-shared no-threads no-tests no-legacy no-apps no-docs \
-        && perl configdata.pm --dump \
-        && make LIBDIR=lib -j "$(nproc)" build_libs \
-        && make LIBDIR=lib -j "$(nproc)" install_sw) || { echo  'error~~openssl'; exit 1; }
-
-    (cd zlib && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-        --prefix=${MYLIB_DEPS} --static \
-        && make -j "$(nproc)" \
-        && make -j "$(nproc)" install) || { echo  'error~~zlib'; exit 1; }
-
-    (cd pcre2 && { make distclean||true; } && ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-        --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
-        && make -j "$(nproc)" \
-        && make -j "$(nproc)" install) || { echo  'error~~pcre2'; exit 1; }
-}
-cd nginx && ./configure \
-    --with-cc-opt="${CC_OPTS} -I${MYLIB_DEPS}/include" \
-    --with-ld-opt="${LD_OPTS} -L${MYLIB_DEPS}/lib" \
+mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
+    ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
+CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include"}
+LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib"}
+#
+# apt install -y musl-dev musl-tools
+# ./configure --with-cc="musl-gcc"
+cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
+cd ${NGINX_DIR} && ./configure \
+    --with-cc-opt="${CC_OPTS}" \
+    --with-ld-opt="${LD_OPTS}" \
     --prefix=. \
     --sbin-path=. \
     --conf-path=conf/nginx.conf \
