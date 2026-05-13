@@ -31,7 +31,7 @@ read -n 1 -p "Press any key continue build ..." value
 # 	@$(MAKE) -C $<
 # 	@$(MAKE) -C $< install_sw
 # 	@touch $@
-
+# https://www.openssl.org/source/
 SRC_DIR=openssl
 log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}.................................."
 #no-zstd no-zlib \
@@ -79,6 +79,7 @@ log "Building ${SRC_DIR} ....................................."
     --disable-nls && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+# git clone https://github.com/FastCGI-Archives/fcgi2.git
 SRC_DIR=fcgi2
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && ./autogen.sh && \
@@ -89,6 +90,7 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+#https://zlib.net/zlib-1.2.11.tar.gz
 SRC_DIR=zlib
 log "Building ${SRC_DIR} ....................................."
 [ -z "${MYCROSS}" ] && { log "OK build ${SRC_DIR}"; } || {
@@ -101,6 +103,7 @@ export CFLAGS="-fPIC"
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 unset -v CC CFLAGS
 
+#https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download
 SRC_DIR=pcre
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
