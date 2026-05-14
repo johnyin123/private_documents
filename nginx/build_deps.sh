@@ -112,9 +112,9 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+#https://github.com/akheron/jansson
 SRC_DIR=jansson
 log "Building ${SRC_DIR} ....................................."
-log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
@@ -123,9 +123,9 @@ log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+#https://github.com/benmcollins/libjwt ,v1.18.3
 SRC_DIR=libjwt
 log "Building ${SRC_DIR} ....................................."
-# deps openssl(special verson), jansson
 #JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
 #JANSSON_LIBS=-L${MYLIB_DEPS}/lib
 #OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
@@ -135,7 +135,7 @@ log "Building ${SRC_DIR} ....................................."
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
-    --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
+    --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
