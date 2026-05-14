@@ -114,6 +114,7 @@ log "Building ${SRC_DIR} ....................................."
 
 SRC_DIR=jansson
 log "Building ${SRC_DIR} ....................................."
+log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
