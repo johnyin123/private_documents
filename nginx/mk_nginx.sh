@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e535552e[2026-05-15T10:19:09+08:00]:mk_nginx.sh")
+VERSION+=("68f6c8f6[2026-05-15T10:41:24+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -726,11 +726,6 @@ opt_enable "${STRIP}" && {
     log "strip binarys"
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
-}
-# final copy other depend files!
-opt_enable "${AUTH_JWT}" && {
-    pkg-config --exists jansson || { cat ${MYLIB_DEPS}/lib/libjansson.so > ${OUTDIR}/usr/lib/libjansson.so.4; }
-    pkg-config --exists libjwt || { cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2; }
 }
 ldd ${OUTDIR}/usr/sbin/nginx 2>/dev/null|| true
 ldd ${OUTDIR}/usr/share/nginx/modules/* 2>/dev/null || true

@@ -124,6 +124,7 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=openldap
+# need libuuid
 log "Building ${SRC_DIR} ....................................."
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
@@ -135,8 +136,9 @@ log "Building ${SRC_DIR} ....................................."
     --disable-debug --disable-dynamic --disable-syslog --disable-slapd --disable-backends --disable-overlays \
     --with-tls=openssl --with-yielding_select=yes \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
-    && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    && make depend && make -C include -j "$(nproc)" && make -C libraries -j "$(nproc)" \
+    && make -C include -j "$(nproc)" install && make -C libraries -j "$(nproc)" install) \
+    && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=curl
 log "Building ${SRC_DIR} ....................................."
