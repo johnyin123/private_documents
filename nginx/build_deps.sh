@@ -124,19 +124,20 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=openldap
-# need libuuid
 log "Building ${SRC_DIR} ....................................."
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
-    ac_cv_func_memcmp_working=yes \
-    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
+    ac_cv_func_memcmp_working=yes CC=${MYCROSS:+${MYCROSS}-}gcc \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine) --target=${MYCROSS}} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CPPFLAGS="-I${MYLIB_DEPS}/include" CFLAGS="-fPIC" \
     --prefix=${MYLIB_DEPS} \
     --disable-debug --disable-dynamic --disable-syslog --disable-slapd --disable-backends --disable-overlays \
     --with-tls=openssl --with-yielding_select=yes \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
-    && make depend && make -C include -j "$(nproc)" && make -C libraries -j "$(nproc)" \
+    && make  CC=${MYCROSS:+${MYCROSS}-}gcc  depend \
+    && make  CC=${MYCROSS:+${MYCROSS}-}gcc -C include -j "$(nproc)" \
+    && make  CC=${MYCROSS:+${MYCROSS}-}gcc -C libraries -j "$(nproc)" \
     && make -C include -j "$(nproc)" install && make -C libraries -j "$(nproc)" install) \
     && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
