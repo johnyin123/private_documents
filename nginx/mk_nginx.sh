@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("68f6c8f6[2026-05-15T10:41:24+08:00]:mk_nginx.sh")
+VERSION+=("a889e99c[2026-05-15T14:03:00+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -275,7 +275,7 @@ log "DEFAULT DYNAMIC_MODULES : ================="
 for key in "${!DYNAMIC_MODULES[@]}"; do
     printf '%-15.15s ==> %s\n' "${key##*/}" "${DYNAMIC_MODULES[${key}]}"
 done
-check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
+check_requre_dirs "${NGINX_DIR}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion openssl || true
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion libpcre2-8 || true
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion zlib || true
