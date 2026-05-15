@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b2f0d93b[2026-05-12T16:46:29+08:00]:mk_nginx.sh")
+VERSION+=("73db2c66[2026-05-15T09:32:55+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -276,7 +276,10 @@ for key in "${!DYNAMIC_MODULES[@]}"; do
     printf '%-15.15s ==> %s\n' "${key##*/}" "${DYNAMIC_MODULES[${key}]}"
 done
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
-pcre_version=$(${PCRE_DIR}/configure -V 2>/dev/null | grep PCRE | awk '{ print $1, $3 }' || echo "N/A")
+PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion openssl || true
+PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion libpcre2-8 || true
+PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion zlib || true
+pcre_version=$(${MYLIB_DEPS}/bin/pcre2-config --version || ${PCRE_DIR}/configure -V 2>/dev/null | grep PCRE | awk '{ print $1, $3 }' || echo "N/A")
 cat <<EOF | gcc -o zlibver -xc - && chmod 755 zlibver
 #include <stdio.h>
 #include <zlib.h>

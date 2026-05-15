@@ -43,22 +43,6 @@ log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}................................
     && make LIBDIR=lib -j "$(nproc)" build_libs \
     && make LIBDIR=lib -j "$(nproc)" install_sw) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
-SRC_DIR=curl
-log "Building ${SRC_DIR} ....................................."
-([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
-    ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
-    --with-pic=yes --prefix=${MYLIB_DEPS} \
-    --enable-shared=no --enable-static=yes \
-    --with-openssl=${MYLIB_DEPS} \
-    --without-libidn2 \
-    --without-libpsl --without-zlib --without-brotli --without-zstd  \
-    --without-ldap --disable-ldap --disable-ldaps \
-    --disable-alt-svc \
-    --disable-docs \
-    --disable-ipfs \
-    --disable-rtsp && make -j "$(nproc)" \
-    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
-
 SRC_DIR=expat
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
@@ -153,6 +137,22 @@ log "Building ${SRC_DIR} ....................................."
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" -C libraries install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+
+SRC_DIR=curl
+log "Building ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+    ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
+    --with-pic=yes --prefix=${MYLIB_DEPS} \
+    --enable-shared=no --enable-static=yes \
+    --with-openssl=${MYLIB_DEPS} \
+    --without-libidn2 \
+    --without-libpsl --without-zlib --without-brotli --without-zstd  \
+    --without-ldap --disable-ldap --disable-ldaps \
+    --disable-alt-svc \
+    --disable-docs \
+    --disable-ipfs \
+    --disable-rtsp && make -j "$(nproc)" \
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 # https://download.gnome.org/sources/libxml2/
 SRC_DIR=libxml2
