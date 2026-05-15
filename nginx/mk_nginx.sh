@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3cb44c7b[2026-05-12T16:21:20+08:00]:mk_nginx.sh")
+VERSION+=("b2f0d93b[2026-05-12T16:46:29+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -90,8 +90,8 @@ check_depends_lib() {
     for dir in $@ ; do
         pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev libbrotli-dev libjwt-dev libjansson-dev"
-            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel sqlite-devel brotli-devel"
+            log "apt -y install libgeoip-dev libgd-dev libsqlite3-dev libbrotli-dev libldap2-dev uuid-dev libxml2-dev libxslt1-dev libjwt-dev libjansson-dev"
+            log "yum -y install GeoIP-devel gd-devel sqlite-devel brotli-devel libxml2-devel libxslt-devel openldap-devel uuid-devel"
             log "yum -y install rpm-build"
             exit 1
         }
@@ -276,8 +276,18 @@ for key in "${!DYNAMIC_MODULES[@]}"; do
     printf '%-15.15s ==> %s\n' "${key##*/}" "${DYNAMIC_MODULES[${key}]}"
 done
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
-pcre_version=$(${PCRE_DIR}/configure -V | grep PCRE | awk '{ print $1, $3 }')
-zlib_version=$(grep "Changes in" ${ZLIB_DIR}/ChangeLog  | head -1 | awk '{ print $3 }')
+pcre_version=$(${PCRE_DIR}/configure -V 2>/dev/null | grep PCRE | awk '{ print $1, $3 }' || echo "N/A")
+cat <<EOF | gcc -o zlibver -xc - && chmod 755 zlibver
+#include <stdio.h>
+#include <zlib.h>
+int main(void) {
+    printf(ZLIB_VERSION);
+    return 0;
+}
+EOF
+zlib_version=$(./zlibver 2>/dev/null || echo "N/A")
+rm -f zlibver
+
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 show_option "${0}"
 log "BUILD-VERSION: ${builder_version}, PCRE: $pcre_version, ZLIB: ${zlib_version}"

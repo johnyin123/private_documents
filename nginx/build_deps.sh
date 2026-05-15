@@ -132,7 +132,7 @@ log "Building ${SRC_DIR} ....................................."
 #OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
@@ -146,7 +146,7 @@ log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ac_cv_func_memcmp_working=yes \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
     --prefix=${MYLIB_DEPS} \
     --disable-debug --disable-dynamic --disable-syslog --disable-slapd --disable-backends --disable-overlays \
     --with-tls=openssl --with-yielding_select=yes \
@@ -171,7 +171,7 @@ SRC_DIR=libxslt
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
     --prefix=${MYLIB_DEPS} \
     --with-libxml-include-prefix=${MYLIB_DEPS}/include/libxml2 \
     --with-libxml-libs-prefix=${MYLIB_DEPS}/lib \
