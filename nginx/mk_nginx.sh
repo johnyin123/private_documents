@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("73db2c66[2026-05-15T09:32:55+08:00]:mk_nginx.sh")
+VERSION+=("e535552e[2026-05-15T10:19:09+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -88,9 +88,9 @@ write_file() {
 check_depends_lib() {
     local dir=""
     for dir in $@ ; do
-        pkg-config --exists ${dir} || {
+        PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libgeoip-dev libgd-dev libsqlite3-dev libbrotli-dev libldap2-dev uuid-dev libxml2-dev libxslt1-dev libjwt-dev libjansson-dev"
+            log "apt -y install libgeoip-dev libgd-dev libsqlite3-dev libbrotli-dev # libldap2-dev uuid-dev libxml2-dev libxslt1-dev libjwt-dev libjansson-dev"
             log "yum -y install GeoIP-devel gd-devel sqlite-devel brotli-devel libxml2-devel libxslt-devel openldap-devel uuid-devel"
             log "yum -y install rpm-build"
             exit 1

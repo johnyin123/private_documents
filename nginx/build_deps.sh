@@ -136,7 +136,7 @@ log "Building ${SRC_DIR} ....................................."
     --with-tls=openssl --with-yielding_select=yes \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" \
-    && make -j "$(nproc)" -C libraries install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=curl
 log "Building ${SRC_DIR} ....................................."
