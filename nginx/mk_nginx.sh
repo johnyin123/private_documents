@@ -8,17 +8,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a889e99c[2026-05-15T14:03:00+08:00]:mk_nginx.sh")
+VERSION+=("05e42df1[2026-05-15T15:59:47+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
 NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
 MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
-OPENSSL_DIR=${DIRNAME}/openssl
-PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
-ZLIB_DIR=${DIRNAME}/zlib
-JANSSON_DIR=${DIRNAME}/jansson
-LIBJWT_DIR=${DIRNAME}/libjwt
 # export NJS_CC_OPT="-L${MYLIB_DEPS}/lib"
 # export NJS_LD_OPT="-lxml2 -lm"
 
@@ -132,9 +127,6 @@ stage_run() {
 
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch release-1.24.0 https://github.com/nginx/nginx.git"
-    [${OPENSSL_DIR}]="https://www.openssl.org/source/openssl-1.1.1m.tar.gz || https://www.openssl.org/source/openssl-3.1.0.tar.gz"
-    [${PCRE_DIR}]="https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download || https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download"
-    [${ZLIB_DIR}]="https://zlib.net/zlib-1.2.11.tar.gz"
 )
 declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch 0.8.2 https://github.com/nginx/njs.git"
@@ -279,7 +271,7 @@ check_requre_dirs "${NGINX_DIR}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion openssl || true
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion libpcre2-8 || true
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion zlib || true
-pcre_version=$(${MYLIB_DEPS}/bin/pcre2-config --version || ${PCRE_DIR}/configure -V 2>/dev/null | grep PCRE | awk '{ print $1, $3 }' || echo "N/A")
+pcre_version=$(${MYLIB_DEPS}/bin/pcre2-config --version || pkg-config --modversion libpcre2-8 || echo "N/A")
 cat <<EOF | gcc -o zlibver -xc - && chmod 755 zlibver
 #include <stdio.h>
 #include <zlib.h>
@@ -294,37 +286,8 @@ rm -f zlibver
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 show_option "${0}"
 log "BUILD-VERSION: ${builder_version}, PCRE: $pcre_version, ZLIB: ${zlib_version}"
+[ -d "${MYLIB_DEPS}" ] || { log "[FAILED] ${MYLIB_DEPS} not exists!!"; exit 1; }
 confirm "START BUILD NGINX(timeout 60s)?..........." 60
-[ -d "${MYLIB_DEPS}" ] || {
-    stage_run zlib && cd ${ZLIB_DIR} && ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
-    stage_run pcre && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
-    stage_run openssl && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} LIBDIR=lib no-shared no-threads ${KTLS:+enable-ktls} no-tests no-legacy no-apps no-docs && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
-    #########################otherlibs here################################
-    stage_run otherlibs && opt_enable "${AUTH_JWT}" && {
-        log "[INFO] check jansson exist, if os not has it, download first"
-        pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
-            log "[INFO] Use download jansson"
-            check_requre_dirs "${JANSSON_DIR}"
-            # no shared lib for jansson, so jwt compile static janssonlib
-            cd "${JANSSON_DIR}" && ./configure LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
-            export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
-            export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
-        }
-        log "[INFO] check libjwt exist, if os not has it, download first"
-        pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
-            log "[INFO] Use download libjwt"
-            check_requre_dirs "${LIBJWT_DIR}"
-            log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
-            check_depends_lib gnutls
-            # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
-            # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-            cd "${LIBJWT_DIR}" && ./configure LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
-        }
-    }
-    stage_run otherlibs && opt_enable "${AUTH_LDAP}" && {
-        log "LDAP can static link. need make libldap.a in ${MYLIB_DEPS}/lib"
-    }
-}
 opt_enable "${AUTH_JWT}" && {
     log "jwt set CC_OPTS -DNGX_LINKED_LIST_COOKIES=1"
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
