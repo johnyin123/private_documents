@@ -183,4 +183,16 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" -C libxslt && make -j "$(nproc)" -C libexslt \
     && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+# https://github.com/maxmind/geoip-api-c
+SRC_DIR=geoip
+log "Building ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+    ./bootstrap && \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
+    --prefix=${MYLIB_DEPS} \
+    --enable-shared=no --enable-static=yes --with-pic=PIC \
+    && make -j "$(nproc)" -C libGeoIP \
+    && make -j "$(nproc)" -C libGeoIP install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+
 log "Building COMPLETE"
