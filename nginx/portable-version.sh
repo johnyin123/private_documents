@@ -13,7 +13,7 @@ OUTDIR=${DIRNAME}/portable_ngx/
 mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS=${CC_OPTS:-"-static -static-libgcc -O2 ${MUSL_CFLAGS} -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include"}
-LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib"}
+LD_OPTS=${LD_OPTS:-"-static -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -lxml2 -lm"}
 #
 # apt install -y musl-dev musl-tools
 # ./configure --with-cc="musl-gcc"
@@ -36,9 +36,30 @@ cd ${NGINX_DIR} && ./configure ${MUSL:+--with-cc="musl-gcc"} \
     --with-compat \
     --with-cpu-opt=generic \
     --with-http_ssl_module \
+    \
+    --with-http_v2_module \
+    --with-http_v3_module \
+    --with-http_realip_module \
+    --with-http_addition_module \
+    --with-http_xslt_module \
+    --with-http_geoip_module \
+    --with-http_sub_module \
+    --with-http_dav_module \
+    --with-http_flv_module \
+    --with-http_mp4_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_auth_request_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_slice_module \
+    --with-http_stub_status_module \
+    \
+    --add-module=${DIRNAME}/njs/nginx \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
+    && strip ${OUTDIR}/nginx
 
 # cd NGX_DIR && ./nginx -p . -c conf/nginx.conf
 
