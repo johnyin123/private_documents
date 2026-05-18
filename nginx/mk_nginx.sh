@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("27b4a440[2026-05-18T11:02:37+08:00]:mk_nginx.sh")
+VERSION+=("88da2d07[2026-05-18T11:12:07+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -729,16 +729,15 @@ log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 
 PKG_NAME=nginx-johnyin${HTTP3:+-quic}
 cat << PKG_EOF
-mkdir -p ${PKG_NAME}/DEBIAN
-rsync -avP ${OUTDIR}/ ${PKG_NAME}/
-cat <<EOF > ${PKG_NAME}/DEBIAN/postinst
+mkdir -p ${OUTDIR}/DEBIAN
+cat <<EOF > ${OUTDIR}/DEBIAN/postinst
 getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :
 getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :
 EOF
-cat <<EOF > ${PKG_NAME}/DEBIAN/postrm
+cat <<EOF > ${OUTDIR}/DEBIAN/postrm
 userdel ${NGX_USER} || :
 EOF
-cat <<EOF > ${PKG_NAME}/DEBIAN/control
+cat <<EOF > ${OUTDIR}/DEBIAN/control
 Package: ${PKG_NAME}
 Version: ${NGX_VER}-${builder_version}
 License: unknown
@@ -751,5 +750,5 @@ Priority: optional
 Homepage: http://example.com/no-uri-given
 Description: nginx with openssl,other modules
 EOF
-dpkg-deb --build ${PKG_NAME}
+dpkg-deb --build ${OUTDIR}
 PKG_EOF
