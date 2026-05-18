@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e74bdd49[2026-05-18T09:02:03+08:00]:mk_nginx.sh")
+VERSION+=("27b4a440[2026-05-18T11:02:37+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -727,7 +727,7 @@ rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
 
-PKG_NAME=nginx_johnyin${HTTP3:+_quic}
+PKG_NAME=nginx-johnyin${HTTP3:+-quic}
 cat << PKG_EOF
 mkdir -p ${PKG_NAME}/DEBIAN
 rsync -avP ${OUTDIR}/ ${PKG_NAME}/
@@ -745,7 +745,7 @@ License: unknown
 Vendor: none
 Architecture: amd64
 Maintainer: <johnyin@yinzh>
-Installed-Size: 19748
+Installed-Size: $(du -sk ${OUTDIR} | awk '{print $1}')
 Section: default
 Priority: optional
 Homepage: http://example.com/no-uri-given
