@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("05e42df1[2026-05-15T15:59:47+08:00]:mk_nginx.sh")
+VERSION+=("e74bdd49[2026-05-18T09:02:03+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -708,7 +708,7 @@ INST_SCRIPT=$(mktemp)
 UNINST_SCRIPT=$(mktemp)
 echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > ${INST_SCRIPT}
 echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> ${INST_SCRIPT}
-echo "userdel nginx || :" > ${UNINST_SCRIPT}
+echo "userdel ${NGX_USER} || :" > ${UNINST_SCRIPT}
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
 source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
@@ -726,3 +726,30 @@ stage_run fpm && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --na
 rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
+
+PKG_NAME=nginx_johnyin${HTTP3:+_quic}
+cat << PKG_EOF
+mkdir -p ${PKG_NAME}/DEBIAN
+rsync -avP ${OUTDIR}/ ${PKG_NAME}/
+cat <<EOF > ${PKG_NAME}/DEBIAN/postinst
+getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :
+getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :
+EOF
+cat <<EOF > ${PKG_NAME}/DEBIAN/postrm
+userdel ${NGX_USER} || :
+EOF
+cat <<EOF > ${PKG_NAME}/DEBIAN/control
+Package: ${PKG_NAME}
+Version: ${NGX_VER}-${builder_version}
+License: unknown
+Vendor: none
+Architecture: amd64
+Maintainer: <johnyin@yinzh>
+Installed-Size: 19748
+Section: default
+Priority: optional
+Homepage: http://example.com/no-uri-given
+Description: nginx with openssl,other modules
+EOF
+dpkg-deb --build ${PKG_NAME}
+PKG_EOF
