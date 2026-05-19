@@ -194,5 +194,7 @@ log "Building ${SRC_DIR} ....................................."
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" -C libGeoIP \
     && make -j "$(nproc)" -C libGeoIP install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
-
+# git clone https://github.com/bagder/libbrotli
+# cd libbrotli && ./autogen.sh && ./configure
+# make
 log "Building COMPLETE"
