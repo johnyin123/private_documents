@@ -23,7 +23,8 @@ CC_OPTS="${CC_OPTS} ${MUSL:+-idirafter /usr/include/ -idirafter /usr/include/$(d
 # apt install -y musl-dev musl-tools
 # ./configure --with-cc="musl-gcc"
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-cd ${NGINX_DIR} && ./configure ${MUSL:+--with-cc="musl-gcc"} \
+cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
+    ./configure ${MUSL:+--with-cc="musl-gcc"} \
     --with-cc-opt="${CC_OPTS}" \
     --with-ld-opt="${LD_OPTS}" \
     --prefix=. \

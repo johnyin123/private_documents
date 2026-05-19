@@ -33,7 +33,7 @@ read -n 1 -p "Press any key continue build ..." value
 # 	@touch $@
 # https://www.openssl.org/source/
 SRC_DIR=openssl
-log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}.................................."
+log "Building ${CC:-} ${SRC_DIR} ...${KTLS:+enable-ktls}.................................."
 #no-zstd no-zlib \
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
@@ -44,7 +44,7 @@ log "Building ${SRC_DIR} ...${KTLS:+enable-ktls}................................
     && make LIBDIR=lib -j "$(nproc)" install_sw) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=expat
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS}} \
     --prefix=${MYLIB_DEPS} \
@@ -54,7 +54,7 @@ log "Building ${SRC_DIR} ....................................."
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=libiconv
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS}} \
     --prefix=${MYLIB_DEPS} \
@@ -65,7 +65,7 @@ log "Building ${SRC_DIR} ....................................."
 
 # git clone https://github.com/FastCGI-Archives/fcgi2.git
 SRC_DIR=fcgi2
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && ./autogen.sh && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     --prefix=${MYLIB_DEPS} \
@@ -76,9 +76,10 @@ log "Building ${SRC_DIR} ....................................."
 
 #https://zlib.net/zlib-1.2.11.tar.gz
 SRC_DIR=zlib
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
+ORG_CC=${CC:-}
 [ -z "${MYCROSS}" ] && { log "OK build ${SRC_DIR}"; } || {
-   export CC=${MYCROSS}-gcc
+    export CC=${MYCROSS}-gcc
 }
 export CFLAGS="-fPIC"
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
@@ -86,10 +87,11 @@ export CFLAGS="-fPIC"
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 unset -v CC CFLAGS
+[ -z "${ORG_CC}" ] || export CC=${ORG_CC}
 
 #https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download
 SRC_DIR=pcre
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
@@ -98,7 +100,7 @@ log "Building ${SRC_DIR} ....................................."
 
 #https://github.com/akheron/jansson
 SRC_DIR=jansson
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
@@ -109,24 +111,22 @@ log "Building ${SRC_DIR} ....................................."
 
 #https://github.com/benmcollins/libjwt ,v1.18.3
 SRC_DIR=libjwt
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 #JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
 #JANSSON_LIBS=-L${MYLIB_DEPS}/lib
 #OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
 #OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-export PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
-    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
-unset PKG_CONFIG_PATH
 
 SRC_DIR=openldap
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
@@ -144,7 +144,7 @@ log "Building ${SRC_DIR} ....................................."
     && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 SRC_DIR=curl
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
     --with-pic=yes --prefix=${MYLIB_DEPS} \
@@ -161,7 +161,7 @@ log "Building ${SRC_DIR} ....................................."
 
 # https://download.gnome.org/sources/libxml2/
 SRC_DIR=libxml2
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
@@ -173,7 +173,7 @@ log "Building ${SRC_DIR} ....................................."
 
 # https://download.gnome.org/sources/libxslt/
 SRC_DIR=libxslt
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
@@ -188,7 +188,7 @@ log "Building ${SRC_DIR} ....................................."
 
 # https://github.com/maxmind/geoip-api-c
 SRC_DIR=geoip
-log "Building ${SRC_DIR} ....................................."
+log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./bootstrap && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
@@ -201,4 +201,4 @@ log "Building ${SRC_DIR} ....................................."
 # git clone https://github.com/bagder/libbrotli
 # cd libbrotli && ./autogen.sh && ./configure
 # make
-log "Building COMPLETE"
+log "Building ${CC:-} COMPLETE"
