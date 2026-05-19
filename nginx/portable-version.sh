@@ -10,12 +10,13 @@ MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64}
 
 OUTDIR=${DIRNAME}/portable_ngx/
-mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
+rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS="-static -static-libgcc -O2 ${MUSL_CFLAGS} -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2"
 LD_OPTS="-static -L${MYLIB_DEPS}/lib -lxml2"
 # for jwt
 CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
+LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
 # for musl include
 CC_OPTS="${CC_OPTS} ${MUSL:+-idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)}"
 
@@ -67,6 +68,7 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --add-module=${DIRNAME}/nginx-sticky-module-ng \
     --add-module=${DIRNAME}/nginx-auth-ldap \
     --add-module=${DIRNAME}/nginx-aws-auth-module \
+    --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
@@ -74,11 +76,6 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
 
    # --add-module=${DIRNAME}/ngx_brotli \
    # --add-module=${DIRNAME}/ngx_sqlite \
-
-   # # jwt auth not support static module :TODO
-   # --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
-
-# cd NGX_DIR && ./nginx -p . -c conf/nginx.conf
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
 worker_processes  1;
@@ -122,4 +119,5 @@ http {
     }
 }
 EOF
+(cd ${OUTDIR} && ./nginx -t)
 echo "=========================all ok============================"
