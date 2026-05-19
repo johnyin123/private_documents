@@ -6,7 +6,7 @@ WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
-[ "${MYCROSS:-}" == "musl" ] && { MYCROSS=""; WIN_TGT=linux-musl; export CC=musl-gcc; MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"; }
+[ "${MYCROSS:-}" == "musl" ] && { MYCROSS=""; WIN_TGT=linux-musl; export CC=musl-gcc; MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"; MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"; }
 cat <<'EOF'
 KTLS=1 ./build_deps.sh [output libdir]
 MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
@@ -69,7 +69,7 @@ log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && ./autogen.sh && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     --prefix=${MYLIB_DEPS} \
-    CFLAGS=-Wunused-const-variable \
+    CFLAGS="-Wunused-const-variable -Wno-sign-compare" \
     --with-pic --enable-static=yes --enable-shared=no \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
@@ -114,6 +114,7 @@ log "Building ${SRC_DIR} ....................................."
 #JANSSON_LIBS=-L${MYLIB_DEPS}/lib
 #OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
 #OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
+export PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
@@ -122,6 +123,7 @@ log "Building ${SRC_DIR} ....................................."
     --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+unset PKG_CONFIG_PATH
 
 SRC_DIR=openldap
 log "Building ${SRC_DIR} ....................................."
@@ -162,7 +164,7 @@ SRC_DIR=libxml2
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
     --prefix=${MYLIB_DEPS} \
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
@@ -174,14 +176,15 @@ SRC_DIR=libxslt
 log "Building ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
     --prefix=${MYLIB_DEPS} \
     --with-libxml-include-prefix=${MYLIB_DEPS}/include/libxml2 \
     --with-libxml-libs-prefix=${MYLIB_DEPS}/lib \
     --without-python --without-debug --without-debugger --without-profiler \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" -C libxslt && make -j "$(nproc)" -C libexslt \
-    && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" -C libxslt install && make -j "$(nproc)" -C libexslt install \
+    && make -j "$(nproc)" install-pkgconfigDATA) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 # https://github.com/maxmind/geoip-api-c
 SRC_DIR=geoip
@@ -193,7 +196,8 @@ log "Building ${SRC_DIR} ....................................."
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     && make -j "$(nproc)" -C libGeoIP \
-    && make -j "$(nproc)" -C libGeoIP install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    && make -j "$(nproc)" -C libGeoIP install \
+    && make -j "$(nproc)" install-nodist_pkgconfigDATA) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 # git clone https://github.com/bagder/libbrotli
 # cd libbrotli && ./autogen.sh && ./configure
 # make
