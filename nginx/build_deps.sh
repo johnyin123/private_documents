@@ -117,7 +117,7 @@ log "Building ${SRC_DIR} ....................................."
 export PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS=-fPIC \
     --prefix=${MYLIB_DEPS} \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
     --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man \
