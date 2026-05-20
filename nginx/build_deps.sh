@@ -65,11 +65,12 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 
 # git clone https://github.com/FastCGI-Archives/fcgi2.git
 SRC_DIR=fcgi2
+# mingw: -Wno-incompatible-pointer-types
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && ./autogen.sh && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
     --prefix=${MYLIB_DEPS} \
-    CFLAGS="-Wunused-const-variable -Wno-sign-compare" \
+    CFLAGS="-Wunused-const-variable -Wno-sign-compare -Wno-incompatible-pointer-types" \
     --with-pic --enable-static=yes --enable-shared=no \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
@@ -127,6 +128,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 
 SRC_DIR=openldap
 log "Building ${CC:-} ${SRC_DIR} ....................................."
+# mingw openldap need gnu regex lib https://www.gnu.org/software/regex/
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
@@ -164,7 +166,7 @@ SRC_DIR=libxml2
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC ${MUSL_CFLAGS:-}" \
     --prefix=${MYLIB_DEPS} \
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
