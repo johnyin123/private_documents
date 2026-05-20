@@ -202,12 +202,18 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 SRC_DIR=brotli
 # https://github.com/google/brotli.git || ngx_brotli/deps/brotli
 log "Building ${CC:-} ${SRC_DIR} ....................................."
+[ -z "${MYCROSS}" ] || {
+    case "${MYCROSS}" in
+        *aarch64-*linux-*)   _BROTLI_SYS=Linux; _BROTLI_ARCH=arm64; break;;
+        *)                  echo "---${MYCROSS}---TODO::--${SRC_DIR}---"; exit(1); break;;
+    esac
+}
 ([ -d "${SRC_DIR}" ] && { log "clean ${SRC_DIR}...."; rm -fr ${SRC_DIR}-build &>/dev/null||true; } && \
     mkdir -p ${SRC_DIR}-build \
-    && cmake ${CC:+-DCMAKE_C_COMPILER=${CC}} \
+    && cmake ${CC:+-DCMAKE_C_COMPILER=${CC}} ${MYCROSS:+-DCMAKE_SYSTEM_NAME=${_BROTLI_SYS} -DCMAKE_SYSTEM_PROCESSOR=${_BROTLI_ARCH} -DCMAKE_C_COMPILER=${MYCROSS}-gcc -DCMAKE_C_COMPILER_TARGET=${MYCROSS}} \
         -S ${SRC_DIR} -B ${SRC_DIR}-build \
         --install-prefix ${MYLIB_DEPS} \
         -DBUILD_SHARED_LIBS=OFF \
-    && cmake --build ${SRC_DIR}-build --target install --config Release) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    && cmake --build ${SRC_DIR}-build --target install --config Release)  && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 log "Building ${CC:-} COMPLETE"
