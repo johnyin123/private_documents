@@ -7,13 +7,14 @@ MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
 NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
 MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 # apt install -y musl-dev musl-tools
-MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64}
+MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64 -static -static-libgcc}
+MUSL_LDFLAGS=${MUSL:+-static}
 
-OUTDIR=${DIRNAME}/portable_ngx/
+OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx
 rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
-CC_OPTS="-static -static-libgcc -O2 ${MUSL_CFLAGS} -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2"
-LD_OPTS="-static -L${MYLIB_DEPS}/lib -lxml2"
+CC_OPTS="${MUSL_CFLAGS} -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2"
+LD_OPTS="${MUSL_LDFLAGS} -L${MYLIB_DEPS}/lib -lxml2 -lm"
 # for jwt
 CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
