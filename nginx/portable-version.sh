@@ -19,8 +19,16 @@ CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
 # for musl include
 CC_OPTS="${CC_OPTS} ${MUSL:+-idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)}"
+cat <<EOF
 
-#
+------------------------------------
+NGX = ${MUSL:+(musl) }${NGINX_DIR}
+OUT = ${OUTDIR}
+CC  = ${CC_OPTS}
+LD  = ${LD_OPTS}
+------------------------------------
+EOF
+read -n 1 -p "Press any key continue build ..." value
 # apt install -y musl-dev musl-tools
 # ./configure --with-cc="musl-gcc"
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
@@ -69,12 +77,12 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --add-module=${DIRNAME}/nginx-auth-ldap \
     --add-module=${DIRNAME}/nginx-aws-auth-module \
     --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
+    --add-module=${DIRNAME}/ngx_brotli \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
     && strip ${OUTDIR}/nginx
 
-   # --add-module=${DIRNAME}/ngx_brotli \
    # --add-module=${DIRNAME}/ngx_sqlite \
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
@@ -119,5 +127,5 @@ http {
     }
 }
 EOF
-(cd ${OUTDIR} && ./nginx -t)
+(cd ${OUTDIR} &>/dev/null && ./nginx -t)
 echo "=========================all ok============================"

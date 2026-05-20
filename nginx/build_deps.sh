@@ -198,7 +198,16 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     && make -j "$(nproc)" -C libGeoIP \
     && make -j "$(nproc)" -C libGeoIP install \
     && make -j "$(nproc)" install-nodist_pkgconfigDATA) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
-# git clone https://github.com/bagder/libbrotli
-# cd libbrotli && ./autogen.sh && ./configure
-# make
+
+SRC_DIR=brotli
+# https://github.com/google/brotli.git || ngx_brotli/deps/brotli
+log "Building ${CC:-} ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && { log "clean ${SRC_DIR}...."; rm -fr ${SRC_DIR}-build &>/dev/null||true; } && \
+    mkdir -p ${SRC_DIR}-build \
+    && cmake ${CC:+-DCMAKE_C_COMPILER=${CC}} \
+        -S ${SRC_DIR} -B ${SRC_DIR}-build \
+        --install-prefix ${MYLIB_DEPS} \
+        -DBUILD_SHARED_LIBS=OFF \
+    && cmake --build ${SRC_DIR}-build --target install --config Release) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+
 log "Building ${CC:-} COMPLETE"
