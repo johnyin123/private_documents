@@ -129,6 +129,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 SRC_DIR=openldap
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 # mingw openldap need gnu regex lib https://www.gnu.org/software/regex/
+# ar ru libregex.a regex.o && cp regex.h /../include && cp libregex.a /../lib
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
