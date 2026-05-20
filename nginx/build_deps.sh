@@ -204,8 +204,10 @@ SRC_DIR=brotli
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 [ -z "${MYCROSS}" ] || {
     case "${MYCROSS}" in
-        *aarch64-*linux-*)   _BROTLI_SYS=Linux; _BROTLI_ARCH=arm64; break;;
-        *)                  echo "---${MYCROSS}---TODO::--${SRC_DIR}---"; exit(1); break;;
+        *aarch64-*linux-*)  _BROTLI_SYS=Linux;   _BROTLI_ARCH=arm64;;
+        *x86_64-*mingw32*)  _BROTLI_SYS=Windows; _BROTLI_ARCH=amd64;;
+        *i686-*mingw32*)    _BROTLI_SYS=Windows; _BROTLI_ARCH=amd32;;
+        *)                  echo "---${MYCROSS}---TODO::--${SRC_DIR}---"; exit 1;;
     esac
 }
 ([ -d "${SRC_DIR}" ] && { log "clean ${SRC_DIR}...."; rm -fr ${SRC_DIR}-build &>/dev/null||true; } && \
