@@ -16,6 +16,8 @@ MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
 EOF
 MYLIB_DEPS=${1:-${DIRNAME}/mylibs.${WIN_TGT}}
 [ -d "${MYLIB_DEPS}" ] && MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
+LOGFILE=${LOGFILE:-}
+exec > >(tee ${LOGFILE:+-i ${LOGFILE}})
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -95,6 +97,7 @@ SRC_DIR=pcre
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    -DPCRE2_STATIC \
     --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
