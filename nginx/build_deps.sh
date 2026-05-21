@@ -211,7 +211,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     case "${MYCROSS}" in
         *aarch64-*linux-*)  _BROTLI_SYS=Linux;   _BROTLI_ARCH=arm64;;
         *x86_64-*mingw32*)  _BROTLI_SYS=Windows; _BROTLI_ARCH=amd64;;
-        *i686-*mingw32*)    _BROTLI_SYS=Windows; _BROTLI_ARCH=amd32;;
+        *i686-*mingw32*)    _BROTLI_SYS=Windows; _BROTLI_ARCH=x86;;
         *)                  echo "---${MYCROSS}---TODO::--${SRC_DIR}---"; exit 1;;
     esac
 }
