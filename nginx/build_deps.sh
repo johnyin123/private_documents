@@ -3,16 +3,30 @@ set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
 WIN_TGT=linux-x86_64
-[ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
-[ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32"; }
+[ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; }
+[ "${MYCROSS:-}" == "x86_64-w64-mingw32" ] && { WIN_TGT=mingw64; }
 [ "${MYCROSS:-}" == "aarch64-linux-gnu" ] && WIN_TGT=linux-aarch64
-[ "${MYCROSS:-}" == "musl" ] && { MYCROSS=""; WIN_TGT=linux-musl; export CC=musl-gcc; MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"; MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"; }
+[ "${MYCROSS:-}" == "musl" ] && {
+    MYCROSS=""
+    WIN_TGT=linux-musl
+    export CC=musl-gcc
+    MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+    MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"
+}
 cat <<'EOF'
 KTLS=1 ./build_deps.sh [output libdir]
 MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
         i686-w64-mingw32
         x86_64-w64-mingw32
         musl
+apt -y install gcc-aarch64-linux-gnu \
+               g++-aarch64-linux-gnu \
+               gcc-mingw-w64-x86-64 \
+               g++-mingw-w64-x86-64 \
+               gcc-mingw-w64-i686 \
+               g++-mingw-w64-i686 \
+               ntldd \
+               musl-dev musl-tools
 EOF
 MYLIB_DEPS=${1:-${DIRNAME}/mylibs.${WIN_TGT}}
 [ -d "${MYLIB_DEPS}" ] && MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
@@ -175,6 +189,12 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 
 SRC_DIR=curl
 log "Building ${CC:-} ${SRC_DIR} ....................................."
+[ -z "${MYCROSS}" ] || {
+    case "${MYCROSS}" in
+        *x86_64-*mingw32*) MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32";;
+        *i686-*mingw32*)  MYCURL_LIB="-lws2_32 -lgdi32 -lcrypt32";;
+    esac
+}
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCURL_LIB:+LIBS="${MYCURL_LIB}"} CPPFLAGS="-DCURL_STATICLIB" ${MYCROSS:+--host=${MYCROSS}} \
     --with-pic=yes --prefix=${MYLIB_DEPS} \
