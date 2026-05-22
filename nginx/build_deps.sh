@@ -128,16 +128,41 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+
+# https://github.com/TimothyGu/libgnurx
+OPENLDAP_CPPFLAGS=""
+OPENLDAP_LIBS=""
+[ -z "${MYCROSS}" ] || {
+    SRC_DIR=mingw-libgnurx
+# openldap/include/ac/time.h
+# #define timespec linux_timespec
+# #include <linux/time.h>
+# #undef timespec
+    case "${MYCROSS}" in
+        *mingw32*)
+            OPENLDAP_CPPFLAGS="-DHAVE_CLOCK_GETTIME"
+            OPENLDAP_LIBS=-lcrypt32
+            log "Building ${CC:-} ${SRC_DIR} ....................................."
+            ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+                ./configure --host=${MYCROSS} \
+                LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC" \
+                --prefix=${MYLIB_DEPS} \
+                && make -j "$(nproc)" \
+                && make -j "$(nproc)" install-dev) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+            ;;
+        *)  log "no need ${SRC_DIR}(regex posix)";;
+    esac
+}
+
 SRC_DIR=openldap
 log "Building ${CC:-} ${SRC_DIR} ....................................."
-# mingw openldap need gnu regex lib https://www.gnu.org/software/regex/
-# ar ru libregex.a regex.o && cp regex.h /../include && cp libregex.a /../lib
+# mingw openldap need gnu regex lib: https://github.com/TimothyGu/libgnurx
 # sed -i 's/#define NEED_MEMCMP_REPLACEMENT 1//* #undef NEED_MEMCMP_REPLACEMENT *//' include/portable.h
 # or ac_cv_func_memcmp_working=yes
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ac_cv_func_memcmp_working=yes CC=${MYCROSS:+${MYCROSS}-}gcc \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine) --target=${MYCROSS}} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CPPFLAGS="-I${MYLIB_DEPS}/include" CFLAGS="-fPIC" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CPPFLAGS="${OPENLDAP_CPPFLAGS} -I${MYLIB_DEPS}/include" CFLAGS="-fPIC" LIBS="${OPENLDAP_LIBS}" \
     --prefix=${MYLIB_DEPS} \
     --disable-debug --disable-dynamic --disable-syslog --disable-slapd --disable-backends --disable-overlays \
     --with-tls=openssl --with-yielding_select=yes \
