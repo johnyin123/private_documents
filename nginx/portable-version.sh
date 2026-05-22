@@ -10,7 +10,7 @@ MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64 -static -static-libgcc}
 MUSL_LDFLAGS=${MUSL:+-static}
 
-OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx
+OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx/
 rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS="${MUSL_CFLAGS} -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2"
