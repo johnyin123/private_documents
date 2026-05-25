@@ -268,4 +268,22 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
         -DBUILD_SHARED_LIBS=OFF \
     && cmake --build ${SRC_DIR}-build --target install --config Release)  && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
+# https://bellard.org/quickjs/
+SRC_DIR=quickjs
+[ -z "${MYCROSS}" ] || {
+    case "${MYCROSS}" in
+        *aarch64-*linux-*)  export CROSS_PREFIX=${MYCROSS}-;;
+        *x86_64-*mingw32*)  export CONFIG_WIN32=1;;
+        *i686-*mingw32*)    export CONFIG_WIN32=1; export CONFIG_M32=1;;
+        *)                  echo "---${MYCROSS}---TODO::--${SRC_DIR}---"; exit 1;;
+    esac
+}
+log "Building ${CC:-} ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make clean &>/dev/null||true; } \
+    && CFLAGS='-fPIC' make ${CC:+CC=${CC}} -j "$(nproc)" libquickjs.a \
+    && mkdir -p "${MYLIB_DEPS}/include/quickjs" \
+    && install -v -m644 libquickjs.a "${MYLIB_DEPS}/lib/quickjs" \
+	&& install -v -m644 quickjs.h quickjs-libc.h "${MYLIB_DEPS}/include/quickjs") && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+    # && make -j "$(nproc)" PREFIX=${MYLIB_DEPS} install
+unset -v CROSS_PREFIX CONFIG_WIN32 CONFIG_M32
 log "Building ${CC:-} COMPLETE"
