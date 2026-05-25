@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2bc121ec[2026-05-25T15:22:42+08:00]:mk_nginx.sh")
+VERSION+=("20d87d57[2026-05-25T16:09:32+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -327,7 +327,7 @@ ${KTLS:+--with-debug} \
  \
 ${EXT_MODULES[@]}
 
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_version},zlib ${zlib_version},${mydesc}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},pcre ${pcre_version},zlib ${zlib_version},${mydesc}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 stage_run make && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
