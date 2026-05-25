@@ -281,7 +281,7 @@ SRC_DIR=quickjs
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make clean &>/dev/null||true; } \
     && CFLAGS='-fPIC' make ${CC:+CC=${CC}} -j "$(nproc)" libquickjs.a \
-    && mkdir -p "${MYLIB_DEPS}/include/quickjs" \
+    && mkdir -p "${MYLIB_DEPS}/include/quickjs" "${MYLIB_DEPS}/lib/quickjs" \
     && install -v -m644 libquickjs.a "${MYLIB_DEPS}/lib/quickjs" \
 	&& install -v -m644 quickjs.h quickjs-libc.h "${MYLIB_DEPS}/include/quickjs") && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
     # && make -j "$(nproc)" PREFIX=${MYLIB_DEPS} install
