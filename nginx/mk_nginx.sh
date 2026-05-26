@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c579ec5[2026-05-26T13:36:39+08:00]:mk_nginx.sh")
+VERSION+=("034de0bc[2026-05-26T14:47:48+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -748,12 +748,11 @@ EOF
 cat <<EOF > ${OUTDIR}/DEBIAN/control
 Package: ${PKG_NAME}
 Version: ${NGX_VER}-${builder_version}
-License: unknown
-Vendor: none
 Architecture: amd64
 Maintainer: <johnyin@yinzh>
 Installed-Size: $(du -sk ${OUTDIR} | awk '{print $1}')
-Section: default
+Depends: libc6 (>= 2.14), libgd3 (>= 2.1.0~alpha~)
+Section: httpd
 Priority: optional
 Homepage: http://example.com/no-uri-given
 Description: nginx with openssl,other modules
