@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+VERSION+=("1f26ac60[2026-05-25T15:45:52+08:00]:build_deps.sh")
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
 WIN_TGT=linux-x86_64
 [ "${MYCROSS:-}" == "i686-w64-mingw32" ] && { WIN_TGT=mingw; }
@@ -33,10 +36,6 @@ MYLIB_DEPS=${1:-${DIRNAME}/mylibs.${WIN_TGT}}
 LOGFILE=${LOGFILE:-}
 exec > >(tee ${LOGFILE:+-i ${LOGFILE}})
 ################################################################################
-RED='\033[31m'
-GREEN='\033[32m'
-NC='\033[0m'
-log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n" "$@"; }
 [ -d "${MYLIB_DEPS}" ] && { log "${MYLIB_DEPS} exists!"; exit 1; }
 read -n 1 -p "Press any key continue build ..." value
 ################################################################################
@@ -212,9 +211,10 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 # https://download.gnome.org/sources/libxml2/
 SRC_DIR=libxml2
 log "Building ${CC:-} ${SRC_DIR} ....................................."
+# -lc force use inner iconv, not libiconv
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-I${MYLIB_DEPS}/include -fPIC ${MUSL_CFLAGS:-}" \
+    CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
     --prefix=${MYLIB_DEPS} \
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
