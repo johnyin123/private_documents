@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("37eddf46[2026-05-26T08:26:44+08:00]:mk_nginx.sh")
+VERSION+=("ea9566ad[2026-05-26T13:27:29+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -63,7 +63,7 @@ show_option() {
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
         eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
     done
-}
+}>&2
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 opt_enable() { [ "1" == "${1:-y}" ]; }
 check_requre_dirs() {
@@ -108,7 +108,7 @@ prompt() {
         eval "${var}"=\"${value}\"
     fi
     echo ""
-}
+}>&2
 confirm() {
     local msg=${1:-confirm}
     local tmout=${2:-5}
@@ -392,7 +392,7 @@ mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
 mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
 mkdir -p ${OUTDIR}/var/lib/nginx/scgi
 
-log "copy GeoIPASNum.dat GeoIP.dat GeoLiteCity.dat"
+log "[INFO] Writing GeoIPASNum.dat GeoIP.dat GeoLiteCity.dat"
 cp ${DIRNAME}/GeoIPASNum.dat ${DIRNAME}/GeoIP.dat ${DIRNAME}/GeoLiteCity.dat ${OUTDIR}/etc/nginx/geoip/ &>/dev/null || true
 write_file "${OUTDIR}/etc/nginx/http-conf.d/geoip.conf" <<'EOF'
 # geoip_country /etc/nginx/geoip/GeoIP.dat;
