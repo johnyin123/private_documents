@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea9566ad[2026-05-26T13:27:29+08:00]:mk_nginx.sh")
+VERSION+=("1c579ec5[2026-05-26T13:36:39+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -758,5 +758,6 @@ Priority: optional
 Homepage: http://example.com/no-uri-given
 Description: nginx with openssl,other modules
 EOF
-dpkg-deb --build ${OUTDIR}
+chmod 755 ${OUTDIR}/DEBIAN/postinst ${OUTDIR}/DEBIAN/postrm
+dpkg-deb --root-owner-group --build ${OUTDIR}
 PKG_EOF
