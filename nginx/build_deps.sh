@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("5df985a7[2026-05-26T08:27:43+08:00]:build_deps.sh")
+VERSION+=("cd1eaec0[2026-05-26T08:35:18+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -211,10 +211,17 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 # https://download.gnome.org/sources/libxml2/
 SRC_DIR=libxml2
 log "Building ${CC:-} ${SRC_DIR} ....................................."
+[ -z "${MYCROSS}" ] || {
+    case "${MYCROSS}" in
+        *mingw32*) MY_ICONV_INC="-I${MYLIB_DEPS}/include"
+                   MY_ICONV_LIB="-L${MYLIB_DEPS}/lib"
+                   ;;
+    esac
+}
 # -lc force use inner iconv, not libiconv
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
+    CFLAGS="${MY_ICONV_INC:-} -fPIC ${MUSL_CFLAGS:-}" ${MY_ICONV_LIB:+LDFLAGS=${MY_ICONV_LIB}} \
     --prefix=${MYLIB_DEPS} \
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
