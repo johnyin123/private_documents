@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc5a80d1[2026-05-25T16:38:29+08:00]:mk_nginx.sh")
+VERSION+=("37eddf46[2026-05-26T08:26:44+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -391,6 +391,14 @@ mkdir -p ${OUTDIR}/var/lib/nginx/proxy
 mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
 mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
 mkdir -p ${OUTDIR}/var/lib/nginx/scgi
+
+log "copy GeoIPASNum.dat GeoIP.dat GeoLiteCity.dat"
+cp ${DIRNAME}/GeoIPASNum.dat ${DIRNAME}/GeoIP.dat ${DIRNAME}/GeoLiteCity.dat ${OUTDIR}/etc/nginx/geoip/ &>/dev/null || true
+write_file "${OUTDIR}/etc/nginx/http-conf.d/geoip.conf" <<'EOF'
+# geoip_country /etc/nginx/geoip/GeoIP.dat;
+# geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
+# geoip_org     /etc/nginx/geoip/GeoIPASNum.dat;
+EOF
 
 write_file "${OUTDIR}/etc/nginx/http-conf.d/server.conf" <<'EOF'
 server_names_hash_max_size 1024;
