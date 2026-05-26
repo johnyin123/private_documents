@@ -14,7 +14,7 @@ OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx/
 rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS="${MUSL_CFLAGS} -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"
-LD_OPTS="${MUSL_LDFLAGS} -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -liconv -lm"
+LD_OPTS="${MUSL_LDFLAGS} -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -lm"
 # for jwt
 CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
@@ -82,7 +82,7 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
-    && strip ${OUTDIR}/nginx
+    && strip ${OUTDIR}/nginx || { echo "error build portable version"; exit 1; }
 
    # --add-module=${DIRNAME}/ngx_sqlite \
 
