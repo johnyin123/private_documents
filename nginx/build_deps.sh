@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("1f26ac60[2026-05-25T15:45:52+08:00]:build_deps.sh")
+VERSION+=("5df985a7[2026-05-26T08:27:43+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -16,7 +16,7 @@ WIN_TGT=linux-x86_64
     MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
     MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"
 }
-cat <<'EOF'
+cat <<'EOF' >&2
 KTLS=1 ./build_deps.sh [output libdir]
 MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
         i686-w64-mingw32
