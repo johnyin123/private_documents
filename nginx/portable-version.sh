@@ -14,7 +14,7 @@ OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx/
 rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS="${MUSL_CFLAGS} -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"
-LD_OPTS="${MUSL_LDFLAGS} -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -lm"
+LD_OPTS="${MUSL_LDFLAGS} -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -lgd -lpng -ljpeg -lm"
 # for jwt
 CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
@@ -70,6 +70,7 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --with-http_secure_link_module \
     --with-http_slice_module \
     --with-http_stub_status_module \
+    --with-http_image_filter_module \
     \
     --add-module=${DIRNAME}/njs/nginx \
     --add-module=${DIRNAME}/nginx-http-concat \
