@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("initver[2026-05-27T10:36:45+08:00]:build_libgd.sh")
+VERSION+=("8c65a5dc[2026-05-27T10:36:45+08:00]:build_libgd.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -72,6 +72,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     && cmake ${CC:+-DCMAKE_C_COMPILER=${CC}} ${MYCROSS:+-DCMAKE_SYSTEM_NAME=${_LIBGD_DEP_SYS} -DCMAKE_SYSTEM_PROCESSOR=${_LIBGD_DEP_ARCH} -DCMAKE_C_COMPILER=${MYCROSS}-gcc -DCMAKE_C_COMPILER_TARGET=${MYCROSS}} \
         -S ${SRC_DIR} -B ${SRC_DIR}-build \
         --install-prefix ${MYLIB_DEPS} \
+        -DCMAKE_C_FLAGS="-fPIC" \
         -DWITH_TOOLS=OFF -DWITH_TESTS=OFF -DENABLE_SHARED=OFF -DENABLE_STATIC=ON \
     && cmake --build ${SRC_DIR}-build --target install --config Release)  && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 

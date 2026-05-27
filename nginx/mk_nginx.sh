@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("034de0bc[2026-05-26T14:47:48+08:00]:mk_nginx.sh")
+VERSION+=("5c2eeafd[2026-05-26T15:14:17+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -24,7 +24,7 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lxml2 -lgd -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
