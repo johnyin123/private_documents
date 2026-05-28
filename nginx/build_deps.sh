@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("a5d86a95[2026-05-26T10:00:11+08:00]:build_deps.sh")
+VERSION+=("d68ef50e[2026-05-28T13:45:53+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -91,6 +91,7 @@ read -n 1 -p "Press any key continue build ..." value
 # https://www.openssl.org/source/
 SRC_DIR=openssl
 log "Building ${CC:-} ${SRC_DIR} ...${KTLS:+enable-ktls}.................................."
+# Add -D_WIN32_WINNT=0x0501 Configure for Windows XP compatibility
 #no-zstd no-zlib \
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./Configure ${MYCROSS:+${WIN_TGT} --cross-compile-prefix=${MYCROSS}-} \
@@ -335,4 +336,13 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 	&& install -v -m644 quickjs.h quickjs-libc.h "${MYLIB_DEPS}/include/quickjs") && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
     # && make -j "$(nproc)" PREFIX=${MYLIB_DEPS} install
 unset -v CROSS_PREFIX CONFIG_WIN32 CONFIG_M32
+
+SRC_DIR=sqlite
+log "Building ${CC:-} ${SRC_DIR} ....................................."
+([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
+    ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    --prefix=${MYLIB_DEPS} \
+    --disable-shared && make -j "$(nproc)" libsqlite3.a sqlite3.pc \
+    && make -j "$(nproc)" install-headers install-pc install-lib) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
+
 log "Building ${CC:-} COMPLETE"
