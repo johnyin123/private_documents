@@ -80,12 +80,11 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --add-module=${DIRNAME}/nginx-aws-auth-module \
     --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
     --add-module=${DIRNAME}/ngx_brotli \
+    --add-module=${DIRNAME}/ngx_sqlite \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
     && strip ${OUTDIR}/nginx || { echo "error build portable version"; exit 1; }
-
-   # --add-module=${DIRNAME}/ngx_sqlite \
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
 worker_processes  1;
