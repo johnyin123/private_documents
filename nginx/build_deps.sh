@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("d68ef50e[2026-05-28T13:45:53+08:00]:build_deps.sh")
+VERSION+=("ae607978[2026-05-28T16:42:29+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -341,6 +341,7 @@ SRC_DIR=sqlite
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
+    CFLAGS=-fPIC \
     --prefix=${MYLIB_DEPS} \
     --disable-shared && make -j "$(nproc)" libsqlite3.a sqlite3.pc \
     && make -j "$(nproc)" install-headers install-pc install-lib) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
