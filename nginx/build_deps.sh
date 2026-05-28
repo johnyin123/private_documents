@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("cd1eaec0[2026-05-26T08:35:18+08:00]:build_deps.sh")
+VERSION+=("a5d86a95[2026-05-26T10:00:11+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -16,6 +16,48 @@ WIN_TGT=linux-x86_64
     MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
     MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"
 }
+# case "${MY_CROSS}" in
+#   arm*linux*)
+#     WIN_TGT=linux-armv4
+#     ;;
+#   aarch64*linux*)
+#     WIN_TGT=linux-aarch64
+#     ;;
+#   mips64*linux*)
+#     WIN_TGT=linux64-mips64
+#     ;;
+#   mips*linux* | mipsel*linux*)
+#     WIN_TGT=linux-mips32
+#     ;;
+#   x86_64*linux*)
+#     WIN_TGT=linux-x86_64
+#     ;;
+#   i?86*linux*)
+#     WIN_TGT=linux-x86
+#     ;;
+#   s390x*linux*)
+#     WIN_TGT=linux64-s390x
+#     ;;
+#   loongarch64*linux*)
+#     WIN_TGT=linux64-loongarch64
+#     ;;
+#   x86_64*mingw*)
+#     WIN_TGT=mingw64
+#     ;;
+#   i686*mingw*)
+#     WIN_TGT=mingw
+#     ;;
+#   *musl*)
+#     WIN_TGT=linux-musl
+#     MYCROSS=""
+#     export CC=musl-gcc
+#     MYSSL_INC="-DOPENSSL_NO_SECURE_MEMORY -idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+#     MUSL_CFLAGS="-D_FILE_OFFSET_BITS=64"
+#     ;;
+#   *)
+#     WIN_TGT=linux-$(uname -m)
+#     ;;
+# esac
 cat <<'EOF' >&2
 KTLS=1 ./build_deps.sh [output libdir]
 MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
