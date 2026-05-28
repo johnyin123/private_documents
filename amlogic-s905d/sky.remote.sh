@@ -34,19 +34,24 @@ PartOf=osd.service
 
 [Socket]
 ListenFIFO=/tmp/osd.stdin
+SocketMode=0660
+SocketUser=johnyin
+SocketGroup=johnyin
 Service=osd.service
 RemoveOnStop=true
 EOF
 cat <<'EOF' > osd.service
 [Unit]
 Description=osd service
-Requires=graphical.target osd.socket
+Requires=osd.socket
 After=graphical.target osd.socket
 
 [Service]
+Type=simple
 User=johnyin
 Group=johnyin
 Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/johnyin/.Xauthority
 ExecStart=/usr/bin/aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=red --shadow-color=blue
 Sockets=osd.socket
 StandardInput=socket

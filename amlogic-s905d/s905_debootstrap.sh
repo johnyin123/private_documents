@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fdfb91bf[2025-10-20T06:49:16+08:00]:s905_debootstrap.sh")
+VERSION+=("74e0d4da[2026-04-28T14:05:36+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -1140,7 +1140,7 @@ setenv initrd_addr  "0x13000000"
 setenv dtb_mem_addr "0x1000000"
 setenv serverip 172.16.16.2
 setenv ipaddr 172.16.16.168
-setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
+setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 rootwait"
 setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}"
 run bootcmd_pxe
 EOF
@@ -1160,7 +1160,7 @@ EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/${dtb}
-bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 video=1280x1024@60me
+bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 video=1280x1024@60me
 # # cat /proc/tty/driver/meson_uart
 # earlyprintk=aml-uart,0xc81004c0
 boot_pxe=false
@@ -1180,7 +1180,8 @@ label PHICOMM_N1
     linux /vmlinuz-${kerver}
     initrd /initrd.img-${kerver}
     fdt /dtb/${dtb}
-    append root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 video=1280x1024@60me
+    append root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes console=tty0 console=ttyAML0,115200n8 no_console_suspend consoleblank=0 numa=fake=4 net.ifnames=0
+
 EOF
     log "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     log "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
