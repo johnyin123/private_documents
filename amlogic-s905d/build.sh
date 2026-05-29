@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8a04b9f5[2026-05-29T08:30:33+08:00]:build.sh")
+VERSION+=("3404964e[2026-05-29T10:02:05+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -585,8 +585,6 @@ s905d_opt() {
     # CONFIG_FB=y
     # CONFIG_FB_SIMPLE=y
 
-    # ${SRC}/scripts/config --module CONFIG_FB \
-    #     --module CONFIG_FB_CORE \
     ${CMD_CONFIG} --enable CONFIG_VT \
         --enable CONFIG_FRAMEBUFFER_CONSOLE \
         --enable CONFIG_FB \
