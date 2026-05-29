@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:build.sh")
+VERSION+=("8a04b9f5[2026-05-29T08:30:33+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -20,7 +20,7 @@ EOF
 CONFIG="${1:?$(usage)}"
 SRC="${2:?$(usage)}"
 OUTPUT=${OUTPUT:-${DIRNAME}/build-output}
-DOT_CONFIG="--file ${OUTPUT}/.config"
+CMD_CONFIG="${SRC}/scripts/config --file ${OUTPUT}/.config"
 CMD_MAKE="make -C ${SRC} -j$(nproc) O=${OUTPUT}"
 KERVERSION="$(${CMD_MAKE} --silent kernelversion)"
 ROOTFS=${3:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
@@ -92,41 +92,41 @@ export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
 
-#${SRC}/scripts/config ${DOT_CONFIG} --disable DEBUG_INFO
+#${CMD_CONFIG} --disable DEBUG_INFO
 # export LOCALVERSION="${MYVERSION}"
-${SRC}/scripts/config ${DOT_CONFIG} --set-str CONFIG_LOCALVERSION "${MYVERSION}"
+${CMD_CONFIG} --set-str CONFIG_LOCALVERSION "${MYVERSION}"
 
 # # OPTIMIZE
-${SRC}/scripts/config ${DOT_CONFIG} --enable DEBUG_INFO
-${SRC}/scripts/config ${DOT_CONFIG} --enable EARLY_PRINTK
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-${SRC}/scripts/config ${DOT_CONFIG} --set-val CONFIG_NR_CPUS 8
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NUMA
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_SLUB --enable CONFIG_SMP
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_AUDIT
+${CMD_CONFIG} --enable DEBUG_INFO
+${CMD_CONFIG} --enable EARLY_PRINTK
+${CMD_CONFIG} --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+${CMD_CONFIG} --set-val CONFIG_NR_CPUS 8
+${CMD_CONFIG} --enable CONFIG_NUMA
+${CMD_CONFIG} --enable CONFIG_SLUB --enable CONFIG_SMP
+${CMD_CONFIG} --enable CONFIG_AUDIT
 
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_EXPERT
-${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_TTY_PRINTK \
+${CMD_CONFIG} --enable CONFIG_EXPERT
+${CMD_CONFIG} --module CONFIG_TTY_PRINTK \
     --set-val CONFIG_TTY_PRINTK_LEVEL 6
 
 # since version 6.11
-${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_COMPRESSED_INSTALL
+${CMD_CONFIG} --enable CONFIG_COMPRESSED_INSTALL
 
 enable_zram() {
     log "ENABLE ZSWAP && ZRAM MODULES"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_SWAP
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_ZSWAP
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_ZRAM \
+    ${CMD_CONFIG} --enable CONFIG_SWAP
+    ${CMD_CONFIG} --enable CONFIG_ZSWAP
+    ${CMD_CONFIG} --module CONFIG_ZRAM \
         --enable CONFIG_ZRAM_WRITEBACK \
         --enable CONFIG_ZRAM_MULTI_COMP \
         --enable CONFIG_ZRAM_DEF_COMP_ZSTD \
         --set-str CONFIG_ZRAM_DEF_COMP "zstd"
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZORLE
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZ4
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZO
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZ4H
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_842
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ZRAM_MEMORY_TRACKING
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZORLE
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZ4
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZO
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_LZ4H
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_DEF_COMP_842
+    ${CMD_CONFIG} --disable CONFIG_ZRAM_MEMORY_TRACKING
 }
 
 enable_module_networks() {
@@ -176,16 +176,16 @@ radvd
 ping6 -I bt0 2001:db8::2aa:bbff:fexx:yyzz
 # where aa:bbff:fexx:yyzz is device Bluetooth address.
 EOF
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_BT_6LOWPAN \
+    ${CMD_CONFIG} --module CONFIG_BT_6LOWPAN \
         --module CONFIG_6LOWPAN \
         --module CONFIG_IEEE802154_FAKELB \
         --module CONFIG_IEEE802154_HWSIM
 
     log "KTLS MODULES"
     # enable ktls CONFIG_MPTCP_IPV6 depends IPV6=y
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_TLS
+    ${CMD_CONFIG} --module CONFIG_TLS
     log "NETWORK MODULES"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NET_CORE \
+    ${CMD_CONFIG} --enable CONFIG_NET_CORE \
         --enable CONFIG_NET \
         --enable CONFIG_ETHERNET \
         --enable CONFIG_MPTCP \
@@ -231,18 +231,18 @@ EOF
         --module CONFIG_GENEVE \
         --module CONFIG_IPV6
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NET_SCHED \
+    ${CMD_CONFIG} --enable CONFIG_NET_SCHED \
         --enable CONFIG_TCP_CONG_ADVANCED \
         --module CONFIG_TCP_CONG_BBR
 }
 enable_module_filesystem() {
     log "FILESYSTEM MODULES"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8" \
+    ${CMD_CONFIG} --module CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8" \
         --module CONFIG_NLS_ASCII \
         --module CONFIG_UNICODE \
         --module CONFIG_NLS_UTF8
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_PROC_FS \
+    ${CMD_CONFIG} --enable CONFIG_PROC_FS \
         --enable CONFIG_KERNFS \
         --enable CONFIG_SYSFS \
         --enable CONFIG_TMPFS \
@@ -276,7 +276,7 @@ enable_module_filesystem() {
 
 enable_network_storage() {
     log "MODULES NETWORK BLOCK DEV"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_ATA_OVER_ETH \
+    ${CMD_CONFIG} --module CONFIG_ATA_OVER_ETH \
         --module CONFIG_BLK_DEV_NBD \
         --module CONFIG_BLK_DEV_RBD \
         --module CONFIG_BLK_DEV_DRBD \
@@ -288,18 +288,18 @@ enable_network_storage() {
 enable_module_xz_sign() {
     local sign=${1:-}
     log "MODULES XZ COMPRESS"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULES \
+    ${CMD_CONFIG} --enable CONFIG_MODULES \
         --enable CONFIG_MODVERSIONS \
         --enable CONFIG_ASM_MODVERSIONS
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_COMPRESS_NONE
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_DECOMPRESS
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_COMPRESS
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_COMPRESS_ALL
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_COMPRESS_XZ
+    ${CMD_CONFIG} --disable CONFIG_MODULE_COMPRESS_NONE
+    ${CMD_CONFIG} --disable CONFIG_MODULE_DECOMPRESS
+    ${CMD_CONFIG} --enable CONFIG_MODULE_COMPRESS
+    ${CMD_CONFIG} --enable CONFIG_MODULE_COMPRESS_ALL
+    ${CMD_CONFIG} --enable CONFIG_MODULE_COMPRESS_XZ
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_ALL
-    ${SRC}/scripts/config ${DOT_CONFIG} --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_ALL
+    ${CMD_CONFIG} --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 
     [ -z ${sign} ] && {
         log "MODULES NOT SIGNED"
@@ -345,22 +345,22 @@ EOCONF
     openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config ${OUTPUT}/key.conf -outform PEM -out ${OUTPUT}/johnyin_key.pem -keyout ${OUTPUT}/johnyin_key.pem
 }
     openssl x509 -text -noout -in ${OUTPUT}/johnyin_key.pem
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_SIG
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_SIG_ALL
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_SIG_FORCE
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_SIG_SHA256
-    ${SRC}/scripts/config ${DOT_CONFIG} --set-str CONFIG_MODULE_SIG_HASH "sha256"
+    ${CMD_CONFIG} --enable CONFIG_MODULE_SIG
+    ${CMD_CONFIG} --enable CONFIG_MODULE_SIG_ALL
+    ${CMD_CONFIG} --enable CONFIG_MODULE_SIG_FORCE
+    ${CMD_CONFIG} --enable CONFIG_MODULE_SIG_SHA256
+    ${CMD_CONFIG} --set-str CONFIG_MODULE_SIG_HASH "sha256"
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --set-str CONFIG_SYSTEM_TRUSTED_KEYS "johnyin_key.pem"
-    ${SRC}/scripts/config ${DOT_CONFIG} --set-str CONFIG_MODULE_SIG_KEY "johnyin_key.pem"
+    ${CMD_CONFIG} --set-str CONFIG_SYSTEM_TRUSTED_KEYS "johnyin_key.pem"
+    ${CMD_CONFIG} --set-str CONFIG_MODULE_SIG_KEY "johnyin_key.pem"
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MODULE_SIG_KEY_TYPE_RSA
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_KEY_TYPE_ECDSA
+    ${CMD_CONFIG} --enable CONFIG_MODULE_SIG_KEY_TYPE_RSA
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_KEY_TYPE_ECDSA
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_SHA1
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_SHA224
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_SHA384
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_MODULE_SIG_SHA512
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_SHA1
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_SHA224
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_SHA384
+    ${CMD_CONFIG} --disable CONFIG_MODULE_SIG_SHA512
     cat <<EOF
 # manually sign a module
 scripts/sign-file sha512 kernel-signkey.priv kernel-signkey.x509 module.ko
@@ -377,7 +377,7 @@ modprobe mac80211_hwsim radios=2
 # wpa_supplicant ......
 EOF
     log "enable Virtual WLAN Interfaces module"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_MAC80211_HWSIM
+    ${CMD_CONFIG} --module CONFIG_MAC80211_HWSIM
     cat <<EOF
 modprobe virt_wifi
 ifconfig eth0 down
@@ -392,24 +392,24 @@ ip link set wifi_eth name eth0
 ifconfig eth0 up
 rmmod virt_wifi
 EOF
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRT_WIFI
+    ${CMD_CONFIG} --module CONFIG_VIRT_WIFI
     log "enable emulate input devices from userspace"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_INPUT_UINPUT
+    ${CMD_CONFIG} --module CONFIG_INPUT_UINPUT
 }
 enable_ebpf() {
     echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
     echo "dwarves: https://github.com/acmel/dwarves"
     log "ebpf"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_KPROBES
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_HAVE_DYNAMIC_FTRACE
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_HAVE_FTRACE_MCOUNT_RECORD
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_FTRACE
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_DYNAMIC_FTRACE
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_BPF
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_BPF_SYSCALL
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_BPF_JIT
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_DEBUG_INFO_BTF
+    ${CMD_CONFIG} --enable CONFIG_KPROBES
+    ${CMD_CONFIG} --enable CONFIG_HAVE_DYNAMIC_FTRACE
+    ${CMD_CONFIG} --enable CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
+    ${CMD_CONFIG} --enable CONFIG_HAVE_FTRACE_MCOUNT_RECORD
+    ${CMD_CONFIG} --enable CONFIG_FTRACE
+    ${CMD_CONFIG} --enable CONFIG_DYNAMIC_FTRACE
+    ${CMD_CONFIG} --enable CONFIG_BPF
+    ${CMD_CONFIG} --enable CONFIG_BPF_SYSCALL
+    ${CMD_CONFIG} --enable CONFIG_BPF_JIT
+    ${CMD_CONFIG} --enable CONFIG_DEBUG_INFO_BTF
     # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 }
 enable_preempt_voluntary() {
@@ -419,11 +419,11 @@ enable_preempt_voluntary() {
     CONFIG_PREEMPT_VOLUNTARY: 自愿抢占，适用于有桌面的环境
 EOF
     log "PREEMPT_VOLUNTARY select"
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_PREEMPT_NONE \
+    ${CMD_CONFIG} --disable CONFIG_PREEMPT_NONE \
         --disable CONFIG_PREEMPT \
         --disable CONFIG_PREEMPT_VOLUNTARY
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_PREEMPT_BUILD \
+    ${CMD_CONFIG} --enable CONFIG_PREEMPT_BUILD \
         --enable CONFIG_PREEMPT_VOLUNTARY \
         --enable CONFIG_PREEMPT_DYNAMIC \
         --enable CONFIG_PREEMPT_COUNT \
@@ -431,23 +431,23 @@ EOF
         --enable CONFIG_TASKS_RCU \
         --enable CONFIG_PREEMPT_RCU
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_SCHED_CORE
+    ${CMD_CONFIG} --disable CONFIG_SCHED_CORE
 }
 enable_arch_inline() {
     local hz=${1:-100}
     log "AARCH64 ARCH inline"
     # Full dynticks system
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NO_HZ_FULL \
+    ${CMD_CONFIG} --enable CONFIG_NO_HZ_FULL \
         --enable CONFIG_HIGH_RES_TIMERS
 
     case "${hz}" in
         100|250|300|1000)
             log "CONFIG_HZ=${hz}"
-            ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_HZ_1000 \
+            ${CMD_CONFIG} --disable CONFIG_HZ_1000 \
                 --disable CONFIG_HZ_300 \
                 --disable CONFIG_HZ_250 \
                 --disable CONFIG_HZ_100
-            ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_HZ_${hz} \
+            ${CMD_CONFIG} --enable CONFIG_HZ_${hz} \
                 --set-val CONFIG_HZ ${hz}
             ;;
         *)
@@ -457,10 +457,10 @@ enable_arch_inline() {
     esac
 
     # uselib()系统接口支持,仅使用基于libc5应用使用
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_USELIB
+    ${CMD_CONFIG} --disable CONFIG_USELIB
 
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable ARCH_INLINE_SPIN_TRYLOCK \
+    ${CMD_CONFIG} --enable ARCH_INLINE_SPIN_TRYLOCK \
         --enable ARCH_INLINE_SPIN_TRYLOCK_BH \
         --enable ARCH_INLINE_SPIN_LOCK \
         --enable ARCH_INLINE_SPIN_LOCK_BH \
@@ -516,38 +516,38 @@ enable_nfs_rootfs() {
     local byes=${1:-}
     [ -z ${byes} ] && {
         log "DISABLE NFS ROOTFS"
-        ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_NFS_FS
-        ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ROOT_NFS
+        ${CMD_CONFIG} --module CONFIG_NFS_FS
+        ${CMD_CONFIG} --disable CONFIG_ROOT_NFS
         return
     }
     log "ENABLE NFS ROOTFS"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NFS_FS
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_ROOT_NFS
+    ${CMD_CONFIG} --enable CONFIG_NFS_FS
+    ${CMD_CONFIG} --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
     log "AMLOGIC S905D MODULES, s905d no need EFI/ACPI"
     log "enable arm64 NUMA_EMULATION"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_NUMA_EMU
+    ${CMD_CONFIG} --enable CONFIG_NUMA_EMU
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_ARCH_MESON
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MAILBOX
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_MMU
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_CPU_LITTLE_ENDIAN
+    ${CMD_CONFIG} --enable CONFIG_ARCH_MESON
+    ${CMD_CONFIG} --enable CONFIG_MAILBOX
+    ${CMD_CONFIG} --enable CONFIG_MMU
+    ${CMD_CONFIG} --enable CONFIG_CPU_LITTLE_ENDIAN
     ################# CONFIG_SENSORS_ARM_SCPI, cpu temp !
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SENSORS_ARM_SCPI
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_ARM_SCPI_CPUFREQ
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB \
+    ${CMD_CONFIG} --module CONFIG_SENSORS_ARM_SCPI
+    ${CMD_CONFIG} --module CONFIG_ARM_SCPI_CPUFREQ
+    ${CMD_CONFIG} --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
+    ${CMD_CONFIG} --module CONFIG_USB \
         --module CONFIG_TYPEC \
         --module CONFIG_USB_COMMON \
         --module CONFIG_USB_ULPI_BUS \
         --module CONFIG_USB_ROLE_SWITCH
     log "USB DWC2 is define as peripheral"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB_DWC2 --enable CONFIG_USB_DWC2_DUAL_ROLE
+    ${CMD_CONFIG} --module CONFIG_USB_DWC2 --enable CONFIG_USB_DWC2_DUAL_ROLE
     log "USB DWC3 is define as host"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_FIXED_PHY \
+    ${CMD_CONFIG} --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
+    ${CMD_CONFIG} --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
+    ${CMD_CONFIG} --module CONFIG_FIXED_PHY \
         --module CONFIG_FWNODE_MDIO \
         --module CONFIG_HW_RANDOM \
         --module CONFIG_HW_RANDOM_ARM_SMCCC_TRNG \
@@ -565,12 +565,12 @@ s905d_opt() {
         --module CONFIG_REALTEK_PHY \
         --module CONFIG_SMSC_PHY
     log "enable meson vdec(staging)"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_STAGING \
+    ${CMD_CONFIG} --enable CONFIG_STAGING \
         --enable CONFIG_STAGING_MEDIA \
         --module CONFIG_VIDEO_MESON_VDEC
 
     log "opensource LIMA, mali450 GPU driver, HDMI"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_DRM --enable CONFIG_HDMI \
+    ${CMD_CONFIG} --module CONFIG_DRM --enable CONFIG_HDMI \
         --module CONFIG_DRM_LIMA \
         --module CONFIG_DRM_MESON \
         --module CONFIG_DRM_MESON_DW_HDMI \
@@ -578,7 +578,7 @@ s905d_opt() {
 
     log "FRAMEBUFFER MODULES"
     log "enable framebuffer console"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_DRM --enable CONFIG_HDMI \
+    ${CMD_CONFIG} --enable CONFIG_DRM --enable CONFIG_HDMI \
         --enable CONFIG_DRM_MESON --enable CONFIG_DRM_MESON_DW_HDMI
     # CONFIG_VT=y
     # CONFIG_FRAMEBUFFER_CONSOLE=y
@@ -587,7 +587,7 @@ s905d_opt() {
 
     # ${SRC}/scripts/config --module CONFIG_FB \
     #     --module CONFIG_FB_CORE \
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_VT \
+    ${CMD_CONFIG} --enable CONFIG_VT \
         --enable CONFIG_FRAMEBUFFER_CONSOLE \
         --enable CONFIG_FB \
         --enable CONFIG_FB_CORE \
@@ -601,24 +601,24 @@ s905d_opt() {
         --module CONFIG_FB_SYS_FOPS
 
     log "BRCMFMAC Wireless"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_WLAN --enable CONFIG_WIRELESS \
+    ${CMD_CONFIG} --enable CONFIG_WLAN --enable CONFIG_WIRELESS \
         --module CONFIG_BRCMFMAC \
         --enable CONFIG_BRCMFMAC_SDIO
 
     log "meson gx mmc"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_MMC \
+    ${CMD_CONFIG} --module CONFIG_MMC \
         --module CONFIG_MMC_BLOCK \
         --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
     log "bcm bluetooth"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_BT \
+    ${CMD_CONFIG} --module CONFIG_BT \
         --module CONFIG_BT_HCIUART \
         --enable CONFIG_BT_HCIUART_3WIRE \
         --enable CONFIG_BT_HCIUART_BCM
 
     log "meson sound"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SOUND \
+    ${CMD_CONFIG} --module CONFIG_SOUND \
         --module CONFIG_SND \
         --module CONFIG_SND_MESON_AIU \
         --module CONFIG_SND_MESON_AXG_FIFO \
@@ -640,34 +640,34 @@ s905d_opt() {
         --module CONFIG_SND_SOC_MESON_T9015
 
     log "MESON WATCHDOG MODULES"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_WATCHDOG_SYSFS \
+    ${CMD_CONFIG} --enable CONFIG_WATCHDOG_SYSFS \
         --module CONFIG_MESON_GXBB_WATCHDOG \
         --module CONFIG_MESON_WATCHDOG
 
     log "MESON NETWORK MODULES, MESON8B-DWMAC[RTL8211F Gigabit Ethernet]"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_DWMAC_MESON
+    ${CMD_CONFIG} --module CONFIG_DWMAC_MESON
 
     log "kernel 6.1 SERIAL_MESON need buildin, 6,6 can module"
     case "${KERVERSION}" in
         6.1.*)
             log "6.1+"
-            ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_SERIAL_MESON \
+            ${CMD_CONFIG} --enable CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
             ;;
         6.6.*)
             log "6.6.+"
-            ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SERIAL_MESON \
+            ${CMD_CONFIG} --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
             ;;
         *)
             log "6.9+"
-            ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SERIAL_MESON \
+            ${CMD_CONFIG} --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
             ;;
     esac
 
     log "MESON OTHER MODULES"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_MESON_SM \
+    ${CMD_CONFIG} --module CONFIG_MESON_SM \
         --module CONFIG_MDIO_BUS_MUX_MESON_G12A \
         --module CONFIG_I2C_MESON \
         --module CONFIG_SPI_AMLOGIC_SPIFC_A1 \
@@ -720,12 +720,12 @@ s905d_opt() {
         --module CONFIG_CRYPTO_DEV_AMLOGIC_GXL \
         --enable CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG
 
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_NVMEM_MESON_EFUSE
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_NVMEM_MESON_MX_EFUSE
+    ${CMD_CONFIG} --disable CONFIG_NVMEM_MESON_EFUSE
+    ${CMD_CONFIG} --disable CONFIG_NVMEM_MESON_MX_EFUSE
 }
 enable_container() {
     log "enable container"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_CGROUPS \
+    ${CMD_CONFIG} --enable CONFIG_CGROUPS \
         --enable CONFIG_NAMESPACES \
         --enable CONFIG_NET_NS \
         --enable CONFIG_PID_NS \
@@ -760,7 +760,7 @@ enable_container() {
         --enable CONFIG_SECCOMP \
         --enable CONFIG_SECCOMP_FILTER \
         --enable CONFIG_XFRM
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_BRIDGE \
+    ${CMD_CONFIG} --module CONFIG_BRIDGE \
         --module CONFIG_BRIDGE_NETFILTER \
         --module CONFIG_CRYPTO \
         --module CONFIG_CRYPTO_AEAD \
@@ -797,40 +797,40 @@ enable_container() {
 }
 enable_kvm() {
     log "enable KVM"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_KVM
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_KVM_GUEST
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_VIRTUALIZATION
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_PARAVIRT
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_VHOST_MENU
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST_NET
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST_IOTLB
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST_NET
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST_SCSI
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VHOST_VSOCK
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO \
+    ${CMD_CONFIG} --enable CONFIG_KVM
+    ${CMD_CONFIG} --module CONFIG_KVM_GUEST
+    ${CMD_CONFIG} --enable CONFIG_VIRTUALIZATION
+    ${CMD_CONFIG} --enable CONFIG_PARAVIRT
+    ${CMD_CONFIG} --enable CONFIG_VHOST_MENU
+    ${CMD_CONFIG} --module CONFIG_VHOST_NET
+    ${CMD_CONFIG} --module CONFIG_VHOST_IOTLB
+    ${CMD_CONFIG} --module CONFIG_VHOST
+    ${CMD_CONFIG} --module CONFIG_VHOST_NET
+    ${CMD_CONFIG} --module CONFIG_VHOST_SCSI
+    ${CMD_CONFIG} --module CONFIG_VHOST_VSOCK
+    ${CMD_CONFIG} --module CONFIG_VIRTIO \
         --enable CONFIG_VIRTIO_MENU \
         --enable CONFIG_VIRTIO_ANCHOR
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_VSOCKETS
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_VSOCKETS_COMMON
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_BLK \
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_VSOCKETS
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_VSOCKETS_COMMON
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_BLK \
         --enable CONFIG_BLK_MQ_VIRTIO
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_NET
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_BALLOON \
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_NET
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_BALLOON \
         --enable CONFIG_BALLOON_COMPACTION
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_INPUT
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_MMIO \
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_INPUT
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_MMIO \
         --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_VIRTIO_IOMMU
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SCSI_VIRTIO
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_SND_VIRTIO
+    ${CMD_CONFIG} --module CONFIG_VIRTIO_IOMMU
+    ${CMD_CONFIG} --module CONFIG_SCSI_VIRTIO
+    ${CMD_CONFIG} --module CONFIG_SND_VIRTIO
 }
 enable_usbip() {
     log "enable usbip modules"
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USBIP_CORE
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USBIP_VHCI_HCD
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USBIP_HOST
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USBIP_VUDC
+    ${CMD_CONFIG} --module CONFIG_USBIP_CORE
+    ${CMD_CONFIG} --module CONFIG_USBIP_VHCI_HCD
+    ${CMD_CONFIG} --module CONFIG_USBIP_HOST
+    ${CMD_CONFIG} --module CONFIG_USBIP_VUDC
     log "enable usbmon"
     cat <<EOF
 mount -t debugfs none_debugs /sys/kernel/debug
@@ -841,7 +841,7 @@ lsusb
 # # Bus _+ u
 cat /sys/kernel/debug/usb/usbmon/3u > /tmp/1.mon.out
 EOF
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB_MON
+    ${CMD_CONFIG} --module CONFIG_USB_MON
 }
 enable_usb_gadget() {
     log "enable g_mass_storage"
@@ -851,7 +851,7 @@ modprobe g_mass_storage file=/root/disk
 # idVendor=0x1d6b idProduct=0x0104 iManufacturer=Myself iProduct=VirtualBlockDevice iSerialNumber=123
 mount .....
 EOF
-    ${SRC}/scripts/config ${DOT_CONFIG} --module CONFIG_USB_ZERO \
+    ${CMD_CONFIG} --module CONFIG_USB_ZERO \
         --enable CONFIG_USB_G_MULTI_CDC \
         --module CONFIG_USB_G_DBGP \
         --module CONFIG_USB_AUDIO \
@@ -878,7 +878,7 @@ v4l_config() {
 #        --module CONFIG_V4L2_H264 \
 #        --module CONFIG_V4L2_VP9 \
 #        --module CONFIG_V4L2_JPEG_HELPER \
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_VIDEO_V4L2_I2C \
+    ${CMD_CONFIG} --enable CONFIG_VIDEO_V4L2_I2C \
         --module CONFIG_V4L2_MEM2MEM_DEV \
         --module CONFIG_V4L2_FWNODE \
         --module CONFIG_V4L2_ASYNC
@@ -886,7 +886,7 @@ v4l_config() {
 
 cpu_freq() {
     log "CPU FREQUENCY SCALING"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_CPU_FREQ \
+    ${CMD_CONFIG} --enable CONFIG_CPU_FREQ \
         --enable CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL \
         --enable CONFIG_CPU_FREQ_GOV_PERFORMANCE \
         --module CONFIG_CPU_FREQ_GOV_POWERSAVE \
@@ -900,23 +900,23 @@ enable_acpi_efi() {
     local byes=${1:-}
     [ -z ${byes} ] && {
         log "DISABLE ACPI&EFI"
-        ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_ACPI --disable CONFIG_EFI
+        ${CMD_CONFIG} --disable CONFIG_ACPI --disable CONFIG_EFI
         return
     }
     log "ENABLE ACPI&EFI"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_ACPI --enable CONFIG_EFI
+    ${CMD_CONFIG} --enable CONFIG_ACPI --enable CONFIG_EFI
 }
 
 common_config() {
     log "COMMON KERNEL CONFIG"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_SYSVIPC \
+    ${CMD_CONFIG} --enable CONFIG_SYSVIPC \
         --enable CONFIG_SHMEM \
         --enable CONFIG_AIO \
         --enable CONFIG_BLOCK \
         --enable CONFIG_IO_URING
-    ${SRC}/scripts/config ${DOT_CONFIG} --disable CONFIG_COMPAT \
+    ${CMD_CONFIG} --disable CONFIG_COMPAT \
         --disable CONFIG_ARM64_PSEUDO_NMI
-    # ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_RCU_EXPERT
+    # ${CMD_CONFIG} --enable CONFIG_RCU_EXPERT
 }
 gen_usb_otg_devicetree() {
     log "edit arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts:"
