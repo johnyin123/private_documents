@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("834ff357[2026-05-28T09:18:23+08:00]:s905_debootstrap.sh")
+VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -110,7 +110,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
 
     log "Enable rootfs module(if not buildin)"
     mkdir -p /etc/initramfs-tools
-    grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/initramfs-tools/modules
+    grep -q "ext4"          /etc/initramfs-tools/modules 2>/dev/null || echo "ext4" >> /etc/initramfs-tools/modules
+    grep -q "overlay"       /etc/initramfs-tools/modules 2>/dev/null || echo "overlay" >> /etc/initramfs-tools/modules
+    grep -q "meson_dw_hdmi" /etc/initramfs-tools/modules 2>/dev/null || echo "meson_dw_hdmi" >> /etc/initramfs-tools/modules
     grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/modules
 
     # log "Enable CPU FREQ"
