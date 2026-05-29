@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f4d0e7b1[2026-05-27T16:22:00+08:00]:build.sh")
+VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -578,7 +578,8 @@ s905d_opt() {
 
     log "FRAMEBUFFER MODULES"
     log "enable framebuffer console"
-    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_DRM
+    ${SRC}/scripts/config ${DOT_CONFIG} --enable CONFIG_DRM --enable CONFIG_HDMI \
+        --enable CONFIG_DRM_MESON --enable CONFIG_DRM_MESON_DW_HDMI
     # CONFIG_VT=y
     # CONFIG_FRAMEBUFFER_CONSOLE=y
     # CONFIG_FB=y
