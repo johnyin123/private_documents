@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("74e0d4da[2026-04-28T14:05:36+08:00]:s905_debootstrap.sh")
+VERSION+=("834ff357[2026-05-28T09:18:23+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -1180,7 +1180,7 @@ label PHICOMM_N1
     linux /vmlinuz-${kerver}
     initrd /initrd.img-${kerver}
     fdt /dtb/${dtb}
-    append root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes console=tty0 console=ttyAML0,115200n8 no_console_suspend consoleblank=0 numa=fake=4 net.ifnames=0
+    append root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes console=tty0 console=ttyAML0,115200n8 no_console_suspend consoleblank=0 video=1280x1024@60me numa=fake=4 net.ifnames=0
 
 EOF
     log "https://github.com/PuXiongfei/phicomm-n1-u-boot"
