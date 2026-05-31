@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("3404964e[2026-05-29T10:02:05+08:00]:build.sh")
+VERSION+=("a9504134[2026-05-29T10:10:19+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -25,7 +25,7 @@ CMD_MAKE="make -C ${SRC} -j$(nproc) O=${OUTPUT}"
 KERVERSION="$(${CMD_MAKE} --silent kernelversion)"
 ROOTFS=${3:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 [ -e "${CONFIG}" ] || { log "${CONFIG} no found"; exit 1; }
-${SRC}/scripts/diffconfig ${OUTPUT}/.config ${CONFIG} 2>/dev/null
+# ${SRC}/scripts/diffconfig ${OUTPUT}/.config ${CONFIG} 2>/dev/null
 mkdir -p "${OUTPUT}" && cat ${CONFIG} > "${OUTPUT}"/.config
 [ -d "${ROOTFS}" ] && ROOTFS="$(readlink -f "${ROOTFS}")"
 ##################################################
@@ -34,6 +34,7 @@ mkdir -p "${OUTPUT}" && cat ${CONFIG} > "${OUTPUT}"/.config
 CONFIG_HZ=${CONFIG_HZ:-100}
 NFSROOTFS=${NFSROOTFS:-""}      # not null is true/yes
 ACPI_EFI=${ACPI_EFI:-""}        # not null is true/yes
+FB_CONSOLE=${FB_CONSOLE:-yes}
 MODULE_SIGN=${MODULE_SIGN=yes}  # not null is true/yes
 MYVERSION=${MYVERSION="-johnyin-s905d"}
 ##OPTION_END##
@@ -578,18 +579,25 @@ s905d_opt() {
 
     log "FRAMEBUFFER MODULES"
     log "enable framebuffer console"
-    ${CMD_CONFIG} --enable CONFIG_DRM --enable CONFIG_HDMI \
-        --enable CONFIG_DRM_MESON --enable CONFIG_DRM_MESON_DW_HDMI
-    # CONFIG_VT=y
-    # CONFIG_FRAMEBUFFER_CONSOLE=y
-    # CONFIG_FB=y
-    # CONFIG_FB_SIMPLE=y
-
+    # no work: echo -e "ext4\noverlay\nfb\nsimplefb\nmeson_dw_hdmi" >> /etc/initramfs-tools/modules
     ${CMD_CONFIG} --enable CONFIG_VT \
         --enable CONFIG_FRAMEBUFFER_CONSOLE \
-        --enable CONFIG_FB \
-        --enable CONFIG_FB_CORE \
-        --enable CONFIG_FB_SIMPLE \
+        --module CONFIG_FB \
+        --module CONFIG_FB_CORE \
+        --module CONFIG_FB_SIMPLE
+
+    [ -z ${FB_CONSOLE} ] || {
+        ${CMD_CONFIG} --enable CONFIG_VT \
+            --enable CONFIG_FRAMEBUFFER_CONSOLE \
+            --enable CONFIG_FB \
+            --enable CONFIG_FB_CORE \
+            --enable CONFIG_FB_SIMPLE
+
+        ${CMD_CONFIG} --enable CONFIG_DRM --enable CONFIG_HDMI \
+           --enable CONFIG_DRM_MESON --enable CONFIG_DRM_MESON_DW_HDMI
+    }
+
+    ${CMD_CONFIG} \
         --module CONFIG_FB_CFB_FILLRECT \
         --module CONFIG_FB_CFB_COPYAREA \
         --module CONFIG_FB_CFB_IMAGEBLIT \
