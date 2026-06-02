@@ -2,7 +2,9 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-NGINX_DIR="${1:? MUSL=1 $0 <ngx_dir> [lib_dir]}"
+# dpkg --add-architecture arm64 && apt update && apt install libc6:arm64
+
+NGINX_DIR="${1:? MUSL=1/MYARM=1 $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
 NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
 MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
@@ -10,7 +12,7 @@ MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
 MUSL_CFLAGS=${MUSL:+-D_FILE_OFFSET_BITS=64 -static -static-libgcc}
 MUSL_LDFLAGS=${MUSL:+-static}
 
-OUTDIR=${DIRNAME}/portable_${MUSL:+musl_}ngx/
+OUTDIR=${DIRNAME}/portable_${MYARM:+arm64_}${MUSL:+musl_}ngx/
 rm -fr ${OUTDIR} && mkdir -pv ${OUTDIR}/conf ${OUTDIR}/logs ${OUTDIR}/tmp/client_body_temp/ \
     ${OUTDIR}/tmp/proxy_temp/ ${OUTDIR}/tmp/fastcgi_temp/ ${OUTDIR}/tmp/uwsgi_temp/ ${OUTDIR}/tmp/scgi_temp/
 CC_OPTS="${MUSL_CFLAGS} -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"
@@ -21,20 +23,21 @@ LD_OPTS="${LD_OPTS} -ljwt -Wl,--no-as-needed -ljansson"
 # for musl include
 CC_OPTS="${CC_OPTS} ${MUSL:+-idirafter /usr/include/ -idirafter /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)}"
 cat <<EOF
-
 ------------------------------------
-NGX = ${MUSL:+(musl) }${NGINX_DIR}
+NGX = ${MYARM:+(arm64) }${MUSL:+(musl) }${NGINX_DIR}
 OUT = ${OUTDIR}
 CC  = ${CC_OPTS}
 LD  = ${LD_OPTS}
 ------------------------------------
 EOF
+[ -z "${MUSL:-}" ] || [ -z "${MYARM:-}" ] || { echo "MUSL/MYARM"; exit 1; }
 read -n 1 -p "Press any key continue build ..." value
 # apt install -y musl-dev musl-tools
 # ./configure --with-cc="musl-gcc"
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     ./configure ${MUSL:+--with-cc="musl-gcc"} \
+    ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
     --with-cc-opt="${CC_OPTS}" \
     --with-ld-opt="${LD_OPTS}" \
     --prefix=. \
@@ -84,7 +87,7 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version for fastcgi\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
-    && strip ${OUTDIR}/nginx || { echo "error build portable version"; exit 1; }
+    && ${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/nginx || { echo "error build portable version"; exit 1; }
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
 worker_processes  1;
@@ -129,4 +132,5 @@ http {
 }
 EOF
 (cd ${OUTDIR} &>/dev/null && ./nginx -t)
+# /usr/lib/ld-linux-aarch64.so.1 --list portable_arm64_ngx/nginx
 echo "=========================all ok============================"
