@@ -35,6 +35,10 @@ build_perf () {
 build_bpftool () {
     export CROSS_COMPILE=${MY_CROSS_COMPILE}-
     echo "apt -y install libelf-dev zlib1g-dev"
+# make -j$(nproc) \
+#     ARCH=arm64 \
+#     CROSS_COMPILE=aarch64-linux-gnu- \
+#     EXTRA_LDFLAGS="-static"
     make V=1 -j$(nproc) -C "${DIRNAME}/tools/bpf/bpftool" clean && make V=1 -j$(nproc) LDFLAGS=-L"${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/" -C "${DIRNAME}/tools/bpf/bpftool"
     prefix=/usr make DESTDIR=${ROOTFS} V=1 -j$(nproc) -C "${DIRNAME}/tools/bpf/bpftool" install
 }
