@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:mk_nginx.sh")
+VERSION+=("72c78843[2026-06-02T10:28:42+08:00]:mk_nginx.sh")
 
 NGINX_DIR="${1:? MYARM=1 $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
@@ -302,7 +302,7 @@ for mod in "${!DYNAMIC_MODULES[@]}"; do
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-stage_run configure && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
+stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make distclean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
     ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
     --user=${NGX_USER} \
     --group=${NGX_GROUP} \
@@ -697,7 +697,7 @@ stream {
 EOF
 
 opt_enable "${STRIP}" && {
-    log "strip binarys"
+    log "[INFO] STRIP BINARYS"
     ${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/usr/sbin/nginx
     ${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/usr/share/nginx/modules/*
 }
@@ -737,11 +737,11 @@ case "${ID}" in
     *)       log "ALL DONE, NO PACKAGE"; exit 0;;
 esac
 eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
-log "NGINX:${NGX_VER}"
-log "BUILD:${builder_version}"
+log "[INFO] NGINX:${NGX_VER}"
+log "[INFO] BUILD:${builder_version}"
 stage_run fpm && fpm --force ${MYARM:+--architecture aarch64} --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
 rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
-log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
+log "[INFO] ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
 
 PKG_NAME=nginx-johnyin${HTTP3:+-quic}
