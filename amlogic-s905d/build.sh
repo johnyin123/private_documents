@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a9504134[2026-05-29T10:10:19+08:00]:build.sh")
+VERSION+=("28928698[2026-06-01T07:32:17+08:00]:build.sh")
 ################################################################################
 RED='\033[31m'
 GREEN='\033[32m'
@@ -993,7 +993,9 @@ cat ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb.host > ${ROOTFS}
 
 read -n 1 -p "Press any key continue build kernel & modules..." value
 ${CMD_MAKE} V=1 Image modules Image.gz
-# ${CMD_MAKE} bindeb-pkg #gen debian deb package!!
+# # export $(dpkg-architecture -aarm64)
+# dpkg --add-architecture arm64 && apt update && apt install libssl-dev:arm64
+# ${CMD_MAKE} bindeb-pkg
 
 log "INSTALL COMPRESSED KERNEL"
 ${CMD_MAKE} zinstall > /dev/null
