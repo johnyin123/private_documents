@@ -8,9 +8,9 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bb1a0155[2026-05-27T14:46:42+08:00]:mk_nginx.sh")
+VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:mk_nginx.sh")
 
-NGINX_DIR="${1:? $0 <ngx_dir> [lib_dir]}"
+NGINX_DIR="${1:? MYARM=1 $0 <ngx_dir> [lib_dir]}"
 MYLIB_DEPS=${2:-${DIRNAME}/mylibs}
 NGINX_DIR="$(readlink -f "${NGINX_DIR}")"
 MYLIB_DEPS="$(readlink -f "${MYLIB_DEPS}")"
@@ -24,7 +24,7 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -271,25 +271,25 @@ for key in "${!DYNAMIC_MODULES[@]}"; do
 done
 check_requre_dirs "${NGINX_DIR}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion openssl || true
-PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion libpcre2-8 || true
-PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --modversion zlib || true
-pcre_version=$(${MYLIB_DEPS}/bin/pcre2-config --version || pkg-config --modversion libpcre2-8 || echo "N/A")
-cat <<EOF | gcc -o zlibver -xc - && chmod 755 zlibver
-#include <stdio.h>
-#include <zlib.h>
-int main(void) {
-    printf(ZLIB_VERSION);
-    return 0;
-}
-EOF
-zlib_version=$(./zlibver 2>/dev/null || echo "N/A")
+PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pcre_version=$(pkg-config --modversion libpcre2-8 || echo "N/A")
+PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ zlib_version=$(pkg-config --modversion zlib || echo "N/A")
+# pcre_version=$(${MYLIB_DEPS}/bin/pcre2-config --version || pkg-config --modversion libpcre2-8 || echo "N/A")
+# cat <<EOF | gcc -o zlibver -xc - && chmod 755 zlibver
+# #include <stdio.h>
+# #include <zlib.h>
+# int main(void) {
+#     printf(ZLIB_VERSION);
+#     return 0;
+# }
+# EOF
+# zlib_version=$(./zlibver 2>/dev/null || echo "N/A")
 rm -f zlibver
 
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 show_option "${0}"
 log "BUILD-VERSION: ${builder_version}, PCRE: $pcre_version, ZLIB: ${zlib_version}"
 [ -d "${MYLIB_DEPS}" ] || { log "[FAILED] ${MYLIB_DEPS} not exists!!"; exit 1; }
-confirm "START BUILD NGINX(timeout 60s)?..........." 60
+confirm "START BUILD ${MYARM:+ARM64 }NGINX(timeout 60s)?..........." 60
 opt_enable "${AUTH_JWT}" && {
     log "jwt set CC_OPTS -DNGX_LINKED_LIST_COOKIES=1"
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
@@ -303,30 +303,31 @@ done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 stage_run configure && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
---user=nginx \
---group=nginx \
---with-cc-opt="${CC_OPTS}" \
---with-ld-opt="${LD_OPTS}" \
---with-pcre \
---sbin-path=/usr/sbin/nginx \
---conf-path=/etc/nginx/nginx.conf \
---error-log-path=/var/log/nginx/error.log \
---http-log-path=/var/log/nginx/access.log \
---pid-path=/run/nginx.pid \
---lock-path=/var/lock/nginx.lock \
---http-client-body-temp-path=/var/lib/nginx/body \
---http-proxy-temp-path=/var/lib/nginx/proxy \
---http-fastcgi-temp-path=/var/lib/nginx/fastcfg \
---http-uwsgi-temp-path=/var/lib/nginx/uwsgi \
---http-scgi-temp-path=/var/lib/nginx/scgi \
---with-pcre-jit \
---with-threads \
---with-file-aio \
-${KTLS:+--with-debug} \
- \
---with-compat \
- \
-${EXT_MODULES[@]}
+    ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
+    --user=${NGX_USER} \
+    --group=${NGX_GROUP} \
+    --with-cc-opt="${CC_OPTS}" \
+    --with-ld-opt="${LD_OPTS}" \
+    --with-pcre \
+    --sbin-path=/usr/sbin/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --pid-path=/run/nginx.pid \
+    --lock-path=/var/lock/nginx.lock \
+    --http-client-body-temp-path=/var/lib/nginx/body \
+    --http-proxy-temp-path=/var/lib/nginx/proxy \
+    --http-fastcgi-temp-path=/var/lib/nginx/fastcfg \
+    --http-uwsgi-temp-path=/var/lib/nginx/uwsgi \
+    --http-scgi-temp-path=/var/lib/nginx/scgi \
+    --with-pcre-jit \
+    --with-threads \
+    --with-file-aio \
+    ${KTLS:+--with-debug} \
+     \
+    --with-compat \
+     \
+    ${EXT_MODULES[@]}
 
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},pcre ${pcre_version},zlib ${zlib_version},${mydesc}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 stage_run make && cd ${NGINX_DIR} && make -j "$(nproc)"
@@ -697,11 +698,17 @@ EOF
 
 opt_enable "${STRIP}" && {
     log "strip binarys"
-    strip ${OUTDIR}/usr/sbin/nginx
-    strip ${OUTDIR}/usr/share/nginx/modules/*
+    ${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/usr/sbin/nginx
+    ${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/usr/share/nginx/modules/*
 }
-ldd ${OUTDIR}/usr/sbin/nginx 2>/dev/null|| true
-ldd ${OUTDIR}/usr/share/nginx/modules/* 2>/dev/null || true
+for i in ${OUTDIR}/usr/sbin/nginx ${OUTDIR}/usr/share/nginx/modules/*.so; do
+    log "$i"
+    [ -z "${MYARM:-}" ] && {
+        ldd $i
+    } || {
+        /usr/lib/ld-linux-aarch64.so.1 --list $i
+    }
+done
 command -v "fpm" &> /dev/null || {
     cat <<EOF
 apt -y install rpm ruby-rubygems || yum -y install rubygems
@@ -719,7 +726,7 @@ UNINST_SCRIPT=$(mktemp)
 echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > ${INST_SCRIPT}
 echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> ${INST_SCRIPT}
 echo "userdel ${NGX_USER} || :" > ${UNINST_SCRIPT}
-rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
+mkdir -pv ${DIRNAME}/pkg
 
 source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
 case "${ID}" in
@@ -732,7 +739,7 @@ esac
 eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 log "NGINX:${NGX_VER}"
 log "BUILD:${builder_version}"
-stage_run fpm && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
+stage_run fpm && fpm --force ${MYARM:+--architecture aarch64} --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
 rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
