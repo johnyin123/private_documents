@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("8c65a5dc[2026-05-27T10:36:45+08:00]:build_libgd.sh")
+VERSION+=("009104fe[2026-05-27T12:54:51+08:00]:build_libgd.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -97,7 +97,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ \
     CC=${MYCROSS:+${MYCROSS}-}gcc \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CPPFLAGS="-I${MYLIB_DEPS}/include" CFLAGS="-fPIC ${MUSL_CFLAGS:-}" LIBS="-lpng -lz" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CPPFLAGS="-I${MYLIB_DEPS}/include" CFLAGS="-DNONDLL -fPIC ${MUSL_CFLAGS:-}" LIBS="-lpng -lz" \
     --prefix=${MYLIB_DEPS} \
     --without-freetype --without-raqm --without-fontconfig --without-liq \
     --without-xpm --without-tiff --without-heif --without-avif \

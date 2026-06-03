@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("ae607978[2026-05-28T16:42:29+08:00]:build_deps.sh")
+VERSION+=("7607ed9d[2026-05-28T16:49:51+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -264,7 +264,7 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
 # -lc force use inner iconv, not libiconv
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    CFLAGS="${MY_ICONV_INC:-} -fPIC ${MUSL_CFLAGS:-}" ${MY_ICONV_LIB:+LDFLAGS=${MY_ICONV_LIB}} \
+    CFLAGS="${MY_ICONV_INC:-} -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -fPIC ${MUSL_CFLAGS:-}" ${MY_ICONV_LIB:+LDFLAGS=${MY_ICONV_LIB}} \
     --prefix=${MYLIB_DEPS} \
     --without-debug --without-python \
     --enable-shared=no --enable-static=yes --with-pic=PIC \
@@ -276,7 +276,7 @@ SRC_DIR=libxslt
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
     ./configure ${MYCROSS:+--host=${MYCROSS} --build=$(gcc -dumpmachine)} \
-    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-fPIC ${MUSL_CFLAGS:-}" \
+    LDFLAGS=-L${MYLIB_DEPS}/lib CFLAGS="-DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -fPIC ${MUSL_CFLAGS:-}" \
     --prefix=${MYLIB_DEPS} \
     --with-libxml-include-prefix=${MYLIB_DEPS}/include/libxml2 \
     --with-libxml-libs-prefix=${MYLIB_DEPS}/lib \

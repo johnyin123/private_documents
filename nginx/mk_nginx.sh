@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("83ccd45c[2026-06-03T08:34:18+08:00]:mk_nginx.sh")
+VERSION+=("67d6cad8[2026-06-03T09:19:15+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -24,7 +24,7 @@ mydesc=""
 ## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
-CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
+CC_OPTS=${CC_OPTS:-"-DPCRE2_STATIC -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
 LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
