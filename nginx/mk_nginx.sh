@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ee1336ff[2026-06-02T10:51:12+08:00]:mk_nginx.sh")
+VERSION+=("af8a5acc[2026-06-02T12:55:18+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -303,7 +303,7 @@ for mod in "${!DYNAMIC_MODULES[@]}"; do
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make distclean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
+stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make clean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
     ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
     --user=${NGX_USER} \
     --group=${NGX_GROUP} \
