@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("528c0996[2026-06-03T16:47:09+08:00]:mk_nginx.sh")
+VERSION+=("e44c9009[2026-06-04T10:15:24+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -339,6 +339,39 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-http_stub_status_module \
 #    --with-http_image_filter_module \
 #    --add-module=${DIRNAME}/ngx_brotli
+#
+# # ngx_http_auth_jwt patch for mingw
+# diff --git a/src/ngx_http_auth_jwt_module.c b/src/ngx_http_auth_jwt_module.c
+# index 1c9e70c..55ed89e 100644
+# --- a/src/ngx_http_auth_jwt_module.c
+# +++ b/src/ngx_http_auth_jwt_module.c
+# @@ -656,7 +656,7 @@ static ngx_int_t extract_var_claims(ngx_http_request_t *r, auth_jwt_conf_t *jwtc
+#    {
+#      const ngx_str_t *claimsPtr = claims->elts;
+#  
+# -    for (uint i = 0; i < claims->nelts; ++i)
+# +    for (ngx_uint_t i = 0; i < claims->nelts; ++i)
+#      {
+#        const ngx_str_t claim = claimsPtr[i];
+#        const char *claimValue = jwt_get_grant(jwt, (char *)claim.data);
+# @@ -681,7 +681,7 @@ static void extract_claims(ngx_http_request_t *r, jwt_t *jwt, ngx_array_t *claim
+#    {
+#      const ngx_str_t *claimsPtr = claims->elts;
+#  
+# -    for (uint i = 0; i < claims->nelts; ++i)
+# +    for (ngx_uint_t i = 0; i < claims->nelts; ++i)
+#      {
+#        const ngx_str_t claim = claimsPtr[i];
+#        const char *value = jwt_get_grant(jwt, (char *)claim.data);
+# @@ -735,7 +735,7 @@ static ngx_int_t redirect(ngx_http_request_t *r, auth_jwt_conf_t *jwtcf)
+#        ngx_int_t port_variable_hash = ngx_hash_key(port_variable_name.data, port_variable_name.len);
+#        ngx_http_variable_value_t *port_var = ngx_http_get_variable(r, &port_variable_name, port_variable_hash);
+#        char *port_str = "";
+# -      uint port_str_len = 0;
+# +      ngx_uint_t port_str_len = 0;
+#        const ngx_str_t server = r->headers_in.server;
+#        ngx_str_t uri_variable_name = ngx_string("request_uri");
+#        ngx_int_t uri_variable_hash = ngx_hash_key(uri_variable_name.data, uri_variable_name.len);
 
 stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make clean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
     ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
