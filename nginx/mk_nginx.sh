@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d07c596d[2026-06-03T13:08:04+08:00]:mk_nginx.sh")
+VERSION+=("528c0996[2026-06-03T16:47:09+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -303,19 +303,29 @@ for mod in "${!DYNAMIC_MODULES[@]}"; do
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-# ./configure --with-cc="x86_64-w64-mingw32-gcc" \
-#    --with-cpp=x86_64-w64-mingw32-gcc \
-#    --crossbuild=win32 \
-#    --with-cc-opt="-DPCRE2_STATIC" \
-#    --with-ld-opt="" \
-#    --with-pcre=./pcre \
-#    --with-zlib=./zlib \
-#    --with-openssl=./openssl \
-#    --with-openssl-opt="mingw64 --cross-compile-prefix=x86_64-w64-mingw32- no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs" \
+# sed -i.bak "s|^NGX_AUTOTEST=\$NGX_OBJS/autotest$|NGX_AUTOTEST=\$NGX_OBJS/autotest.exe|g" nginx/auto/init
+# # for mingw libgd static link
+# CC_OPTS="${CC_OPTS} ${WIN64:+-DBGDWIN32 -DNONDLL}"
+# LD_OPTS="${LD_OPTS} ${WIN64:+-liconv -lbcrypt -lGeoIP -lws2_32}" #win32 bcrypt replace crypt
+# # for mingw fix ngx_log_debug marco
+# CC_OPTS="${CC_OPTS} ${WIN64:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
+# [ -z "${WIN64:-}" ] || export CC=x86_64-w64-mingw32-gcc
+# # --with-http_v3_module no work
+# ./configure \
+#    ${WIN64:+--with-cc="${CC}"
+#       --crossbuild=win32
+#       --with-pcre=./pcre
+#       --with-zlib=./zlib
+#       --with-openssl=./openssl
+#       --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
+#    --with-cc-opt="${CC_OPTS}" \
+#    --with-ld-opt="${LD_OPTS}" \
 #    --with-http_ssl_module \
 #    --with-http_v2_module \
 #    --with-http_realip_module \
 #    --with-http_addition_module \
+#    --with-http_xslt_module \
+#    --with-http_geoip_module \
 #    --with-http_sub_module \
 #    --with-http_dav_module \
 #    --with-http_flv_module \
@@ -327,6 +337,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-http_secure_link_module \
 #    --with-http_slice_module \
 #    --with-http_stub_status_module \
+#    --with-http_image_filter_module \
 #    --add-module=${DIRNAME}/ngx_brotli
 
 stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make clean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
