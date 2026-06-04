@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bda03353[2026-06-04T10:47:54+08:00]:mk_nginx.sh")
+VERSION+=("d2702f9c[2026-06-04T15:25:53+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -311,6 +311,9 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # LD_OPTS="${LD_OPTS} ${WIN64:+-liconv -lbcrypt -lGeoIP -lws2_32}" #win32 bcrypt replace crypt
 # # for mingw fix ngx_log_debug marco
 # CC_OPTS="${CC_OPTS} ${WIN64:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
+# # fix ldap liblber and SHUT_RDWR undeclared
+# CC_OPTS="${CC_OPTS} ${WIN64:+-DSHUT_RDWR=2}"
+# LD_OPTS="${LD_OPTS} ${WIN64:+-lldap -llber}"
 # [ -z "${WIN64:-}" ] || export CC=x86_64-w64-mingw32-gcc
 # # --with-http_v3_module no work
 # ./configure \
@@ -340,7 +343,19 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-http_slice_module \
 #    --with-http_stub_status_module \
 #    --with-http_image_filter_module \
-#    --add-module=${DIRNAME}/ngx_brotli
+#    \
+#    --with-stream \
+#    --with-stream_ssl_module \
+#    --with-stream_realip_module \
+#    --with-stream_ssl_preread_module \
+#    --with-mail=dynamic \
+#    --with-mail_ssl_module \
+#    \
+#    --add-module=${DIRNAME}/ngx_brotli \
+#    --add-module=${DIRNAME}/nginx-sticky-module-ng \
+#    --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
+#    --add-module=${DIRNAME}/nginx-auth-ldap \
+#    && make -j "$(nproc)"
 #
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
