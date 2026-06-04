@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0129c64[2026-06-04T10:20:23+08:00]:mk_nginx.sh")
+VERSION+=("bda03353[2026-06-04T10:47:54+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -24,8 +24,10 @@ mydesc=""
 ## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
+# 缓冲区溢出保护机制
+SEC_LD_OPTS="-Wl,-z,relro -Wl,-z,now"
 CC_OPTS=${CC_OPTS:-"-DPCRE2_STATIC -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic -Wl,-z,relro -Wl,-z,now -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -314,9 +316,9 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # ./configure \
 #    ${WIN64:+--with-cc="${CC}"
 #       --crossbuild=win32
-#       --with-pcre=./pcre
-#       --with-zlib=./zlib
-#       --with-openssl=./openssl
+#       --with-pcre=${DIRNAME}/pcre
+#       --with-zlib=${DIRNAME}/zlib
+#       --with-openssl=${DIRNAME}/openssl
 #       --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
 #    --with-cc-opt="${CC_OPTS}" \
 #    --with-ld-opt="${LD_OPTS}" \
