@@ -75,6 +75,13 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --with-http_stub_status_module \
     --with-http_image_filter_module \
     \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-stream_realip_module \
+    --with-stream_ssl_preread_module \
+    --with-mail \
+    --with-mail_ssl_module \
+    \
     --add-module=${DIRNAME}/njs/nginx \
     --add-module=${DIRNAME}/nginx-http-concat \
     --add-module=${DIRNAME}/nginx-rtmp-module \
