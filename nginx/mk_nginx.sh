@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e44c9009[2026-06-04T10:15:24+08:00]:mk_nginx.sh")
+VERSION+=("d0129c64[2026-06-04T10:20:23+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -340,6 +340,8 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-http_image_filter_module \
 #    --add-module=${DIRNAME}/ngx_brotli
 #
+# # nginx-sticky patch for mingw
+# sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
 # # ngx_http_auth_jwt patch for mingw
 # diff --git a/src/ngx_http_auth_jwt_module.c b/src/ngx_http_auth_jwt_module.c
 # index 1c9e70c..55ed89e 100644
