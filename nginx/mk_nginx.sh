@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0183a67d[2026-06-04T16:34:59+08:00]:mk_nginx.sh")
+VERSION+=("2fafe651[2026-06-05T08:27:44+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -325,6 +325,9 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #       --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
 #    --with-cc-opt="${CC_OPTS}" \
 #    --with-ld-opt="${LD_OPTS}" \
+#    --with-pcre-jit \
+#    --with-compat \
+#    \
 #    --with-http_ssl_module \
 #    --with-http_v2_module \
 #    $([ -z "${WIN64:-}" ] && echo "--with-http_v3_module" || true) \
@@ -352,11 +355,11 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-mail=dynamic \
 #    --with-mail_ssl_module \
 #    \
-#    --add-module=${DIRNAME}/ngx_brotli \
 #    --add-module=${DIRNAME}/nginx-sticky-module-ng \
-#    --add-module=${DIRNAME}/ngx-http-auth-jwt-module \
-#    --add-module=${DIRNAME}/nginx-auth-ldap \
-#    && make -j "$(nproc)"
+#    --add-dynamic-module=${DIRNAME}/ngx_brotli \
+#    --add-dynamic-module=${DIRNAME}/ngx-http-auth-jwt-module \
+#    --add-dynamic-module=${DIRNAME}/nginx-auth-ldap \
+#    && make
 #
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
