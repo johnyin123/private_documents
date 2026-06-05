@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("52b2a68e[2026-06-05T09:23:25+08:00]:mk_nginx.sh")
+VERSION+=("affbc25c[2026-06-05T13:03:29+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -25,9 +25,9 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 # 缓冲区溢出保护机制
-SEC_LD_OPTS=$([ -z "${WIN64:-}" ] && echo "-Wl,-z,relro -Wl,-z,now" || true)
+SEC_LD_OPTS=$([ -z "${WIN_MINGW:-}" ] && echo "-Wl,-z,relro -Wl,-z,now" || true)
 CC_OPTS=${CC_OPTS:-"-DPCRE2_STATIC -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 $([ -z "${WIN64:-}" ] && echo "-lcrypt" || true) -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 $([ -z "${WIN_MINGW:-}" ] && echo "-lcrypt" || true) -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -157,7 +157,7 @@ opt_enable "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
     export SQLITE_INC=${MYLIB_DEPS}/include
     export SQLITE_LIB=${MYLIB_DEPS}/lib
-    CC_OPTS="${CC_OPTS} ${WIN64:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined}" # -D_WIN32_WINNT=0x0601 -Wno-error=macro-redefined -Wno-macro-redefined
+    CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined}" # -D_WIN32_WINNT=0x0601 -Wno-error=macro-redefined -Wno-macro-redefined
 }
 opt_enable "${AWS_AUTH}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-aws-auth-module]="git clone --depth 1 https://github.com/kaltura/nginx-aws-auth-module"
@@ -309,23 +309,25 @@ done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # sed -i.bak "s|^NGX_AUTOTEST=\$NGX_OBJS/autotest$|NGX_AUTOTEST=\$NGX_OBJS/autotest.exe|g" nginx/auto/init
+# # WIN_MINGW=32 #64
 # # for mingw libgd static link
-# CC_OPTS="${CC_OPTS} ${WIN64:+-DBGDWIN32 -DNONDLL}"
-# LD_OPTS="${LD_OPTS} ${WIN64:+-liconv -lbcrypt -lGeoIP -lws2_32}" #win32 bcrypt replace crypt
+# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DBGDWIN32 -DNONDLL}"
+# LD_OPTS="${LD_OPTS} ${WIN_MINGW:+-liconv -lbcrypt -lGeoIP -lws2_32}" #win32 bcrypt replace crypt
 # # for mingw fix ngx_log_debug marco
-# CC_OPTS="${CC_OPTS} ${WIN64:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
+# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
 # # fix ldap liblber and SHUT_RDWR undeclared
-# CC_OPTS="${CC_OPTS} ${WIN64:+-DSHUT_RDWR=2}"
-# LD_OPTS="${LD_OPTS} ${WIN64:+-lldap -llber}"
-# [ -z "${WIN64:-}" ] || export CC=x86_64-w64-mingw32-gcc
+# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DSHUT_RDWR=2}"
+# LD_OPTS="${LD_OPTS} ${WIN_MINGW:+-lldap -llber}"
+# [ "${WIN_MINGW:-}" == "64" ] && export CC=x86_64-w64-mingw32-gcc
+# [ "${WIN_MINGW:-}" == "32" ] && export CC=i686-w64-mingw32-gcc
 # # --with-http_v3_module no work
 # cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && ./configure \
-#     ${WIN64:+--with-cc="${CC}"
+#     ${WIN_MINGW:+--with-cc="${CC}"
 #        --crossbuild=win32
 #        --with-pcre=${DIRNAME}/deps/pcre
 #        --with-zlib=${DIRNAME}/deps/zlib
 #        --with-openssl=${DIRNAME}/deps/openssl
-#        --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
+#        --with-openssl-opt="mingw$([ "${WIN_MINGW}" == "64" ] && echo "64" || true) CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
 #     --prefix= \
 #     --sbin-path=nginx \
 #     --conf-path=conf/nginx.conf \
@@ -342,7 +344,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #     --with-compat \
 #     \
 #     --with-http_v2_module \
-#     $([ -z "${WIN64:-}" ] && echo "--with-http_v3_module" || true) \
+#     $([ -z "${WIN_MINGW:-}" ] && echo "--with-http_v3_module" || true) \
 #     --with-http_ssl_module \
 #     --with-http_realip_module \
 #     --with-http_addition_module \
