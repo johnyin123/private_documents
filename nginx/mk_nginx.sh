@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2fafe651[2026-06-05T08:27:44+08:00]:mk_nginx.sh")
+VERSION+=("e8d0821f[2026-06-05T09:03:15+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -316,50 +316,51 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # LD_OPTS="${LD_OPTS} ${WIN64:+-lldap -llber}"
 # [ -z "${WIN64:-}" ] || export CC=x86_64-w64-mingw32-gcc
 # # --with-http_v3_module no work
-# ./configure \
-#    ${WIN64:+--with-cc="${CC}"
-#       --crossbuild=win32
-#       --with-pcre=${DIRNAME}/pcre
-#       --with-zlib=${DIRNAME}/zlib
-#       --with-openssl=${DIRNAME}/openssl
-#       --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
-#    --with-cc-opt="${CC_OPTS}" \
-#    --with-ld-opt="${LD_OPTS}" \
-#    --with-pcre-jit \
-#    --with-compat \
-#    \
-#    --with-http_ssl_module \
-#    --with-http_v2_module \
-#    $([ -z "${WIN64:-}" ] && echo "--with-http_v3_module" || true) \
-#    --with-http_realip_module \
-#    --with-http_addition_module \
-#    --with-http_xslt_module \
-#    --with-http_geoip_module \
-#    --with-http_sub_module \
-#    --with-http_dav_module \
-#    --with-http_flv_module \
-#    --with-http_mp4_module \
-#    --with-http_gunzip_module \
-#    --with-http_gzip_static_module \
-#    --with-http_auth_request_module \
-#    --with-http_random_index_module \
-#    --with-http_secure_link_module \
-#    --with-http_slice_module \
-#    --with-http_stub_status_module \
-#    --with-http_image_filter_module \
-#    \
-#    --with-stream \
-#    --with-stream_ssl_module \
-#    --with-stream_realip_module \
-#    --with-stream_ssl_preread_module \
-#    --with-mail=dynamic \
-#    --with-mail_ssl_module \
-#    \
-#    --add-module=${DIRNAME}/nginx-sticky-module-ng \
-#    --add-dynamic-module=${DIRNAME}/ngx_brotli \
-#    --add-dynamic-module=${DIRNAME}/ngx-http-auth-jwt-module \
-#    --add-dynamic-module=${DIRNAME}/nginx-auth-ldap \
-#    && make
+# cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && ./configure \
+#     ${WIN64:+--with-cc="${CC}"
+#        --crossbuild=win32
+#        --with-pcre=${DIRNAME}/deps/pcre
+#        --with-zlib=${DIRNAME}/deps/zlib
+#        --with-openssl=${DIRNAME}/deps/openssl
+#        --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
+#     --with-cc-opt="${CC_OPTS}" \
+#     --with-ld-opt="${LD_OPTS}" \
+#     --with-pcre-jit \
+#     --with-compat \
+#     \
+#     --with-http_v2_module \
+#     $([ -z "${WIN64:-}" ] && echo "--with-http_v3_module" || true) \
+#     --with-http_ssl_module \
+#     --with-http_realip_module \
+#     --with-http_addition_module \
+#     --with-http_sub_module \
+#     --with-http_gunzip_module \
+#     --with-http_gzip_static_module \
+#     --with-http_auth_request_module \
+#     --with-http_secure_link_module \
+#     --with-http_slice_module \
+#     --with-http_stub_status_module \
+#     --with-http_random_index_module \
+#     --with-http_dav_module \
+#     --with-http_flv_module \
+#     --with-http_mp4_module \
+#     \
+#     --with-stream \
+#     --with-stream_ssl_module \
+#     --with-stream_realip_module \
+#     --with-stream_ssl_preread_module \
+#     --with-mail=dynamic \
+#     --with-mail_ssl_module \
+#     --with-http_geoip_module=dynamic \
+#     --with-stream_geoip_module=dynamic \
+#     --with-http_xslt_module=dynamic \
+#     --with-http_image_filter_module=dynamic \
+#     \
+#     --add-module=${DIRNAME}/nginx-sticky-module-ng \
+#     --add-dynamic-module=${DIRNAME}/ngx_brotli \
+#     --add-dynamic-module=${DIRNAME}/ngx-http-auth-jwt-module \
+#     --add-dynamic-module=${DIRNAME}/nginx-auth-ldap \
+#     && make
 #
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
