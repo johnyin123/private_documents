@@ -40,7 +40,7 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \
     --with-cc-opt="${CC_OPTS}" \
     --with-ld-opt="${LD_OPTS}" \
-    --prefix=. \
+    --prefix= \
     --sbin-path=nginx \
     --conf-path=conf/nginx.conf \
     --error-log-path=logs/error.log \

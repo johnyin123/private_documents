@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e8d0821f[2026-06-05T09:03:15+08:00]:mk_nginx.sh")
+VERSION+=("52b2a68e[2026-06-05T09:23:25+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -155,6 +155,9 @@ opt_enable "${CONCAT}" && {
 }
 opt_enable "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
+    export SQLITE_INC=${MYLIB_DEPS}/include
+    export SQLITE_LIB=${MYLIB_DEPS}/lib
+    CC_OPTS="${CC_OPTS} ${WIN64:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined}" # -D_WIN32_WINNT=0x0601 -Wno-error=macro-redefined -Wno-macro-redefined
 }
 opt_enable "${AWS_AUTH}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-aws-auth-module]="git clone --depth 1 https://github.com/kaltura/nginx-aws-auth-module"
@@ -323,6 +326,16 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #        --with-zlib=${DIRNAME}/deps/zlib
 #        --with-openssl=${DIRNAME}/deps/openssl
 #        --with-openssl-opt="mingw64 CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
+#     --prefix= \
+#     --sbin-path=nginx \
+#     --conf-path=conf/nginx.conf \
+#     --error-log-path=logs/error.log \
+#     --http-client-body-temp-path=tmp/client_body_temp/ \
+#     --http-proxy-temp-path=tmp/proxy_temp/ \
+#     --http-fastcgi-temp-path=tmp/fastcgi_temp/ \
+#     --http-uwsgi-temp-path=tmp/uwsgi_temp/ \
+#     --http-scgi-temp-path=tmp/scgi_temp/ \
+#     \
 #     --with-cc-opt="${CC_OPTS}" \
 #     --with-ld-opt="${LD_OPTS}" \
 #     --with-pcre-jit \
@@ -357,9 +370,12 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #     --with-http_image_filter_module=dynamic \
 #     \
 #     --add-module=${DIRNAME}/nginx-sticky-module-ng \
+#     --add-module=${DIRNAME}/nginx-http-concat \
+#     --add-module=${DIRNAME}/ngx_sqlite \
 #     --add-dynamic-module=${DIRNAME}/ngx_brotli \
 #     --add-dynamic-module=${DIRNAME}/ngx-http-auth-jwt-module \
 #     --add-dynamic-module=${DIRNAME}/nginx-auth-ldap \
+#     --add-dynamic-module=${DIRNAME}/nginx-aws-auth-module \
 #     && make
 #
 # # nginx-sticky patch for mingw
