@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("affbc25c[2026-06-05T13:03:29+08:00]:mk_nginx.sh")
+VERSION+=("9e531cba[2026-06-05T16:13:38+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -329,7 +329,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #        --with-openssl=${DIRNAME}/deps/openssl
 #        --with-openssl-opt="mingw$([ "${WIN_MINGW}" == "64" ] && echo "64" || true) CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
 #     --prefix= \
-#     --sbin-path=nginx \
+#     --sbin-path=nginx.exe \
 #     --conf-path=conf/nginx.conf \
 #     --error-log-path=logs/error.log \
 #     --http-client-body-temp-path=tmp/client_body_temp/ \
