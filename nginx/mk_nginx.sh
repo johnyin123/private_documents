@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2702f9c[2026-06-04T15:25:53+08:00]:mk_nginx.sh")
+VERSION+=("0183a67d[2026-06-04T16:34:59+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -25,9 +25,9 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 # 缓冲区溢出保护机制
-SEC_LD_OPTS="-Wl,-z,relro -Wl,-z,now"
+SEC_LD_OPTS=$([ -z "${WIN64:-}" ] && echo "-Wl,-z,relro -Wl,-z,now" || true)
 CC_OPTS=${CC_OPTS:-"-DPCRE2_STATIC -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 $([ -z "${WIN64:-}" ] && echo "-lcrypt" || true) -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -327,6 +327,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #    --with-ld-opt="${LD_OPTS}" \
 #    --with-http_ssl_module \
 #    --with-http_v2_module \
+#    $([ -z "${WIN64:-}" ] && echo "--with-http_v3_module" || true) \
 #    --with-http_realip_module \
 #    --with-http_addition_module \
 #    --with-http_xslt_module \
