@@ -34,7 +34,7 @@ LD_OPTS="${MUSL:+-static -static-libgcc} ${LD_OPTS}"
 # fix sqlite3 error: "_WIN32_WINNT" redefined, and inc/lib
 export SQLITE_INC=${MYLIB_DEPS}/include
 export SQLITE_LIB=${MYLIB_DEPS}/lib
-CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined}"
+CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined -march=i686}"
 [ "${WIN_MINGW:-}" == "64" ] && export CC=x86_64-w64-mingw32-gcc
 [ "${WIN_MINGW:-}" == "32" ] && export CC=i686-w64-mingw32-gcc
 cat <<EOF
