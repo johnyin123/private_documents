@@ -156,7 +156,7 @@ http {
             deny all;
             fastcgi_keep_conn on;
             if ($request_method !~ ^(GET|POST)$) { return 405; }
-            include /etc/nginx/fastcgi_params;
+            include fastcgi_params;
             fastcgi_param FN_HANDLER getProfile;
             #try_files $fastcgi_script_name =404;
             fastcgi_pass fcgi_srvs;
