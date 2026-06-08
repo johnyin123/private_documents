@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("210f1e3f[2026-06-05T16:21:26+08:00]:mk_nginx.sh")
+VERSION+=("4bdab2ae[2026-06-08T09:48:24+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -342,6 +342,59 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 #        const ngx_str_t server = r->headers_in.server;
 #        ngx_str_t uri_variable_name = ngx_string("request_uri");
 #        ngx_int_t uri_variable_hash = ngx_hash_key(uri_variable_name.data, uri_variable_name.len);
+# # nginx-rtmp-module patch for mingw
+# diff --git a/ngx_rtmp.h b/ngx_rtmp.h
+# index cbe6a93..03160b4 100644
+# --- a/ngx_rtmp.h
+# +++ b/ngx_rtmp.h
+# @@ -18,7 +18,7 @@
+#  #include "ngx_rtmp_bandwidth.h"
+#  
+#  
+# -#if (NGX_WIN32)
+# +#if (NGX_WIN32) && defined(_MSC_VER)
+#  typedef __int8              int8_t;
+#  typedef unsigned __int8     uint8_t;
+#  #endif
+# @@ -182,7 +182,7 @@ typedef struct {
+#  
+#  /* disable zero-sized array warning by msvc */
+#  
+# -#if (NGX_WIN32)
+# +#if (NGX_WIN32) && defined(_MSC_VER)
+#  #pragma warning(push)
+#  #pragma warning(disable:4200)
+#  #endif
+# @@ -271,7 +271,7 @@ typedef struct {
+#  } ngx_rtmp_session_t;
+#  
+#  
+# -#if (NGX_WIN32)
+# +#if (NGX_WIN32) && defined(_MSC_VER)
+#  #pragma warning(pop)
+#  #endif
+#  
+# diff --git a/ngx_rtmp_mp4_module.c b/ngx_rtmp_mp4_module.c
+# index 0259ca2..d6922f0 100644
+# --- a/ngx_rtmp_mp4_module.c
+# +++ b/ngx_rtmp_mp4_module.c
+# @@ -32,7 +32,7 @@ static ngx_int_t ngx_rtmp_mp4_reset(ngx_rtmp_session_t *s);
+#  
+#  /* disable zero-sized array warning by msvc */
+#  
+# -#if (NGX_WIN32)
+# +#if (NGX_WIN32) && defined(_MSC_VER)
+#  #pragma warning(push)
+#  #pragma warning(disable:4200)
+#  #endif
+# @@ -115,7 +115,7 @@ typedef struct {
+#  } ngx_rtmp_mp4_offsets64_t;
+#  
+#  
+# -#if (NGX_WIN32)
+# +#if (NGX_WIN32) && defined(_MSC_VER)
+#  #pragma warning(pop)
+#  #endif
 
 stage_run configure && cd ${NGINX_DIR} && { log "[INFO] clean nginx...."; make clean &>/dev/null||true; } && ./configure --prefix=/usr/share/nginx \
     ${MYARM:+--with-cc="aarch64-linux-gnu-gcc"} \

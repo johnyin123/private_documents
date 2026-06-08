@@ -28,6 +28,8 @@ CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
 # fix ldap liblber and SHUT_RDWR undeclared
 CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DSHUT_RDWR=2}"
 LD_OPTS="${LD_OPTS} ${WIN_MINGW:+-lldap -llber}"
+# fix rtmp
+CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-Wno-sign-compare -Wno-unused-variable}"
 # for musl static build and 64 bits file oper
 CC_OPTS="${MUSL:+-D_FILE_OFFSET_BITS=64} ${CC_OPTS}"
 LD_OPTS="${MUSL:+-static -static-libgcc} ${LD_OPTS}"
@@ -107,12 +109,12 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
     --add-module=${DIRNAME}/ngx_sqlite \
     --add-module=${DIRNAME}/nginx-http-concat \
     --add-module=${DIRNAME}/nginx-sticky-module-ng \
-    $([ -z "${WIN_MINGW:-}" ] && echo "--add-module=${DIRNAME}/njs/nginx" || true) \
-    $([ -z "${WIN_MINGW:-}" ] && echo "--add-module=${DIRNAME}/nginx-rtmp-module" || true) \
+    $([ -z "${WIN_MINGW:-}" ] && echo "--add-${MYARM:+dynamic-}module=${DIRNAME}/njs/nginx" || true) \
     --add-${MYARM:+dynamic-}${WIN_MINGW:+dynamic-}module=${DIRNAME}/nginx-auth-ldap \
     --add-${MYARM:+dynamic-}${WIN_MINGW:+dynamic-}module=${DIRNAME}/nginx-aws-auth-module \
     --add-${MYARM:+dynamic-}${WIN_MINGW:+dynamic-}module=${DIRNAME}/ngx-http-auth-jwt-module \
     --add-${MYARM:+dynamic-}${WIN_MINGW:+dynamic-}module=${DIRNAME}/ngx_brotli \
+    --add-${MYARM:+dynamic-}${WIN_MINGW:+dynamic-}module=${DIRNAME}/nginx-rtmp-module \
     && sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"portable version ${WIN_MINGW:+win${WIN_MINGW}}${MYARM:+arm64}${MUSL:+musl}\"/g" objs/ngx_auto_config.h 2>/dev/null \
     && make -j "$(nproc)" -f objs/Makefile binary \
     && make -j "$(nproc)" -f objs/Makefile modules \
