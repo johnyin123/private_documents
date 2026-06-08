@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e531cba[2026-06-05T16:13:38+08:00]:mk_nginx.sh")
+VERSION+=("210f1e3f[2026-06-05T16:21:26+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -25,9 +25,9 @@ mydesc=""
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 # 缓冲区溢出保护机制
-SEC_LD_OPTS=$([ -z "${WIN_MINGW:-}" ] && echo "-Wl,-z,relro -Wl,-z,now" || true)
+SEC_LD_OPTS="-Wl,-z,relro -Wl,-z,now"
 CC_OPTS=${CC_OPTS:-"-DPCRE2_STATIC -DLIBEXSLT_STATIC -DLIBXSLT_STATIC -DLIBXML_STATIC -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -I${MYLIB_DEPS}/include -I${MYLIB_DEPS}/include/libxml2 -I${MYLIB_DEPS}/include/quickjs"}
-LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 $([ -z "${WIN_MINGW:-}" ] && echo "-lcrypt" || true) -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
+LD_OPTS=${LD_OPTS:-"-Wl,-Bstatic -lsqlite3 -lcrypt -lbrotlienc -lbrotlidec -lbrotlicommon -Wl,-Bdynamic ${SEC_LD_OPTS:-} -fPIC -L${MYLIB_DEPS}/lib -L${MYLIB_DEPS}/lib/quickjs -lexslt -lxslt -lxml2 -lgd -lwebp -lsharpyuv -lpng -ljpeg -lm"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
 # kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
@@ -157,7 +157,6 @@ opt_enable "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
     export SQLITE_INC=${MYLIB_DEPS}/include
     export SQLITE_LIB=${MYLIB_DEPS}/lib
-    CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-D_WIN32_WINNT=0x0501 -Wno-macro-redefined}" # -D_WIN32_WINNT=0x0601 -Wno-error=macro-redefined -Wno-macro-redefined
 }
 opt_enable "${AWS_AUTH}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-aws-auth-module]="git clone --depth 1 https://github.com/kaltura/nginx-aws-auth-module"
@@ -309,77 +308,6 @@ done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # sed -i.bak "s|^NGX_AUTOTEST=\$NGX_OBJS/autotest$|NGX_AUTOTEST=\$NGX_OBJS/autotest.exe|g" nginx/auto/init
-# # WIN_MINGW=32 #64
-# # for mingw libgd static link
-# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DBGDWIN32 -DNONDLL}"
-# LD_OPTS="${LD_OPTS} ${WIN_MINGW:+-liconv -lbcrypt -lGeoIP -lws2_32}" #win32 bcrypt replace crypt
-# # for mingw fix ngx_log_debug marco
-# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DNGX_HAVE_GCC_VARIADIC_MACROS}"
-# # fix ldap liblber and SHUT_RDWR undeclared
-# CC_OPTS="${CC_OPTS} ${WIN_MINGW:+-DSHUT_RDWR=2}"
-# LD_OPTS="${LD_OPTS} ${WIN_MINGW:+-lldap -llber}"
-# [ "${WIN_MINGW:-}" == "64" ] && export CC=x86_64-w64-mingw32-gcc
-# [ "${WIN_MINGW:-}" == "32" ] && export CC=i686-w64-mingw32-gcc
-# # --with-http_v3_module no work
-# cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && ./configure \
-#     ${WIN_MINGW:+--with-cc="${CC}"
-#        --crossbuild=win32
-#        --with-pcre=${DIRNAME}/deps/pcre
-#        --with-zlib=${DIRNAME}/deps/zlib
-#        --with-openssl=${DIRNAME}/deps/openssl
-#        --with-openssl-opt="mingw$([ "${WIN_MINGW}" == "64" ] && echo "64" || true) CFLAGS=-Wno-overflow no-shared no-threads no-dso no-comp no-tests no-legacy no-apps no-docs"} \
-#     --prefix= \
-#     --sbin-path=nginx.exe \
-#     --conf-path=conf/nginx.conf \
-#     --error-log-path=logs/error.log \
-#     --http-client-body-temp-path=tmp/client_body_temp/ \
-#     --http-proxy-temp-path=tmp/proxy_temp/ \
-#     --http-fastcgi-temp-path=tmp/fastcgi_temp/ \
-#     --http-uwsgi-temp-path=tmp/uwsgi_temp/ \
-#     --http-scgi-temp-path=tmp/scgi_temp/ \
-#     \
-#     --with-cc-opt="${CC_OPTS}" \
-#     --with-ld-opt="${LD_OPTS}" \
-#     --with-pcre-jit \
-#     --with-compat \
-#     \
-#     --with-http_v2_module \
-#     $([ -z "${WIN_MINGW:-}" ] && echo "--with-http_v3_module" || true) \
-#     --with-http_ssl_module \
-#     --with-http_realip_module \
-#     --with-http_addition_module \
-#     --with-http_sub_module \
-#     --with-http_gunzip_module \
-#     --with-http_gzip_static_module \
-#     --with-http_auth_request_module \
-#     --with-http_secure_link_module \
-#     --with-http_slice_module \
-#     --with-http_stub_status_module \
-#     --with-http_random_index_module \
-#     --with-http_dav_module \
-#     --with-http_flv_module \
-#     --with-http_mp4_module \
-#     \
-#     --with-stream \
-#     --with-stream_ssl_module \
-#     --with-stream_realip_module \
-#     --with-stream_ssl_preread_module \
-#     --with-mail=dynamic \
-#     --with-mail_ssl_module \
-#     --with-http_geoip_module=dynamic \
-#     --with-stream_geoip_module=dynamic \
-#     --with-http_xslt_module=dynamic \
-#     --with-http_image_filter_module=dynamic \
-#     \
-#     --add-module=${DIRNAME}/nginx-sticky-module-ng \
-#     --add-module=${DIRNAME}/nginx-http-concat \
-#     --add-module=${DIRNAME}/ngx_sqlite \
-#     --add-dynamic-module=${DIRNAME}/ngx_brotli \
-#     --add-dynamic-module=${DIRNAME}/ngx-http-auth-jwt-module \
-#     --add-dynamic-module=${DIRNAME}/nginx-auth-ldap \
-#     --add-dynamic-module=${DIRNAME}/nginx-aws-auth-module \
-#     && make
-#
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
 # # ngx_http_auth_jwt patch for mingw
