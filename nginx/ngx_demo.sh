@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("da813ade[2025-12-23T09:20:37+08:00]:ngx_demo.sh")
+VERSION+=("41583d55[2026-02-28T14:43:05+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -176,6 +176,45 @@ cat <<'EOF' >rtmp.html
         </div>
     </body>
 </html>
+EOF
+cat <<'EOF' >rtmp_live.demo
+RTMP ingest endpoint: rtmp://srv/live/stream-test
+HLS playback URL    : http://srv/hls/stream-test.m3u8
+ffmpeg -re -stream_loop -1 -i /videos/input.mp4 -c copy -f flv rtmp://srv:1935/live/stream-test
+
+http {
+    server {
+        listen 80;
+        server_name _;
+        location /hls {
+            types {
+                application/vnd.apple.mpegurl m3u8;
+                video/mp2t ts;
+            }
+            root /tmp;
+            add_header Cache-Control no-cache;
+            add_header Access-Control-Allow-Origin *;
+        }
+    }
+}
+rtmp {
+    server {
+        listen 1935;
+        chunk_size 4096;
+        application live {
+            live on;
+            hls on;
+            hls_path /tmp/hls;
+            hls_fragment 3s;
+            hls_playlist_length 60s;
+            # optional recording settings
+            record all;
+            record_path /var/recordings;
+            record_unique on;
+            record_suffix .flv;
+        }
+    }
+}
 EOF
 cat <<'EOF' >rtmp_live_modules.module
 # # add blow to /etc/nginx/modules.d
