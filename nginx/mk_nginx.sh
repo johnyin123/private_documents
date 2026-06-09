@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4bdab2ae[2026-06-08T09:48:24+08:00]:mk_nginx.sh")
+VERSION+=("f0a4d281[2026-06-08T15:04:49+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -307,6 +307,16 @@ for mod in "${!DYNAMIC_MODULES[@]}"; do
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
+# # patch for sqlite dynamic / static module
+# cat <<EOF > ngx_sqlite/config
+# ngx_addon_name=ngx_http_sqlite
+# ngx_module_type=HTTP
+# ngx_module_name=ngx_http_sqlite_module
+# ngx_module_incs="$ngx_addon_dir/src"
+# ngx_module_srcs="$ngx_addon_dir/src/ngx_http_sqlite_module.c"
+# ngx_module_libs="-lsqlite3 -lm"
+# . auto/module
+# EOF
 # sed -i.bak "s|^NGX_AUTOTEST=\$NGX_OBJS/autotest$|NGX_AUTOTEST=\$NGX_OBJS/autotest.exe|g" nginx/auto/init
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
