@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0a4d281[2026-06-08T15:04:49+08:00]:mk_nginx.sh")
+VERSION+=("6dafa721[2026-06-09T09:22:24+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -154,7 +154,7 @@ opt_enable "${CONCAT}" && {
     STATIC_MODULES[${DIRNAME}/nginx-http-concat]="git clone https://github.com/alibaba/nginx-http-concat.git"
 }
 opt_enable "${SQLITE}" && {
-    STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
+    DYNAMIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
     export SQLITE_INC=${MYLIB_DEPS}/include
     export SQLITE_LIB=${MYLIB_DEPS}/lib
 }
