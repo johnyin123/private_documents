@@ -46,6 +46,10 @@ else
 	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
 endif
 
+# ifeq ($(shell pkg-config --exists mylibs || echo NO),)
+# CFLAGS += -D$(shell echo "MYLIBS=noexist")
+# endif
+
 SRC=$(wildcard *.c)
 OBJ=$(SRC:.c=.o)
 SRCPP=$(wildcard *.cpp)
