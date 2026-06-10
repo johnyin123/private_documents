@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("d07c596d[2026-06-03T13:08:04+08:00]:build_deps.sh")
+VERSION+=("5f106155[2026-06-10T10:44:49+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -150,7 +150,7 @@ export CFLAGS="-fPIC"
 unset -v CC CFLAGS
 [ -z "${ORG_CC}" ] || export CC=${ORG_CC}
 
-#https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download
+# https://github.com/PCRE2Project/pcre2
 SRC_DIR=pcre
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
