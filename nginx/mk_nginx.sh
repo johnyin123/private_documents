@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6dafa721[2026-06-09T09:22:24+08:00]:mk_nginx.sh")
+VERSION+=("9206253d[2026-06-09T09:26:05+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -162,11 +162,10 @@ opt_enable "${AWS_AUTH}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-aws-auth-module]="git clone --depth 1 https://github.com/kaltura/nginx-aws-auth-module"
 }
 opt_enable "${PROXY_CONNECT}" && {
-    log "[FAILED] Starting from version 1.31, it appears that ngx_http_tunnel_module is included in the built-in modules"
-    exit 1
-    # log "Use PROXY CONNECT module, need patch!!!"
+    log "[ALERT] Starting from version 1.31, it appears that ngx_http_tunnel_module is included in the built-in modules"
+    log "Use PROXY CONNECT module, need patch!!!"
     # log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
-    # DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
+    DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 }
 opt_enable "${AUTH_JWT}" && {
     DYNAMIC_MODULES[${DIRNAME}/ngx-http-auth-jwt-module]="git clone https://github.com/TeslaGov/ngx-http-auth-jwt-module.git";
