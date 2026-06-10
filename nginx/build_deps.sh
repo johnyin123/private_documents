@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("7607ed9d[2026-05-28T16:49:51+08:00]:build_deps.sh")
+VERSION+=("d07c596d[2026-06-03T13:08:04+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -64,6 +64,7 @@ MYCROSS=aarch64-linux-gnu ./build_deps.sh [output libdir]
         i686-w64-mingw32
         x86_64-w64-mingw32
         musl
+if use zlib-ng, ZLIB_NG=1
 apt -y install gcc-aarch64-linux-gnu \
                g++-aarch64-linux-gnu \
                gcc-mingw-w64-x86-64 \
@@ -133,8 +134,9 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
-#https://zlib.net/zlib-1.2.11.tar.gz
+#https://zlib.net/zlib-1.2.11.tar.gz  https://github.com/zlib-ng/zlib-ng
 SRC_DIR=zlib
+ZLIB_NG=${ZLIB_NG:-} #zlib-ng
 log "Building ${CC:-} ${SRC_DIR} ....................................."
 ORG_CC=${CC:-}
 [ -z "${MYCROSS}" ] && { log "OK build ${SRC_DIR}"; } || {
@@ -142,7 +144,7 @@ ORG_CC=${CC:-}
 }
 export CFLAGS="-fPIC"
 ([ -d "${SRC_DIR}" ] && cd "${SRC_DIR}" && { log "clean ${SRC_DIR}...."; make distclean &>/dev/null||true; } && \
-    ./configure --prefix=${MYLIB_DEPS} --static \
+    ./configure --prefix=${MYLIB_DEPS} --static $([ -z "${ZLIB_NG}" ] || echo "--zlib-compat") \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 unset -v CC CFLAGS
