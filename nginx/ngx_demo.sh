@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("41583d55[2026-02-28T14:43:05+08:00]:ngx_demo.sh")
+VERSION+=("5cbba878[2026-06-09T10:23:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -262,6 +262,7 @@ rtmp {
 }
 EOF
 cat <<'EOF'>geoip_contry.http
+# https://mailfud.org/geoip-legacy/
 geoip_country /etc/nginx/geoip/GeoIP.dat;
 # geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
 # geoip_org     /etc/nginx/geoip/GeoIPASNum.dat;

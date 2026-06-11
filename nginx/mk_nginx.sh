@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9206253d[2026-06-09T09:26:05+08:00]:mk_nginx.sh")
+VERSION+=("74dc30db[2026-06-10T14:31:41+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -498,8 +498,9 @@ mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
 mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
 mkdir -p ${OUTDIR}/var/lib/nginx/scgi
 
-log "[INFO] Writing GeoIPASNum.dat GeoIP.dat GeoLiteCity.dat"
-cp ${DIRNAME}/GeoIPASNum.dat ${DIRNAME}/GeoIP.dat ${DIRNAME}/GeoLiteCity.dat ${OUTDIR}/etc/nginx/geoip/ &>/dev/null || true
+log "[INFO] Writing GeoIPASNum.dat GeoIPCity.dat GeoIP.dat GeoIPOrg.dat"
+log "https://mailfud.org/geoip-legacy/"
+cp ${DIRNAME}/GeoIPASNum.dat ${DIRNAME}/GeoIP.dat ${DIRNAME}/GeoIPCity.dat ${DIRNAME}/GeoIPOrg.dat ${OUTDIR}/etc/nginx/geoip/ &>/dev/null || true
 write_file "${OUTDIR}/etc/nginx/http-conf.d/geoip.conf" <<'EOF'
 # geoip_country /etc/nginx/geoip/GeoIP.dat;
 # geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
