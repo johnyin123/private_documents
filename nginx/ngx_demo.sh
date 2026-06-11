@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5cbba878[2026-06-09T10:23:39+08:00]:ngx_demo.sh")
+VERSION+=("212d9838[2026-06-11T13:30:06+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -261,8 +261,18 @@ rtmp {
     }
 }
 EOF
+cat <<'EOF'>geoip_updater.sh
+#!/usr/bin/env bash
+FILES="GeoIP GeoIPv6 GeoIPCity GeoIPCityv6 GeoIPASNum GeoIPASNumv6 GeoIPOrg GeoIPOrgv6 GeoIPISP GeoIPISPv6"
+for f in $FILES; do
+	wget -nv -N -T 30 --max-redirect 0 https://mailfud.org/geoip-legacy/$f.gz
+	RET=$?
+	if [ $RET -ne 0 ]; then
+		echo "wget $f.gz failed: $RET" >&2
+	fi
+done
+EOF
 cat <<'EOF'>geoip_contry.http
-# https://mailfud.org/geoip-legacy/
 geoip_country /etc/nginx/geoip/GeoIP.dat;
 # geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
 # geoip_org     /etc/nginx/geoip/GeoIPASNum.dat;
