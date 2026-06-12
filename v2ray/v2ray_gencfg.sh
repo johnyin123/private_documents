@@ -7,11 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2cfd41fb[2024-08-01T10:30:19+08:00]:v2ray_gencfg.sh")
+VERSION+=("0b6bb5f5[2026-06-12T11:06:03+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
+# geosite/geoip: https://github.com/Loyalsoldier/v2ray-rules-dat/releases
 cat > proxy.json <<EOF
 {
   "log": {
@@ -43,7 +44,7 @@ cat > proxy.json <<EOF
       {
         "type": "field",
         "outboundTag": "direct-out",
-        "domain": ["domain:special-website.com", "geosite:cn"],
+        "domain": ["domain:special-website.com", "geosite:cn", "geosite:gfw"],
         "ip": ["geoip:private", "geoip:cn"]
       },
       {"type": "field", "outboundTag": "proxy-out", "network": "tcp,udp"}
