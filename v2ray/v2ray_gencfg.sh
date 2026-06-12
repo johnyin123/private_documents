@@ -7,11 +7,50 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-01T10:30:19+08:00]:v2ray_gencfg.sh")
+VERSION+=("2cfd41fb[2024-08-01T10:30:19+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
+cat > proxy.json <<EOF
+{
+  "log": {
+    "access": "",
+    "error": "",
+    "loglevel": "debug"
+  },
+  "inbounds": [
+    {
+      "tag": "http-in",
+      "port": 8080,
+      "listen": "127.0.0.1",
+      "protocol": "http"
+    }
+  ],
+  "outbounds": [
+    {"tag": "direct-out", "protocol": "freedom"},
+    {
+      "tag": "proxy-out",
+      "protocol": "vless",
+      "settings": {
+      ....
+      }
+    }
+  ],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "direct-out",
+        "domain": ["domain:special-website.com", "geosite:cn"],
+        "ip": ["geoip:private", "geoip:cn"]
+      },
+      {"type": "field", "outboundTag": "proxy-out", "network": "tcp,udp"}
+    ]
+  }
+}
+EOF
 cat > http_proxy.json <<EOF
 {
   "log": {
@@ -20,6 +59,17 @@ cat > http_proxy.json <<EOF
     "loglevel": "info"
   },
   "inbounds": [
+    {
+      "tag": "socks-inbound",
+      "port": 1080,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true,
+        "ip": "127.0.0.1"
+      }
+    },
     {
       "tag": "http-in",
       "port": 8080,
