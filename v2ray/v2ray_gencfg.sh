@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b6bb5f5[2026-06-12T11:06:03+08:00]:v2ray_gencfg.sh")
+VERSION+=("496a4075[2026-06-12T13:58:31+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -30,9 +30,7 @@ cat > proxy.json <<EOF
   ],
   "outbounds": [
     {"tag": "direct-out", "protocol": "freedom"},
-    {
-      "tag": "proxy-out",
-      "protocol": "vless",
+    {"tag": "proxy-out", "protocol": "vless",
       "settings": {
       ....
       }
@@ -41,13 +39,14 @@ cat > proxy.json <<EOF
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
-      {
-        "type": "field",
-        "outboundTag": "direct-out",
-        "domain": ["domain:special-website.com", "geosite:cn", "geosite:gfw"],
+      {"type": "field", "outboundTag": "direct-out",
+        "domain": ["domain:special-website.com", "geosite:cn"],
         "ip": ["geoip:private", "geoip:cn"]
       },
-      {"type": "field", "outboundTag": "proxy-out", "network": "tcp,udp"}
+      {"type": "field", "outboundTag": "proxy-out",
+        "network": "tcp,udp",
+        "domain": ["geosite:gfw"]
+      }
     ]
   }
 }
