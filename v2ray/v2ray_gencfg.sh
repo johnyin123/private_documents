@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("01684262[2026-06-12T15:09:42+08:00]:v2ray_gencfg.sh")
+VERSION+=("08718b65[2026-06-12T15:19:42+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -29,6 +29,7 @@ cat > proxy.json <<EOF
     }
   ],
   "outbounds": [
+    {"tag": "block-out", "protocol": "blackhole", "settings": { "response": { "type": "http" } } },
     {"tag": "direct-out", "protocol": "freedom"},
     {"tag": "proxy-out", "protocol": "vless",
       "settings": {
@@ -39,6 +40,9 @@ cat > proxy.json <<EOF
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
+      {"type": "field", "outboundTag": "block-out",
+        "domain": ["*.taobao.com"]
+      },
       {"type": "field", "outboundTag": "direct-out",
         "domain": ["domain:special-website.com", "geosite:cn"],
         "ip": ["geoip:private", "geoip:cn"]
