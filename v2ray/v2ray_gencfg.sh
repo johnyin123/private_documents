@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("629843e7[2026-06-16T07:49:59+08:00]:v2ray_gencfg.sh")
+VERSION+=("3d03eec8[2026-06-16T07:53:39+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -15,11 +15,7 @@ VERSION+=("629843e7[2026-06-16T07:49:59+08:00]:v2ray_gencfg.sh")
 # geosite/geoip: https://github.com/Loyalsoldier/v2ray-rules-dat/releases
 cat > proxy.json <<EOF
 {
-  "log": {
-    "access": "",
-    "error": "",
-    "loglevel": "debug"
-  },
+  "log": { "access": "", "error": "", "loglevel": "debug" },
   "inbounds": [
     {
       "tag": "http-in",
@@ -32,16 +28,35 @@ cat > proxy.json <<EOF
     {"tag": "block-out", "protocol": "blackhole", "settings": { "response": { "type": "http" } } },
     {"tag": "direct-out", "protocol": "freedom"},
     {"tag": "proxy-out", "protocol": "vless",
-      "settings": {
-      ....
+      "settings": { "vnext": [ { "address": "IP", "port": PORT, "users": [ { "encryption": "none", "id": "UUID", "alterId": ALTERID } ] } ] },
+      "streamSettings": { "network": "ws", "security": "tls",
+        "tlsSettings": { "allowInsecure": true, "disableSystemRoot": true,
+          "certificates": [
+            {
+              /*
+                "-----BEGIN CERTIFICATE-----",
+                "-----END CERTIFICATE-----"
+              */
+              "certificate": [ CERT ],
+              "key": [ KEY ],
+              "usage": "encipherment"
+            }
+          ]
+        },
+        "wsSettings": { "path": "URI_PATH" }
       }
     }
   ],
+  "dns": {
+    "hosts": {
+      "test.com": "127.0.0.1"
+    }
+  },
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
       {"type": "field", "outboundTag": "block-out",
-        "domain": ["*.taobao.com"]
+        "domain": ["*.taobao.com", "geosite:category-ads-all" ]
       },
       {"type": "field", "outboundTag": "direct-out",
         "domain": ["domain:baidu.com", "geosite:cn"],
