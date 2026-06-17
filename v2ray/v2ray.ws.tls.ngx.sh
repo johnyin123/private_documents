@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0e72981[2025-02-22T14:54:56+08:00]:v2ray.ws.tls.ngx.sh")
+VERSION+=("f2398bbf[2025-02-22T15:08:06+08:00]:v2ray.ws.tls.ngx.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -76,8 +76,10 @@ server {
     location @400 { return 500 "bad boy"; }
     #与V2Ray配置中的path保持一致
     location ${wspath} {
+        if (\$request_method != "GET") { keepalive_timeout 0;return 404; }
         if (\$http_upgrade != "websocket") {
             # WebSocket协商失败时返回404
+            keepalive_timeout 0;
             return 404;
         }
         proxy_redirect off;
@@ -88,6 +90,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_buffering off;
     }
 }
 EOF
