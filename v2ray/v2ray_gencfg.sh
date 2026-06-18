@@ -33,7 +33,8 @@ cat > proxy.json <<EOF
       "settings": { "servers": [ { "address": "${PROXY_SRV}", "port": ${PROXY_PORT}, "users": [ { "user": "${PROXY_USER}", "pass": "${PROXY_PASS}" } ] } ] }
     },
     {"tag": "vless-out", "protocol": "vless",
-      /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work*/
+      /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work */
+      /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
       "settings": { "vnext": [ { "address": "${VLESS_IP}", "port": ${VLESS_PORT}, "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
