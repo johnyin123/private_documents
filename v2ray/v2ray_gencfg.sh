@@ -48,8 +48,7 @@ cat > v2_cli.json <<EOF
     {"tag": "vless-out", "protocol": "vless",
       /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work */
       /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
-      "settings": { "vnext": [  "address": "$([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_IP} || echo -n 127.0.0.1)", "port": $([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_PORT} || echo ${CLI_WST_PORT}),
-      "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
+      "settings": { "vnext": [ { "address": "$([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_IP} || echo -n 127.0.0.1)", "port": $([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_PORT} || echo ${CLI_WST_PORT}), "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
           /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
@@ -101,7 +100,7 @@ EOF
 
 cat > v2_srv_ngx.conf <<EOF
 server {
-    listen ${VLESS_PORT} ssl; default_server reuseport;
+    listen ${VLESS_PORT} ssl; # default_server reuseport;
     http2 on;
     server_name _;
     ssl_certificate        srv1.pem;
