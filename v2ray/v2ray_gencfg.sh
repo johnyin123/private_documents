@@ -52,9 +52,10 @@ cat > v2_cli.json <<EOF
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
           /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
-          "allowInsecure": true, "disableSystemRoot": true
+          "fingerprint": "chrome", "allowInsecure": true, "disableSystemRoot": true
         },
         "wsSettings": { "headers": { "Host": "${VLESS_VHOST}", "User-Agent": "curl" }, "path": "${URI_PATH}" },
+        "mux": { "enabled": true, "concurrency": 8 },
         "sockopt": { "tcpKeepAliveInterval": 5, "tcpKeepAliveIdle": 10 }
       }
     }
