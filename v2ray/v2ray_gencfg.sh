@@ -11,6 +11,8 @@ sed -E 's/\/\*([^*]|\*+[^/*])*\*+\///g'
 # list all vars
 grep -o "\${[^}]*}" proxy.json
 EOF
+CLI_WST_PORT=${CLI_WST_PORT:-}
+
 PROXY_SRV=${PROXY_SRV:-UNDEF}
 PROXY_PORT=${PROXY_PORT:-UNDEF}
 PROXY_USER=${PROXY_USER:-UNDEF}
@@ -23,15 +25,13 @@ URI_PATH=${URI_PATH:-UNDEF}
 VLESS_VHOST=${VLESS_VHOST:-outgoing.org}
 WST_URI_PATH=${WST_URI_PATH:-/api/wst/login}
 WST_PORT=${WST_PORT:-60999}
-CLI_WST_PORT=${CLI_WST_PORT:-60888}
 
-cat > v2_cli_wstunnel.sh <<EOF
+[ -z "${CLI_WST_PORT}" ] || cat > v2_cli_wstunnel.sh <<EOF
 #!/usr/bin/env bash
 #LOG="--log-lvl OFF --no-color 1"
 PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
 PREFIX=${WST_URI_PATH}
 ./wstunnel client ${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} -P \${PREFIX} -L tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:10000 --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${VLESS_IP}:${VLESS_PORT}
-# "vnext": [ { "address": "127.0.0.1", "port": ${CLI_WST_PORT},...
 EOF
 cat > v2_cli.json <<EOF
 {
@@ -48,7 +48,8 @@ cat > v2_cli.json <<EOF
     {"tag": "vless-out", "protocol": "vless",
       /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work */
       /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
-      "settings": { "vnext": [ { "address": "${VLESS_IP}", "port": ${VLESS_PORT}, "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
+      "settings": { "vnext": [  "address": "$([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_IP} || echo -n 127.0.0.1)", "port": $([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_PORT} || echo ${CLI_WST_PORT}),
+      "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
           /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
