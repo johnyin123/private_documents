@@ -82,6 +82,9 @@ cat > v2_cli.json <<EOF
   }
 }
 EOF
+################################################################################
+# ./nginx -g 'daemon off;'
+# ./v2ray run -config v2_srv.json
 cat > v2_srv_wstunnel.service <<EOF
 [Unit]
 After=network-online.target
@@ -95,7 +98,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-cat > v2_srv_ngx.json <<EOF
+cat > v2_srv_ngx.conf <<EOF
 server {
     listen ${VLESS_PORT} ssl; default_server reuseport;
     http2 on;
@@ -148,17 +151,11 @@ cat > v2_srv.json <<EOF
 {
   "log": { "access": "", "error": "", "loglevel": "debug" },
   "inbounds": [
-    {
-      "listen":"127.0.0.1",
-      "port": 10000,
-      "protocol": "vless",
+    { "listen":"127.0.0.1", "port": 10000, "protocol": "vless",
       "settings": {
         "decryption": "none",
         "clients": [
-          {
-            "id": "${VLESS_UUID}",
-            "alterId": ${VLESS_ALTERID}
-          }
+          { "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} }
         ]
       },
       "streamSettings": { "network": "ws", "wsSettings": { "path": "${URI_PATH}" } }
