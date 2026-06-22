@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a4cf8f95[2024-09-04T17:23:04+08:00]:newssl.sh")
+VERSION+=("e1a8f63a[2025-09-23T10:06:36+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -32,6 +32,10 @@ ${SCRIPTNAME}
         openssl ca -gencrl -out "you.crl"
     # cer to pem
         openssl x509 -inform der -in certificate.cer -out certificate.pem
+
+openssl genpkey -algorithm X25519 -out private_key.pem
+openssl pkey -in private_key.pem -pubout -out public_key.pem
+openssl pkey -in private_key.pem -text -noout
 EOF
     exit 1
 }
