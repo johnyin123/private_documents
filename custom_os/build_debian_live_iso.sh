@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("44ee8b31[2025-06-17T13:40:57+08:00]:build_debian_live_iso.sh")
+VERSION+=("4e872612[2025-09-16T08:03:01+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -164,6 +164,7 @@ new_build() {
         debian_autologin_root
         debian_bash_init root true
         debian_locale_init
+        debian_sshd_init
 EOSHELL
     }
     return 0
@@ -175,18 +176,22 @@ gen_grublinuxiso() {
     local isoimage=$3
 
     info_msg "prepre grublinux files\n"
-    local vmlinuz=$(ls ${iso_dir}/live/vmlinuz*)
-    local initrd=$(ls ${iso_dir}/live/initrd*)
     try mkdir -p ${iso_dir}/boot/grub
     cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
 set timeout=30
 set default="0"
 insmod all_video
-menuentry "Debian GNU/Linux Live" {
-    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
-    initrd /live/${initrd##*/}
+EOGRUB
+    for fn in $(ls ${iso_dir}/live/vmlinuz*); do
+        version="${fn##*vmlinuz}"
+        file_exists "${iso_dir}/live/initrd.img${version}" || exit_msg "${iso_dir}/live/initrd.img${version} no found\n"
+        cat <<EOGRUB | try tee -a ${iso_dir}/boot/grub/grub.cfg
+menuentry "Debian Live kernel${version}" {
+    linux  /live/vmlinuz${version} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
+    initrd /live/initrd.img${version}
 }
 EOGRUB
+    done
     info_msg "gen live iso image\n"
     try rm -f "${isoimage}"
     try mv ${iso_dir} ${root_dir}/iso_dir
@@ -277,8 +282,9 @@ EOSHELL
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
     defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -no-duplicates -comp ${comp} -ef <(echo "${root_dir}/boot/")
-    try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
-    try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
+    try cp ${root_dir}/boot/vmlinuz* ${iso_dir}/live/
+    try cp ${root_dir}/boot/initrd.img* ${iso_dir}/live/
+    # try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
     #try cp ${root_dir}/boot/* ${iso_dir}/live/
     # KERNEL=$(ls -al $IMAGETMP/boot/vmlinuz-* | awk {'print $9'} | sort -V | grep -v rescue | head -1)
     # INITRD=$(ls -al $IMAGETMP/boot/initramfs* | awk {'print $9'} | sort -V | grep -v rescue | head -1)
