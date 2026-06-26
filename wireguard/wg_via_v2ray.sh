@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2026-06-26T13:47:01+08:00]:wg_via_v2ray.sh")
+VERSION+=("8199ce2d[2026-06-26T13:47:00+08:00]:wg_via_v2ray.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -10,14 +10,12 @@ LOGFILE=
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 cat <<EOF
+  "rules": [
+    { "type": "field", "inboundTag": ["cli_in_udp"], "outboundTag": "srv_out_udp" }
+  ]
 ### server
   "outbounds": [
-    {
-      "protocol": "freedom",
-      "settings": {
-        "redirect": "127.0.0.1:51820"
-      }
-    }
+    { "tag": "srv_out_udp", "protocol": "freedom", "settings": { "redirect": "127.0.0.1:51820" } }
   ]
 [Interface]
 PrivateKey = SERVER_PRIVATE_KEY
@@ -26,14 +24,7 @@ ListenPort = 51820
 
 ### client
   "inbounds": [
-    {
-      "port": 10808,
-      "listen": "127.0.0.1",
-      "protocol": "socks",
-      "settings": {
-        "udp": true
-      }
-    }
+    { "tag": "cli_in_udp", "listen": "127.0.0.1", "port": 10808, "protocol": "socks", "settings": { "udp": true } }
   ]
 
 [Peer]
