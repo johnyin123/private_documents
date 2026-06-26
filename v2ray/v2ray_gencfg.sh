@@ -12,8 +12,7 @@ sed -E 's/\/\*([^*]|\*+[^/*])*\*+\///g'
 grep -o "\${[^}]*}" proxy.json
 #######################################
 EOF
-CLI_WST_PORT=${CLI_WST_PORT:-}
-
+CLI_WST_PORT=${CLI_WST_PORT:-60888}
 PROXY_SRV=${PROXY_SRV:-UNDEF}
 PROXY_PORT=${PROXY_PORT:-UNDEF}
 PROXY_USER=${PROXY_USER:-UNDEF}
@@ -64,7 +63,7 @@ cat > v2_cli.json <<EOF
     {"tag": "vless-out", "protocol": "vless",
       /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work */
       /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
-      "settings": { "vnext": [ { "address": "$([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_IP} || echo -n 127.0.0.1)", "port": $([ -z "${CLI_WST_PORT}" ] && echo -n ${VLESS_PORT} || echo ${CLI_WST_PORT}), "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
+      "settings": { "vnext": [ { /* "address": "127.0.0.1", "port": ${CLI_WST_PORT}, */"address": "${VLESS_IP}", "port": ${VLESS_PORT}, "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
           /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
