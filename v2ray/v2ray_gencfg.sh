@@ -10,6 +10,7 @@ curl -kv -x http://srv:port http://www
 sed -E 's/\/\*([^*]|\*+[^/*])*\*+\///g'
 # list all vars
 grep -o "\${[^}]*}" proxy.json
+#######################################
 EOF
 CLI_WST_PORT=${CLI_WST_PORT:-}
 
@@ -23,14 +24,30 @@ VLESS_UUID=${VLESS_UUID:-UNDEF}
 VLESS_ALTERID=${VLESS_ALTERID:-UNDEF}
 URI_PATH=${URI_PATH:-UNDEF}
 VLESS_VHOST=${VLESS_VHOST:-outgoing.org}
-WST_URI_PATH=${WST_URI_PATH:-/api/wst/login}
-WST_PORT=${WST_PORT:-60999}
+SRV_WST_URI_PATH=${SRV_WST_URI_PATH:-/api/wst/login}
+SRV_WST_PORT=${SRV_WST_PORT:-60999}
+cat <<EOF
+CLI_WST_PORT     =${CLI_WST_PORT}
+PROXY_SRV        =${PROXY_SRV}
+PROXY_PORT       =${PROXY_PORT}
+PROXY_USER       =${PROXY_USER}
+PROXY_PASS       =${PROXY_PASS}
+VLESS_IP         =${VLESS_IP}
+VLESS_PORT       =${VLESS_PORT}
+VLESS_UUID       =${VLESS_UUID}
+VLESS_ALTERID    =${VLESS_ALTERID}
+URI_PATH         =${URI_PATH}
+VLESS_VHOST      =${VLESS_VHOST}
+SRV_WST_URI_PATH =${SRV_WST_URI_PATH}
+SRV_WST_PORT     =${SRV_WST_PORT}
+EOF
+read -n 1 -p "Press any key continue ..." value
 
 [ -z "${CLI_WST_PORT}" ] || cat > v2_cli_wstunnel.sh <<EOF
 #!/usr/bin/env bash
 #LOG="--log-lvl OFF --no-color 1"
 PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
-PREFIX=${WST_URI_PATH}
+PREFIX=${SRV_WST_URI_PATH}
 ./wstunnel client ${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} -P \${PREFIX} -L tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:10000 --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${VLESS_IP}:${VLESS_PORT}
 EOF
 cat > v2_cli.json <<EOF
@@ -92,7 +109,7 @@ After=network-online.target
 [Service]
 Type=simple
 DynamicUser=true
-ExecStart=wstunnel server --restrict-to 127.0.0.1:10000 ws://127.0.0.1:${WST_PORT}
+ExecStart=wstunnel server --restrict-to 127.0.0.1:10000 ws://127.0.0.1:${SRV_WST_PORT}
 Restart=on-failure
 
 [Install]
@@ -120,11 +137,11 @@ server {
     proxy_intercept_errors on;
     error_page 400 495 496 497 = @400;
     location @400 { return 500 "bad request"; }
-    location ${WST_URI_PATH} {
+    location ${SRV_WST_URI_PATH} {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:${WST_PORT};
+        proxy_pass http://127.0.0.1:${SRV_WST_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
