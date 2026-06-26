@@ -146,6 +146,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_buffering off;
         proxy_read_timeout 90m;
+        proxy_send_timeout 90m;
     }
     location ${URI_PATH} {
         if (\$request_method != "GET") { return 404; }
@@ -160,6 +161,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_buffering off;
         proxy_read_timeout 90m;
+        proxy_send_timeout 90m;
     }
 }
 EOF
