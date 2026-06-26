@@ -53,15 +53,11 @@ EOF
 cat > v2_cli.json <<EOF
 {
   "log": { "access": "", "error": "", "loglevel": "debug" },
-  "inbounds": [
-    { "listen": "127.0.0.1", "port": 8080, "protocol": "http" }
-  ],
+  "inbounds": [ { "listen": "127.0.0.1", "port": 8080, "protocol": "http" } ],
   "outbounds": [
     {"tag": "direct-out", "protocol": "freedom"},
     {"tag": "block-out", "protocol": "blackhole", "settings": { "response": { "type": "http" } } },
-    {"tag": "via-proxy-out", "protocol": "http",
-      "settings": { "servers": [ { "address": "${PROXY_SRV}", "port": ${PROXY_PORT}, "users": [ { "user": "${PROXY_USER}", "pass": "${PROXY_PASS}" } ] } ] }
-    },
+    {"tag": "via-proxy-out", "protocol": "http", "settings": { "servers": [ { "address": "${PROXY_SRV}", "port": ${PROXY_PORT}, "users": [ { "user": "${PROXY_USER}", "pass": "${PROXY_PASS}" } ] } ] } },
     {"tag": "vless-out", "protocol": "vless",
       /* "proxySettings": { "tag": "via-proxy-out" },  // not worked ws, maybe tcp work */
       /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
@@ -149,6 +145,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_buffering off;
+        proxy_read_timeout 90m;
     }
     location ${URI_PATH} {
         if (\$request_method != "GET") { return 404; }
@@ -162,6 +159,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_buffering off;
+        proxy_read_timeout 90m;
     }
 }
 EOF
