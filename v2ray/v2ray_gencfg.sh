@@ -115,23 +115,22 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-cat > v2_srv_ngx.conf <<EOF
+cat > v2_srv_ngx.http <<EOF
 server {
     listen ${VLESS_PORT} ssl; # default_server reuseport;
     http2 on;
     server_name _;
-    ssl_certificate        srv1.pem;
-    ssl_certificate_key    srv1.key;
-    ssl_client_certificate ca.pem;
+    ssl_certificate        ssl/ngxsrv.pem;
+    ssl_certificate_key    ssl/ngxsrv.key;
     location / { access_log off; default_type text/html; root /var/www/; }
 }
 server {
     listen ${VLESS_PORT} ssl;
     http2 on;
     server_name ${VLESS_VHOST};
-    ssl_certificate        srv1.pem;
-    ssl_certificate_key    srv1.key;
-    ssl_client_certificate ca.pem;
+    ssl_certificate        ssl/ngxsrv.pem;
+    ssl_certificate_key    ssl/ngxsrv.key;
+    ssl_client_certificate ssl/ngx_verifyclient_ca.pem;
     # ssl_verify_client on;
     proxy_intercept_errors on;
     error_page 400 495 496 497 = @400;
