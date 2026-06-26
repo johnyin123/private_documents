@@ -26,6 +26,8 @@ URI_PATH=${URI_PATH:-UNDEF}
 VLESS_VHOST=${VLESS_VHOST:-outgoing.org}
 SRV_WST_URI_PATH=${SRV_WST_URI_PATH:-/api/wst/login}
 SRV_WST_PORT=${SRV_WST_PORT:-60999}
+SRV_V2RAY_PORT=${SRV_V2RAY_PORT:-10000}
+
 cat <<EOF
 CLI_WST_PORT     =${CLI_WST_PORT}
 PROXY_SRV        =${PROXY_SRV}
@@ -40,6 +42,7 @@ URI_PATH         =${URI_PATH}
 VLESS_VHOST      =${VLESS_VHOST}
 SRV_WST_URI_PATH =${SRV_WST_URI_PATH}
 SRV_WST_PORT     =${SRV_WST_PORT}
+SRV_V2RAY_PORT   =${SRV_V2RAY_PORT}
 EOF
 read -n 1 -p "Press any key continue ..." value
 
@@ -48,7 +51,7 @@ read -n 1 -p "Press any key continue ..." value
 #LOG="--log-lvl OFF --no-color 1"
 PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
 PREFIX=${SRV_WST_URI_PATH}
-./wstunnel client ${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} -P \${PREFIX} -L tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:10000 --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${VLESS_IP}:${VLESS_PORT}
+./wstunnel client ${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} -P \${PREFIX} -L tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${VLESS_IP}:${VLESS_PORT}
 EOF
 cat > v2_cli.json <<EOF
 {
@@ -105,7 +108,7 @@ After=network-online.target
 [Service]
 Type=simple
 DynamicUser=true
-ExecStart=wstunnel server --restrict-to 127.0.0.1:10000 ws://127.0.0.1:${SRV_WST_PORT}
+ExecStart=wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} ws://127.0.0.1:${SRV_WST_PORT}
 Restart=on-failure
 
 [Install]
@@ -152,7 +155,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:10000;
+        proxy_pass http://127.0.0.1:${SRV_V2RAY_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -169,7 +172,7 @@ cat > v2_srv.json <<EOF
 {
   "log": { "access": "", "error": "", "loglevel": "debug" },
   "inbounds": [
-    { "listen":"127.0.0.1", "port": 10000, "protocol": "vless",
+    { "listen":"127.0.0.1", "port": ${SRV_V2RAY_PORT}, "protocol": "vless",
       "settings": {
         "decryption": "none",
         "clients": [
