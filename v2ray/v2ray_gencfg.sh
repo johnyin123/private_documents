@@ -46,7 +46,7 @@ SRV_V2RAY_PORT   =${SRV_V2RAY_PORT}
 EOF
 read -n 1 -p "Press any key continue ..." value
 
-[ -z "${CLI_WST_PORT}" ] || cat > v2_cli_wstunnel.sh <<EOF
+cat > v2_cli_wstunnel.sh <<EOF
 #!/usr/bin/env bash
 #LOG="--log-lvl OFF --no-color 1"
 PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
