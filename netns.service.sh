@@ -196,6 +196,14 @@ ipaddr="192.168.167.250/24"
 gateway="192.168.167.251"
 dns="8.8.8.8"
 gen_svc_tpl "${srv_name}" "${bridge}" "${ipaddr}" "${gateway}" "${dns}"
+cat <<EOF > ${srv_name}/etc/${srv_name}/teardown.sh
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+echo "stop"
+# # systemctl cmd can not run in this script, if want remove netns, manual exec:
+systemctl stop myfly.service
+# systemctl stop bridge-netns@ns-v2ray.service
+EOF
 cat <<EOF > ${srv_name}/etc/${srv_name}/startup.sh
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
@@ -210,7 +218,8 @@ EO_HOST
 /etc/${srv_name}/v2ray.cli.tproxy.nft.sh
 sysctl -w net.ipv4.ip_forward=1
 export V2RAY_LOCATION_ASSET=/etc/${srv_name}
-nohup /etc/${srv_name}/v2ray -config /etc/${srv_name}/config.json &>/dev/null &
+# nohup /etc/${srv_name}/v2ray -config /etc/${srv_name}/config.json &>/dev/null &
+systemd-run --unit myfly -p NetworkNamespacePath=/run/netns/${srv_name} /etc/${srv_name}/v2ray run -config /etc/${srv_name}/config.json
 EOF
 echo "(cd ${srv_name} && rsync -avP * /)"
 cat <<EOF
