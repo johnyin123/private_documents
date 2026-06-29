@@ -82,7 +82,6 @@ cat > v2_cli.json <<EOF
       "settings": { "vnext": [ { "address": "${VLESS_IP}", "port": ${VLESS_PORT}, "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
       "streamSettings": { "network": "ws", "security": "tls",
         "tlsSettings": {
-          /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
           "fingerprint": "chrome", "allowInsecure": true, "disableSystemRoot": true
         },
         "wsSettings": { "headers": { "Host": "${VLESS_VHOST}", "User-Agent": "curl" }, "path": "${SRV_WG_URI_PATH}" },
