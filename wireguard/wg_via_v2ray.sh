@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8199ce2d[2026-06-26T13:47:00+08:00]:wg_via_v2ray.sh")
+VERSION+=("de28b80a[2026-06-26T15:03:22+08:00]:wg_via_v2ray.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -24,7 +24,7 @@ ListenPort = 51820
 
 ### client
   "inbounds": [
-    { "tag": "cli_in_udp", "listen": "127.0.0.1", "port": 10808, "protocol": "socks", "settings": { "udp": true } }
+    { "tag":"cli-in-udp", "listen": "127.0.0.1", "port": 10808, "protocol": "dokodemo-door", "settings": { "address": "127.0.0.1", "port": 65454, "network": "udp" } }
   ]
 
 [Peer]

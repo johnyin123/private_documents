@@ -23,10 +23,11 @@ VLESS_UUID=${VLESS_UUID:-UNDEF}
 VLESS_ALTERID=${VLESS_ALTERID:-UNDEF}
 URI_PATH=${URI_PATH:-UNDEF}
 VLESS_VHOST=${VLESS_VHOST:-outgoing.org}
-SRV_WST_URI_PATH=${SRV_WST_URI_PATH:-/api/wst/login}
+SRV_WST_URI_PATH=/wstsvc${URI_PATH}
 SRV_WST_PORT=${SRV_WST_PORT:-60999}
 SRV_V2RAY_PORT=${SRV_V2RAY_PORT:-10000}
-
+SRV_WG_PORT=${SRV_WG_PORT:-65454}
+SRV_WG_URI_PATH=/wgsvc${URI_PATH}
 cat <<EOF
 CLI_WST_PORT     =${CLI_WST_PORT}
 PROXY_SRV        =${PROXY_SRV}
@@ -39,9 +40,9 @@ VLESS_UUID       =${VLESS_UUID}
 VLESS_ALTERID    =${VLESS_ALTERID}
 URI_PATH         =${URI_PATH}
 VLESS_VHOST      =${VLESS_VHOST}
-SRV_WST_URI_PATH =${SRV_WST_URI_PATH}
 SRV_WST_PORT     =${SRV_WST_PORT}
 SRV_V2RAY_PORT   =${SRV_V2RAY_PORT}
+SRV_WG_PORT      =${SRV_WG_PORT}
 EOF
 read -n 1 -p "Press any key continue ..." value
 
@@ -50,12 +51,16 @@ cat > v2_cli_wstunnel.sh <<EOF
 #LOG="--log-lvl OFF --no-color 1"
 PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
 PREFIX=${SRV_WST_URI_PATH}
+# systemd-run --unit wst-srv
 ./wstunnel client ${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} -P \${PREFIX} -L tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${VLESS_IP}:${VLESS_PORT}
 EOF
 cat > v2_cli.json <<EOF
 {
   "log": { "access": "", "error": "", "loglevel": "debug" },
-  "inbounds": [ { "listen": "127.0.0.1", "port": 8080, "protocol": "http" } ],
+  "inbounds": [
+    { "tag":"cli-in-http", "listen": "127.0.0.1", "port": 8080, "protocol": "http" },
+    { "tag":"cli-in-udp", "listen": "127.0.0.1", "port": ${SRV_WG_PORT}, "protocol": "dokodemo-door", "settings": { "address": "127.0.0.1", "port": ${SRV_WG_PORT}, "network": "udp" } }
+  ],
   "outbounds": [
     {"tag": "direct-out", "protocol": "freedom"},
     {"tag": "block-out", "protocol": "blackhole", "settings": { "response": { "type": "http" } } },
@@ -70,7 +75,17 @@ cat > v2_cli.json <<EOF
           "fingerprint": "chrome", "allowInsecure": true, "disableSystemRoot": true
         },
         "wsSettings": { "headers": { "Host": "${VLESS_VHOST}", "User-Agent": "curl" }, "path": "${URI_PATH}" },
-        "mux": { "enabled": true, "concurrency": 8 },
+        "sockopt": { "tcpKeepAliveInterval": 5, "tcpKeepAliveIdle": 10 }
+      }
+    },
+    {"tag": "vless-out-udp", "protocol": "vless",
+      "settings": { "vnext": [ { "address": "${VLESS_IP}", "port": ${VLESS_PORT}, "users": [ { "encryption": "none", "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} } ] } ] },
+      "streamSettings": { "network": "ws", "security": "tls",
+        "tlsSettings": {
+          /* "certificates": [ { "certificate": [ ], "key": [ ], "usage": "encipherment" } ], */
+          "fingerprint": "chrome", "allowInsecure": true, "disableSystemRoot": true
+        },
+        "wsSettings": { "headers": { "Host": "${VLESS_VHOST}", "User-Agent": "curl" }, "path": "${SRV_WG_URI_PATH}" },
         "sockopt": { "tcpKeepAliveInterval": 5, "tcpKeepAliveIdle": 10 }
       }
     }
@@ -82,6 +97,7 @@ cat > v2_cli.json <<EOF
     "domainStrategy": "IPIfNonMatch",
     "rules": [
       /* via-proxy-out tag here work ok */
+      {"type": "field", "inboundTag": ["cli-in-udp"], "outboundTag": "vless-out-udp" },
       {"type": "field", "outboundTag": "block-out",
         "domain": ["domain:taobao.com", "geosite:category-ads-all" ]
       },
@@ -164,13 +180,28 @@ server {
         proxy_read_timeout 90m;
         proxy_send_timeout 90m;
     }
+    location ${SRV_WG_URI_PATH} {
+        if (\$request_method != "GET") { return 404; }
+        if (\$http_upgrade != "websocket") { return 404; }
+        proxy_redirect off;
+        proxy_pass http://127.0.0.1:$((${SRV_V2RAY_PORT}+1));
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_read_timeout 90m;
+        proxy_send_timeout 90m;
+    }
 }
 EOF
 cat > v2_srv.json <<EOF
 {
   "log": { "access": "", "error": "", "loglevel": "debug" },
   "inbounds": [
-    { "listen":"127.0.0.1", "port": ${SRV_V2RAY_PORT}, "protocol": "vless",
+    { "tag": "srv_in_all", "listen":"127.0.0.1", "port": ${SRV_V2RAY_PORT}, "protocol": "vless",
       "settings": {
         "decryption": "none",
         "clients": [
@@ -178,8 +209,26 @@ cat > v2_srv.json <<EOF
         ]
       },
       "streamSettings": { "network": "ws", "wsSettings": { "path": "${URI_PATH}" } }
+    },
+    { "tag": "srv_in_udp", "listen":"127.0.0.1", "port": $((${SRV_V2RAY_PORT}+1)), "protocol": "vless",
+      "settings": {
+        "decryption": "none",
+        "clients": [
+          { "id": "${VLESS_UUID}", "alterId": ${VLESS_ALTERID} }
+        ]
+      },
+      "streamSettings": { "network": "ws", "wsSettings": { "path": "${SRV_WG_URI_PATH}" } }
     }
   ],
-  "outbounds": [ { "protocol": "freedom" } ]
+  "outbounds": [
+    { "tag": "srv_out_all", "protocol": "freedom" },
+    { "tag": "srv_out_udp", "protocol": "freedom", "settings": { "redirect": "127.0.0.1:${SRV_WG_PORT}" } }
+  ],
+  "routing": {
+    "rules": [
+      { "type": "field", "inboundTag": ["srv_in_all"], "outboundTag": "srv_out_all" },
+      { "type": "field", "inboundTag": ["srv_in_udp"], "outboundTag": "srv_out_udp" }
+    ]
+  }
 }
 EOF

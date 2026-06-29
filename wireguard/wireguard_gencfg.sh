@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9910793[2024-08-13T12:43:18+08:00]:wireguard_gencfg.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("6b2fa57e[2024-08-15T10:56:32+08:00]:wireguard_gencfg.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 
 gen_wg_interface() {
@@ -163,5 +163,4 @@ Endpoint = srv_ip:port
 
 # # server as router alllow other traffic to 192.168.2.53/32,10.170.6.0/24
 wg set <interface> peer <pubkey> allowed-ips 192.168.32.2/32,192.168.2.53/32,10.170.6.0/24
-EOF
 EOF
