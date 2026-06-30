@@ -84,18 +84,19 @@ PREFIX=${NGX_WG_WSPATH}
 ./wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
 EOF
 }
+# "tlsSettings":{
+#   /*"certificates":[{"certificateFile":"cert.pem","keyFile":"cert.key","usage":"encipherment"}],*/
+#   /*"certificates":[{"certificate":[],"key":[],"usage":"encipherment"}],*/
+#   "fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true
+# },
 gen_outbound() {
     local local_port=${1}
     local wspath=${2}
     cli_out_mode_direct && {
         cat <<EOF
       "settings":{"vnext":[{"address":"${VLESS_IP}","port":${VLESS_PORT},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},
-      "streamSettings":{"network":"ws","security":"tls",
-        "tlsSettings":{
-          /*"certificates":[{"certificateFile":"cert.pem","keyFile":"cert.key","usage":"encipherment"}],*/
-          /*"certificates":[{"certificate":[],"key":[],"usage":"encipherment"}],*/
-          "fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true
-        },
+      "streamSettings":{"network":"ws",
+        "security":"tls", "tlsSettings":{ "fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true },
         "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
         "sockopt":{"tcpKeepAliveInterval":5,"tcpKeepAliveIdle":10}
       }
