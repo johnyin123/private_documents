@@ -214,14 +214,16 @@ EOF
 
 cat > v2_srv_ngx.http <<EOF
 server {
-    listen ${VLESS_PORT} ssl; # default_server reuseport;
+    listen 443 ssl default_server reuseport;
+    listen ${VLESS_PORT} ssl default_server reuseport;
     http2 on;
     server_name _;
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
-    location / { access_log off; default_type text/html; root /var/www/; }
+    location / { access_log off; return 301 https://${VLESS_VHOST}; }
 }
 server {
+    listen 443 ssl;
     listen ${VLESS_PORT} ssl;
     http2 on;
     server_name ${VLESS_VHOST};
@@ -233,6 +235,7 @@ server {
     proxy_intercept_errors on;
     error_page 400 495 496 497 = @400;
     location @400 { return 500 "bad request"; }
+    location / { keepalive_timeout 0; return 444; }
     # # connect via wstunnel ################################
     location ${NGX_WSPATH} {
         if (\$request_method != "GET") { return 404; }
