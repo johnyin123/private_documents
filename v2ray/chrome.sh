@@ -8,3 +8,8 @@ netns_exists() {
 }
 netns_exists ns-v2ray || sudo systemctl start netns@ns-v2ray
 sudo ip netns exec ns-v2ray su johnyin -c "export http_proxy=http://127.0.0.1:8080; export https_proxy=http://127.0.0.1:8080; google-chrome"
+cat <<EOF
+export http_proxy=http://127.0.0.1:8080
+export https_proxy=http://127.0.0.1:8080
+sudo --preserve-env ip netns exec ns-v2ray su johnyin
+EOF
