@@ -122,6 +122,7 @@ EOF
     gen_wst_script
     cat <<EOF
       "settings":{"vnext":[{"address":"${local_ip}","port":${local_port},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},
+      "mux": { "enabled": true },
       "streamSettings":{"network":"ws",
         "security":"tls","tlsSettings":{"fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true},
         "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
