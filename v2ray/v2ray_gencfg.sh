@@ -91,10 +91,12 @@ systemd-run --unit wstwg-srv \\
 systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \\
 ./v2ray run -c v2_cli.json
 
-# systemctl stop wst-srv.service
-# systemctl stop wstwg-srv.service
-# systemctl stop v2ray-cli.service
-# systemctl reset-failed
+cat <<EODOC
+systemctl stop wst-srv.service
+systemctl stop wstwg-srv.service
+systemctl stop v2ray-cli.service
+systemctl reset-failed
+EODOC
 EOF
 }
 # "tlsSettings":{
