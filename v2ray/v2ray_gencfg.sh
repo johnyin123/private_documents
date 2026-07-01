@@ -138,10 +138,7 @@ cat > v2_cli.json <<EOF
   "outbounds":[
     {"tag":"direct-out","protocol":"freedom"},
     {"tag":"block-out","protocol":"blackhole","settings":{"response":{"type":"http"}}},
-$([ -z "${PROXY_SRV}" ] || cat <<EOF_PROXY
-    {"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},
-EOF_PROXY
-)
+    $([ -z "${PROXY_SRV}" ] && echo -n "/*"){"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},$([ -z "${PROXY_SRV}" ] && echo -n "*/")
     {"tag":"vless-out","protocol":"vless",
       /* "proxySettings":{"tag":"via-proxy-out"},// not worked ws,maybe tcp work */
 $(gen_outbound ${CLI_WST_PORT} ${V2RAY_WSPATH})
