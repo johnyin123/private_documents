@@ -22,8 +22,8 @@ EOF
 CLI_OUT_DIRECT=${CLI_OUT_DIRECT:?$(log "CLI_OUT_DIRECT no found,(yes/no)")} #direct output/via wstunnel
 cli_out_mode_direct() { [ "${CLI_OUT_DIRECT:-x}" == "yes" ]; }
 
-PROXY_SRV=${PROXY_SRV:-UNDEF}
-PROXY_PORT=${PROXY_PORT:-UNDEF}
+PROXY_SRV=${PROXY_SRV:-}
+PROXY_PORT=${PROXY_PORT:-}
 PROXY_USER=${PROXY_USER:-UNDEF}
 PROXY_PASS=${PROXY_PASS:-UNDEF}
 
@@ -44,7 +44,7 @@ V2RAY_WSPATH=${V2RAY_WSPATH:?$(log "V2RAY_WSPATH no found")}
 SRV_WST_PORT=${SRV_WST_PORT:-$(random 60000 61000)}
 NGX_WSPATH=${NGX_WSPATH:-/wst${V2RAY_WSPATH}}
 
-SRV_WG_V2RAY_PORT=${SRV_WG_V2RAY_PORT:-$((${SRV_V2RAY_PORT}+2))}
+SRV_WG_V2RAY_PORT=${SRV_WG_V2RAY_PORT:-$((${SRV_V2RAY_PORT}+1))}
 V2RAY_WG_WSPATH=${V2RAY_WG_WSPATH:-/wg${V2RAY_WSPATH}}
 
 SRV_WG_WST_PORT=${SRV_WG_WST_PORT:-$((${SRV_WST_PORT}+1))}
@@ -71,17 +71,30 @@ read -n 1 -p "Press any key continue ..." value
 gen_wst_script() {
     cat > v2_cli_wstunnel.sh <<EOF
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
+
 LOG="--log-lvl OFF --no-color 1"
 # TLS="--tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key"
-# PROXY="--http-proxy http://${PROXY_USER}:${PROXY_PASS}@${PROXY_SRV}:${PROXY_PORT}"
+# PROXY="--http-proxy http://USER:PASS@SRV:PORT"
+
 # # http
-# systemd-run --unit wst-srv
 PREFIX="${NGX_WSPATH}"
+systemd-run --unit wst-srv \\
 ./wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
+
 # # udp
-# systemd-run --unit wstwg-srv
 PREFIX=${NGX_WG_WSPATH}
+systemd-run --unit wstwg-srv \\
 ./wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
+
+systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \\
+./v2ray run -c v2_cli.json
+
+# systemctl stop wst-srv.service
+# systemctl stop wstwg-srv.service
+# systemctl stop v2ray-cli.service
+# systemctl reset-failed
 EOF
 }
 # "tlsSettings":{
@@ -92,25 +105,27 @@ EOF
 gen_outbound() {
     local local_port=${1}
     local wspath=${2}
+    local local_ip="127.0.0.1"
     cli_out_mode_direct && {
         cat <<EOF
-      "settings":{"vnext":[{"address":"${VLESS_IP}","port":${VLESS_PORT},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},
-      "streamSettings":{"network":"ws",
-        "security":"tls", "tlsSettings":{ "fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true },
-        "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
-        "sockopt":{"tcpKeepAliveInterval":5,"tcpKeepAliveIdle":10}
-      }
+      /*"settings":{"vnext":[{"address":"${local_ip}","port":${local_port},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},*/
 EOF
+        local_ip=${VLESS_IP}
+        local_port=${VLESS_PORT}
     } || {
-        gen_wst_script
         cat <<EOF
-      "settings":{"vnext":[{"address":"127.0.0.1","port":${local_port},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},
-      "streamSettings":{"network":"ws",
-        "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
-        "sockopt":{"tcpKeepAliveInterval":5,"tcpKeepAliveIdle":10}
-      }
+      /*"settings":{"vnext":[{"address":"${VLESS_IP}","port":${VLESS_PORT},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},*/
 EOF
     }
+    gen_wst_script
+    cat <<EOF
+      "settings":{"vnext":[{"address":"${local_ip}","port":${local_port},"users":[{"encryption":"none","id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]}]},
+      "streamSettings":{"network":"ws",
+        "security":"tls","tlsSettings":{"fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true},
+        "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
+        "sockopt":{"tcpKeepAliveInterval":5,"tcpKeepAliveIdle":10}
+      }
+EOF
 }
 
 cat > v2_cli.json <<EOF
@@ -123,10 +138,12 @@ cat > v2_cli.json <<EOF
   "outbounds":[
     {"tag":"direct-out","protocol":"freedom"},
     {"tag":"block-out","protocol":"blackhole","settings":{"response":{"type":"http"}}},
+$([ -z "${PROXY_SRV}" ] || cat <<EOF_PROXY
     {"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},
+EOF_PROXY
+)
     {"tag":"vless-out","protocol":"vless",
       /* "proxySettings":{"tag":"via-proxy-out"},// not worked ws,maybe tcp work */
-      /* socat -v -x  TCP-LISTEN:18080,bind=0.0.0.0,reuseaddr,fork TCP:192.168.2.78:8080 */
 $(gen_outbound ${CLI_WST_PORT} ${V2RAY_WSPATH})
     },
     {"tag":"vless-out-udp","protocol":"vless",
@@ -160,28 +177,37 @@ EOF
 ################################################################################
 # ./nginx -g 'daemon off;'
 # ./v2ray run -config v2_srv.json
-cat > v2_srv_wg_wstunnel.service <<EOF
-[Unit]
-After=network-online.target
-[Service]
-Type=simple
-DynamicUser=true
-ExecStart=wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} ws://127.0.0.1:${SRV_WG_WST_PORT};
-Restart=on-failure
+cat > v2_srv_wstunnel.sh <<'EOF'
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-[Install]
-WantedBy=multi-user.target
+systemd-run --working-directory=${DIRNAME} --unit ngx-srv ${DIRNAME}/nginx -g 'daemon off;'
+systemd-run --working-directory=${DIRNAME} --unit v2ray-srv ${DIRNAME}/v2ray run -c ${DIRNAME}/v2_srv.json
+EOF
+cat >> v2_srv_wstunnel.sh <<EOF
+systemd-run --unit wst-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}
+systemd-run --unit wstwg-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT}
+# systemctl stop wst-srv.service
+# systemctl stop wstwg-srv.service
+# systemctl stop v2ray-srv.service
+# systemctl stop ngx-srv.service
+# systemctl reset-failed
 EOF
 
-cat > v2_srv_wstunnel.service <<EOF
+cat > v2_srv_wstunnel@.service <<EOF
+# systemctl enable v2_srv_wstunnel@\$(systemd-escape --path /mydir/myray/)
 [Unit]
-After=network-online.target
+After=network.target
 [Service]
-Type=simple
-DynamicUser=true
-ExecStart=wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} ws://127.0.0.1:${SRV_WST_PORT}
-Restart=on-failure
-
+Type=oneshot
+# DynamicUser=true
+RemainAfterExit=yes
+WorkingDirectory=/%I
+ExecStart=/bin/sh -c "./nginx"
+ExecStart=/bin/sh -c "./v2ray run -c v2_srv.json &"
+ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT} &"
+ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT} &"
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -212,7 +238,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:${SRV_WST_PORT};
+        proxy_pass https://127.0.0.1:${SRV_WST_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -227,7 +253,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:${SRV_WG_WST_PORT};
+        proxy_pass https://127.0.0.1:${SRV_WG_WST_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -243,7 +269,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:${SRV_V2RAY_PORT};
+        proxy_pass https://127.0.0.1:${SRV_V2RAY_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -258,7 +284,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:${SRV_WG_V2RAY_PORT};
+        proxy_pass https://127.0.0.1:${SRV_WG_V2RAY_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -271,16 +297,44 @@ server {
     }
 }
 EOF
+get_tls() {
+    local fn=${1}
+    local prefix=${2}
+    jq -nR '[inputs]' "${fn}" | sed "2,$ s/^/${prefix}/"
+}
+openssl genpkey -algorithm ed25519 -out v2_srv.key
+# openssl genrsa -out v2_srv.key 2048
+openssl req -new -x509 -days 1460 -key v2_srv.key -out v2_srv.pem -utf8 -subj "/C=US/L=LN/O=jyca/CN=updater"
 cat > v2_srv.json <<EOF
 {
   "log":{"access":"","error":"","loglevel":"debug"},
   "inbounds":[
     {"tag":"srv-in-all","listen":"127.0.0.1","port":${SRV_V2RAY_PORT},"protocol":"vless",
       "settings":{"decryption":"none","clients":[{"id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]},
-      "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WSPATH}"}}},
+      "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WSPATH}"},
+        "security":"tls","tlsSettings":{
+          "disableSystemRoot":true,
+          "certificates":[{
+            "key":$(get_tls "v2_srv.key" "            "),
+            "certificate":$(get_tls "v2_srv.pem" "            "),
+            "usage":"encipherment"
+          }]
+        }
+      }
+    },
     {"tag":"srv-in-udp","listen":"127.0.0.1","port":${SRV_WG_V2RAY_PORT},"protocol":"vless",
       "settings":{"decryption":"none","clients":[{"id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]},
-      "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WG_WSPATH}"}}}
+      "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WG_WSPATH}"},
+        "security":"tls","tlsSettings":{
+          "disableSystemRoot":true,
+          "certificates":[{
+            "key":$(get_tls "v2_srv.key" "            "),
+            "certificate":$(get_tls "v2_srv.pem" "            "),
+            "usage":"encipherment"
+          }]
+        }
+      }
+    }
   ],
   "outbounds":[
     {"tag":"srv_out_all","protocol":"freedom"},
