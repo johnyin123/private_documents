@@ -83,18 +83,19 @@ readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 LOG="--log-lvl OFF --no-color 1"
 # TLS="--tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key"
 # PROXY="--http-proxy http://USER:PASS@SRV:PORT"
+# NS_NAME=
 
 # # http
 PREFIX="${NGX_WSPATH}"
-systemd-run --unit wst-srv \\
+systemd-run --unit wst-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 ./wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
 
 # # udp
-PREFIX=${NGX_WG_WSPATH}
-systemd-run --unit wstwg-srv \\
+PREFIX="${NGX_WG_WSPATH}"
+systemd-run --unit wstwg-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 ./wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
 
-systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \\
+systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 ./v2ray run -c v2_cli.json
 
 cat <<EODOC
