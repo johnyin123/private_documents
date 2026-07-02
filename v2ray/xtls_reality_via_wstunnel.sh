@@ -189,6 +189,7 @@ cat > v2_srv_wstunnel@.service <<EOF
 [Unit]
 After=network.target
 [Service]
+LimitNOFILE=65536
 Type=oneshot
 # DynamicUser=true
 RemainAfterExit=yes
