@@ -210,7 +210,7 @@ server {
     server_name _;
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
-    location / { access_log off; return 301 https://${VLESS_VHOST}; }
+    location / { keepalive_timeout 0; access_log off; return 301 https://${VLESS_VHOST}; }
 }
 upstream api_srvs {
     server 127.0.0.1:${SRV_WST_PORT};
@@ -227,8 +227,6 @@ server {
     # ssl_verify_client on;
     access_log logs/ray.log;
     proxy_intercept_errors on;
-    error_page 400 495 496 497 = @400;
-    location @400 { return 500 "bad request"; }
     location / { keepalive_timeout 0; return 444; }
     # # connect via wstunnel ################################
     location ${NGX_WSPATH} {
