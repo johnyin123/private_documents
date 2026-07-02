@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("243fbd04[2026-06-22T09:56:29+08:00]:newssl.sh")
+VERSION+=("0934b791[2026-06-22T13:32:42+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -16,6 +16,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         env: YEAR=5, the ca&client years, default 5
+             ECC=1,  defined use algorithm ed25519
         -i|--init   <str> *  init ca, sign a server cert with DN=<str>
         -c|--client <str>  * create client cert keys, multi input
         --ip        <ip>     client cert subjectAltName ip, multi input
@@ -47,9 +48,10 @@ init_ca() {
     local dn=${2}
     [ -d "${caroot}" ] && return 1
     try mkdir -p ${caroot}
-    info_msg "creating ca key\n"
-    try openssl genrsa -out ${caroot}/ca.key 2048
-    info_msg "creating ca cert\n"
+    info_msg "creating ${ECC:+ECC }ca key\n"
+    defined ECC && try openssl genpkey -algorithm ed25519 -out ${caroot}/ca.key || \
+        try openssl genrsa -out ${caroot}/ca.key 2048
+    info_msg "creating ${ECC:+ECC }ca cert\n"
     try openssl req -new -x509 -days $((365*${YEAR})) -key ${caroot}/ca.key \
         -out ${caroot}/ca.pem -utf8 -subj \"/C=CN/L=LN/O=${dn}/CN=self sign root ca\"
     try openssl x509 -text -noout -in ${caroot}/ca.pem
@@ -62,12 +64,13 @@ gen_client_cert() {
     local cid=($(array_print ${2}))
     local ips=($(array_print ${3}))
     [ -e "${caroot}/${cid[0]}.csr" ] && { error_msg "${caroot}/${cid[0]} file exist!!!!\n"; return 1; }
-    info_msg "create key\n"
-    try openssl genrsa -out ${caroot}/${cid[0]}.key 2048
-    info_msg "create certificate signing request (csr)\n"
+    info_msg "create ${ECC:+ECC }key\n"
+    defined ECC && try openssl genpkey -algorithm ed25519 -out ${caroot}/${cid[0]}.key || \
+        try openssl genrsa -out ${caroot}/${cid[0]}.key 2048
+    info_msg "create ${ECC:+ECC }certificate signing request (csr)\n"
     try openssl req -new -key ${caroot}/${cid[0]}.key -out ${caroot}/${cid[0]}.csr \
         -utf8 -subj \"/C=CN/L=LN/O=mycompany/CN=${cid[0]}\"
-    info_msg "signing our certificate with my ca"
+    info_msg "signing our ${ECC:+ECC }certificate with my ca"
     echo -n "subjectAltName = DNS.1:${cid[0]}" > extfile.cnf
     num=1
     for dns in $(array_print cid); do
@@ -151,10 +154,10 @@ main() {
         init_ca "${caroot}" "${init}" || exit_msg "${caroot} dir exists\n"
     }
     [ "$(array_size client)" -gt "0" ] && {
-        info_msg "generate client [${client[0]}] cert\n"
+        info_msg "generate client ${ECC:+ECC }[${client[0]}] cert\n"
         gen_client_cert "${caroot}" client ips|| {
             retval=$?
-            error_msg "generate client [${client[0]}] cert error[${retval}]\n"
+            error_msg "generate client ${ECC:+ECC }[${client[0]}] cert error[${retval}]\n"
         }
         info_msg "conver to broswer support format.\n"
         info_msg "openssl pkcs12 -export -clcerts -in ${client[0]}.pem -inkey ${client}.key -out ${client[0]}.p12\n"
