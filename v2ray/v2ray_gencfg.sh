@@ -23,7 +23,7 @@ CLI_OUT_DIRECT=${CLI_OUT_DIRECT:?$(log "CLI_OUT_DIRECT no found,(yes/no)")} #dir
 cli_out_mode_direct() { [ "${CLI_OUT_DIRECT:-x}" == "yes" ]; }
 
 PROXY_SRV=${PROXY_SRV:-}
-PROXY_PORT=${PROXY_PORT:-}
+PROXY_PORT=${PROXY_PORT:-8080}
 PROXY_USER=${PROXY_USER:-UNDEF}
 PROXY_PASS=${PROXY_PASS:-UNDEF}
 
