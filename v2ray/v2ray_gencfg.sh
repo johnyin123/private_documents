@@ -229,8 +229,8 @@ server {
     server_name ${VLESS_VHOST};
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
-    ssl_client_certificate ssl/ngx_verifyclient_ca.pem;
     access_log logs/ray.log;
+    # ssl_client_certificate ssl/ngx_verifyclient_ca.pem;
     # ssl_verify_client on;
     proxy_intercept_errors on;
     error_page 400 495 496 497 = @400;
