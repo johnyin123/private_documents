@@ -225,6 +225,14 @@ server {
     ssl_certificate_key    ssl/ngxsrv.key;
     location / { access_log off; return 301 https://${VLESS_VHOST}; }
 }
+upstream wst_api_srvs {
+    server 127.0.0.1:${SRV_WST_PORT};
+    keepalive 32;
+}
+upstream api_srvs {
+    server 127.0.0.1:${SRV_V2RAY_PORT};
+    keepalive 32;
+}
 server {
     listen 443 ssl;
     listen ${VLESS_PORT} ssl;
@@ -244,7 +252,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass https://127.0.0.1:${SRV_WST_PORT};
+        proxy_pass https://wst_api_srvs;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -275,7 +283,7 @@ server {
         if (\$request_method != "GET") { return 404; }
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
-        proxy_pass https://127.0.0.1:${SRV_V2RAY_PORT};
+        proxy_pass https://api_srvs;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
