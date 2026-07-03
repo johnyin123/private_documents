@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("51bc876f[2025-06-26T10:33:32+08:00]:init-pc.sh")
+VERSION+=("bbc55c7c[2025-10-23T07:08:45+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -600,6 +600,8 @@ table inet myblackhole {
         # iifname "lo" accept comment "Accept anything from lo interface"
         # accept traffic originating from us
         ct state established,related accept
+        iifname { "wlan0", "br-ext" } tcp dport 6000 counter drop
+        iifname { "wlan0", "br-ext" } ip protocol icmp drop
         # tcp dport { 80, 8443 } ct state new limit rate 10/second accept
         # ct state vmap { invalid : drop, established : accept, related : accept }
         # # Drop all incoming connections in blacklist, reject fast application response than drop
