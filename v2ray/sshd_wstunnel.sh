@@ -29,6 +29,7 @@ PREFIX="\${PREFIX/#\//}" # remove first /
 systemd-run --unit wst-sshd \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/wstunnel client --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${LOCAL_WST_PORT}:127.0.0.1:${SSH_PORT} --http-headers "Host: ${SSH_VHOST}" wss://RemoteHost:443
 # ssh -p${LOCAL_WST_PORT} root@127.0.0.1
+# ssh -o ProxyCommand="wstunnel client --http-upgrade-path-prefix ${NGX_SSH_WSPATH} --local-to-remote stdio://%h:%p --http-headers 'Host:${SSH_VHOST}' wss://RemoteHost:443" root@127.0.0.1
 EOF
 cat <<EOF > sshd_wstunnel_ngx.location
     location ${NGX_SSH_WSPATH} {
