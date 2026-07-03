@@ -25,6 +25,25 @@ PG_DAMAGED Possible data damage: 1 pg inconsistent
 $ceph pg repair 1.5
 wait heath ok.
 ############################################################
+#backfill_toofull
+1.Disable Ceph Storage cluster rebalancing temporarily:
+    $ ceph osd set noout
+    $ ceph osd set nobackfill
+    $ ceph osd set norecover
+2.Identify the Problem OSD
+    $ ceph osd df
+    $ ceph health detail
+3.Free Up Space Safely
+    $ ceph osd crush reweight osd.<ID> 0.95
+4.Adjust Global Full Ratios (If absolutely necessary)
+# ceph osd set-full-ratio 0.98
+# ceph osd set-nearfull-ratio 0.95
+5.When complete, enable cluster rebalancing again:
+    $ ceph osd unset noout
+    $ ceph osd unset nobackfill
+    $ ceph osd unset norecover
+    $ ceph -s
+############################################################
 #To reboot the Ceph Storage nodes
 1.Disable Ceph Storage cluster rebalancing temporarily:
     $ ceph osd set noout

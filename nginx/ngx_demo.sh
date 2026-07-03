@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("212d9838[2026-06-11T13:30:06+08:00]:ngx_demo.sh")
+VERSION+=("ba445312[2026-06-11T13:34:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -280,15 +280,16 @@ geo $remote_addr $ip_whitelist {
     default 0;
     192.168.168.1 1;
 }
+map $geoip_country_code $allowed_country {
+    default no; # default block
+    CN yes;
+}
 server {
     listen 80;
     server_name _;
-    if ($ip_whitelist = 1) {
-        break;
-    }
-    if ($geoip_country_code ~ (JP|TW|SG)) {
-        return 403;
-    }
+    if ($ip_whitelist = 1) { break; }
+    if ($geoip_country_code ~ (JP|TW|SG)) { return 403; }
+    if ($allowed_country = no) { return 444; }
     location / {
         root /var/www;
         try_files $uri $uri/ =404;
