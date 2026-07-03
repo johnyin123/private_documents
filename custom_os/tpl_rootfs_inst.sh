@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("68a93f64[2025-09-15T13:55:19+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("cf88c199[2025-09-17T13:55:19+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -13,10 +13,6 @@ ${SCRIPTNAME}
         -t|--tpl  *   <str>   root squashfs(tpl) for install
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
-                        parted -s /dev/vda "mklabel gpt"
-                        parted -s /dev/vda "mkpart primary fat32 1M 128M"
-                        parted -s /dev/vda "mkpart primary xfs 128M 100%"
-                        parted -s /dev/vda "set 1 boot on"
         -d|--disk *   <str>   disk, /dev/sdX
         -p|--part *   <str>   install tpl in partition as rootfs, /dev/vda1, /dev/mapper/..
         --fs          <fstype> ext4/xfs, default xfs
@@ -36,6 +32,16 @@ ${SCRIPTNAME}
            ./nbd_attach.sh -a disk.img --fmt raw
            .${SCRIPTNAME} -t tpl.tpl -d /dev/nbd0 -p 1
            ./nbd_attach.sh -d /dev/nbd0
+EOF
+    cat <<'EOF'
+DISK=/dev/vda
+SIZE_EFI=128MiB
+SIZE_SWAP=16GiB
+parted -s ${DISK} "mklabel gpt"
+parted -s ${DISK} "mkpart primary fat32 1M ${SIZE_EFI}"
+parted -s ${DISK} "mkpart primary xfs ${SIZE_EFI} -${SIZE_SWAP}"
+parted -s ${DISK} "mkpart primary linux-swap -${SIZE_SWAP} 100%"
+parted -s ${DISK} "set 1 boot on"
 EOF
     exit 1
 }
