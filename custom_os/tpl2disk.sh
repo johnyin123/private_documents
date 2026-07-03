@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ba30695b[2023-09-19T14:12:10+08:00]:tpl2disk.sh")
+VERSION+=("b07dbb5d[2025-03-15T09:28:46+08:00]:tpl2disk.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -16,10 +16,6 @@ ${SCRIPTNAME}
         -t|--tpl  *   <str>   root squashfs(tpl) for install
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
-                        parted -s /dev/vda "mklabel gpt"
-                        parted -s /dev/vda "mkpart primary fat32 1M 128M"
-                        parted -s /dev/vda "mkpart primary xfs 128M 100%"
-                        parted -s /dev/vda "set 1 boot on"
         -d|--disk *   <str>   disk, /dev/sdX
         -p|--part *   <str>   install tpl in partition as rootfs, /dev/vda1, /dev/mapper/..
         --fs          <fstype> ext4/xfs, default xfs
@@ -43,6 +39,23 @@ ${SCRIPTNAME}
            ./${SCRIPTNAME} -t tpl.tpl -d /dev/nbd0 --uefi /dev/mapper/nbd0p1 -p /dev/mapper/nbd0p2 --fs ext4
            ./nbd_attach.sh -d /dev/nbd0
 EOF
+    cat <<'EOF'
+DISK=/dev/vda
+SIZE_EFI=128M
+SIZE_ROOTFS=32
+SIZE_HOMEFS=32
+SIZE_SWAP=16G
+cat <<EOCMD
+parted -s ${DISK} "mklabel gpt"
+parted -s ${DISK} "mkpart primary fat32 1M ${SIZE_EFI}"
+parted -s ${DISK} "mkpart primary xfs ${SIZE_EFI} ${SIZE_ROOTFS}G"
+parted -s ${DISK} "mkpart primary xfs ${SIZE_ROOTFS}G $((${SIZE_ROOTFS}+${SIZE_HOMEFS}))G"
+parted -s ${DISK} "mkpart primary xfs $((${SIZE_ROOTFS}+${SIZE_HOMEFS}))G -${SIZE_SWAP}"
+parted -s ${DISK} "mkpart primary linux-swap -${SIZE_SWAP} 100%"
+parted -s ${DISK} "set 1 boot on"
+EOCMD
+EOF
+
     exit 1
 }
 
