@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9095b920[2026-07-03T09:39:32+08:00]:init-pc.sh")
+VERSION+=("1e9a4674[2026-07-03T15:11:40+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -556,8 +556,6 @@ table inet filter {
         type filter hook forward priority 0; policy accept;
         tcp flags & (syn|rst) == syn tcp option maxseg size set rt mtu
     }
-}
-table inet myblackhole {
     chain input {
         type filter hook input priority 0; policy drop;
         # accept traffic originating from us
