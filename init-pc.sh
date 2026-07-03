@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bbc55c7c[2025-10-23T07:08:45+08:00]:init-pc.sh")
+VERSION+=("9095b920[2026-07-03T09:39:32+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -435,7 +435,7 @@ email = johnyin.news@163.com
 [alias]
     lg = log --color --graph --pretty=format:'[%cd] %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=short --
 # [http]
-# 	proxy = http://127.0.0.1:58891
+#     proxy = http://127.0.0.1:58891
 # git config --global http.sslVerify "false"
 EOF
     chown -R johnyin.johnyin /home/johnyin/
@@ -512,11 +512,11 @@ ENET
 # nft add rule nat postrouting masquerade
 # nft list ruleset
 # table ip nat {
-# 	chain postrouting {
-# 		type nat hook postrouting priority srcnat; policy accept;
-# 		ip saddr 192.168.168.0/24
-# 		masquerade
-# 	}
+#     chain postrouting {
+#         type nat hook postrouting priority srcnat; policy accept;
+#         ip saddr 192.168.168.0/24
+#         masquerade
+#     }
 # }
 # ###NAT pooling
 # #It is possible to specify source NAT pooling:
@@ -541,72 +541,32 @@ cat <<'EOF'>/etc/nftables.conf
 #!/usr/sbin/nft -f
 flush ruleset
 
-# define CAN_ACCESS_IPS = { 20.205.243.166, 101.71.33.11, 111.124.200.227, 120.55.105.209, 47.97.242.13, 183.131.227.249}
-define CAN_ACCESS_IPS = { }
 table ip nat {
-	chain postrouting {
-		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.167.10 counter masquerade
-		ip saddr 192.168.167.20 counter masquerade
-		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
-		ip saddr 192.168.169.0/24 ip daddr != 192.168.169.0/24 counter masquerade
-		ip saddr 192.168.32.0/24 ip daddr != 192.168.32.0/24 counter masquerade
-	}
-}
-table ip filter {
-	chain forward {
-		type filter hook forward priority 0; policy accept;
-		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
-	}
-}
-table inet mangle {
-	set canouts4 {
-		typeof ip daddr
-		flags interval
-		elements = { $CAN_ACCESS_IPS }
-	}
-
-	chain output {
-		type route hook output priority mangle; policy accept;
-		ip daddr @canouts4 meta l4proto { tcp, udp } meta mark set 0x00000440
-	}
-}
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# flush table inet myblackhole
-# delete table inet myblackhole
-# # block ip for 5m, can remove blacklist set timeout properties
-# nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
-#
-# # block input 6000
-# nft add rule inet myblackhole input tcp dport 6000 drop
-# # block input ipaddr
-# nft add rule inet myblackhole input ip saddr <IP_ADDRESS> counter drop
-# # list handle
-# nft -a list table inet myblackhole
-# # remove handle(tcp dport 6000 drop)
-# nft delete rule inet myblackhole input handle 6
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-define BLACK_LIST = { }
-table inet myblackhole {
-    set blacklist {
-        type ipv4_addr
-        flags dynamic,timeout
-        timeout 5m
-        elements = { $BLACK_LIST }
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
+        ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
+        ip saddr 192.168.169.0/24 ip daddr != 192.168.169.0/24 counter masquerade
+        ip saddr 192.168.32.0/24 ip daddr != 192.168.32.0/24 counter masquerade
+        ip saddr 192.168.31.0/24 ip daddr != 192.168.31.0/24 counter masquerade
     }
+}
+table inet filter {
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+        tcp flags & (syn|rst) == syn tcp option maxseg size set rt mtu
+    }
+}
+table inet myblackhole {
     chain input {
-        type filter hook input priority 0; policy accept;
-        # iifname "lo" accept comment "Accept anything from lo interface"
+        type filter hook input priority 0; policy drop;
         # accept traffic originating from us
         ct state established,related accept
-        iifname { "wlan0", "br-ext" } tcp dport 6000 counter drop
-        iifname { "wlan0", "br-ext" } ip protocol icmp drop
-        # tcp dport { 80, 8443 } ct state new limit rate 10/second accept
-        # ct state vmap { invalid : drop, established : accept, related : accept }
-        # # Drop all incoming connections in blacklist, reject fast application response than drop
-        ip saddr @blacklist counter reject
-		#ip protocol . th dport vmap {tcp . 8080 : jump HTTP, tcp . 22 : jump SSH, udp . 53: accept, tcp . !=8080|80|22|53 : jump AOB}
+        # Drop invalid connections
+        ct state invalid drop
+        # Accept anything from lo interface"
+        iifname { "lo", "br-int" } accept
+        # tcp dport { 80, 443 } accept
     }
 }
 EOF
