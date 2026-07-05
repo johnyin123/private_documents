@@ -148,7 +148,7 @@ $(gen_outbound ${CLI_WST_WG_PORT})
       /* via-proxy-out tag here work ok */
       {"type":"field","inboundTag":["cli-in-udp"],"outboundTag":"vless-out-udp"},
       {"type":"field","outboundTag":"block-out",
-        "domain":["domain:taobao.com","geosite:category-ads-all"]
+        "domain":["domain:aria2e.com","geosite:category-ads-all"]
       },
       {"type":"field","outboundTag":"direct-out",
         "domain":["domain:baidu.com","geosite:cn"]
