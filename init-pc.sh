@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1e9a4674[2026-07-03T15:11:40+08:00]:init-pc.sh")
+VERSION+=("fa53ea6e[2026-07-03T15:33:14+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -67,10 +67,23 @@ EOF
 echo "install network bridge"
 apt_install bridge-utils python3-venv
 cat << EOF | tee /etc/network/interfaces.d/br-int
+# auto br-int
+# iface br-int inet manual
+#     bridge_ports none
+#     bridge_maxwait 0
+
 auto br-int
-iface br-int inet manual
+iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
+    address 192.168.167.1/24
+
+iface br-int inet6 static
+    address 2001::c0a8:a701/96
+
+auto br-int:1
+iface br-int:1 inet static
+    address 192.168.169.1/24
 EOF
 cat << EOF | tee /etc/network/interfaces.d/br-ext
 # auto eth0
@@ -86,6 +99,13 @@ iface br-ext inet static
     hwaddress 00:be:43:53:2c:b9
     address ${IPADDR:-10.32.166.31/25}
     ${GATEWAY:+gateway ${GATEWAY}}
+
+iface br-ext inet6 static
+    address 2001::c0a8:a801/96
+
+auto br-ext:1
+iface br-ext:1 inet static
+    address 192.168.168.1/24
 
 # auto bond0
 # iface bond0 inet manual
