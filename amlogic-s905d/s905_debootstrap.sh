@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1f1046e[2026-05-29T08:24:59+08:00]:s905_debootstrap.sh")
+VERSION+=("63244635[2026-05-29T08:49:00+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -489,30 +489,20 @@ table ip nat {
         ip saddr 192.168.31.0/24 ip daddr != 192.168.31.0/24 counter masquerade
     }
 }
-table ip filter {
+table inet filter {
     chain forward {
         type filter hook forward priority 0; policy accept;
-        meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
-    }
-}
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-define BLACK_LIST = { }
-table inet myblackhole {
-    set blacklist {
-        type ipv4_addr
-        # flags interval
-        flags dynamic,timeout
-        timeout 5m
-        elements = { $BLACK_LIST }
+        tcp flags & (syn|rst) == syn tcp option maxseg size set rt mtu
     }
     chain input {
-        type filter hook input priority 0; policy accept;
-        # # accept traffic originating from us
+        type filter hook input priority 0; policy drop;
+        # accept traffic originating from us
         ct state established,related accept
-        # # Drop all incoming connections in blacklist, reject fast application response than drop
-        ip saddr @blacklist counter reject
+        # Drop invalid connections
+        ct state invalid drop
+        # Accept anything from lo interface"
+        iifname { "lo", "wlan0", "br-int", "br-exit" } accept
+        # tcp dport { 80, 443 } accept
     }
 }
 EO_DOC
