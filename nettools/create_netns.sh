@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f25ccf8[2025-06-16T10:43:08+08:00]:create_netns.sh")
+VERSION+=("f4885612[2025-06-17T09:28:24+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -20,7 +20,7 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -i|--ipaddr         <cidr>     * x  ipaddress for netns eth0
+        -i|--ipaddr         <cidr>       x  ipaddress for netns eth0
         -n|--nsname         <name>     * x  netns name
         -b|--bridge         <br>       * x  host bridge for connect
         -g|--gw             <gateway>    x  ns gateway, default .1
@@ -52,7 +52,7 @@ remove_netns() {
 }
 
 main() {
-    local ipaddr= ns_name= host_br= gateway= dns=114.114.114.114
+    local ipaddr="" ns_name="" host_br="" gateway="" dns=""
     local opt_short="i:n:b:g:r:"
     local opt_long="ipaddr:,nsname:,bridge:,gw:,dns:,delete:,"
     opt_short+="ql:dVhD:"
@@ -77,12 +77,13 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${ipaddr}"  ] && usage "ipaddr must input"
     [ -z "${ns_name}" ] && usage "nsname must input"
     [ -z "${host_br}" ] && usage "bridge must input"
-    is_ipv4_subnet "${ipaddr}" || usage "ipaddr ip/mask"
-    gateway=${gateway:-"${ipaddr%.*}.1"}
-    info_msg "IPADDR=${ipaddr}\n"
+    [ -z "${ipaddr}" ] || {
+        is_ipv4_subnet "${ipaddr}" || usage "ipaddr ip/mask"
+        gateway=${gateway:-"${ipaddr%.*}.1"}
+        info_msg "IPADDR=${ipaddr}\n"
+    }
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     bridge_exists "${host_br}" || exit_msg "${host_br} no found!!\n"
     try mkdir -p "/etc/netns/${ns_name}"
@@ -96,8 +97,10 @@ EOF
     maybe_netns_setup_veth ${ns_name}-eth0 ${ns_name}-eth1 "" || { cleanup_ns "${ns_name}"; exit_msg "setup veth error!\n"; }
     maybe_netns_bridge_addlink "${host_br}" "${ns_name}-eth1" "" || { maybe_netns_bridge_dellink "${ns_name}-eth1" ""; cleanup_ns "${ns_name}"; exit_msg "bridge add link error!\n"; }
     maybe_netns_addlink "${ns_name}-eth0" "${ns_name}" "eth0" || { maybe_netns_bridge_dellink "${ns_name}-eth1" ""; cleanup_ns "${ns_name}"; exit_msg "netns add link error!\n"; }
-    maybe_netns_run "ip address add ${ipaddr} dev eth0" "${ns_name}" ||  true
-    maybe_netns_run "ip route add default via ${gateway}" "${ns_name}" || true
+    [ -z "${ipaddr}" ] || {
+        maybe_netns_run "ip address add ${ipaddr} dev eth0" "${ns_name}" ||  true
+        maybe_netns_run "ip route add default via ${gateway}" "${ns_name}" || true
+    }
     setup_nameserver "${ns_name}" "${dns}" || true
     info_msg "${ns_name} create success\n"
     return 0
