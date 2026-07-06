@@ -129,7 +129,7 @@ EOF
       "streamSettings":{"network":"ws",
         "security":"tls","tlsSettings":{"fingerprint":"chrome","allowInsecure":true,"disableSystemRoot":true},
         "wsSettings":{"headers":{"Host":"${VLESS_VHOST}","User-Agent":"curl"},"path":"${wspath}"},
-        "sockopt":{"tcpKeepAliveInterval":5,"tcpKeepAliveIdle":10}
+        "sockopt":{"tcpUserTimeout":10000,"tcpKeepAliveIdle":45,"tcpKeepAliveInterval":45,"tcpFastOpen":true}
       }
 EOF
 }

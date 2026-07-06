@@ -117,7 +117,8 @@ gen_outbound() {
       "settings":{"vnext":[{"address":"${local_ip}","port":${local_port},"users":[{"encryption":"none","id":"${VLESS_UUID}","flow":"xtls-rprx-vision"}]}]},
       "streamSettings":{"network":"tcp","security":"reality",
         "realitySettings":{"show":false,"serverName":"://${VLESS_VHOST}","fingerprint":"chrome","publicKey":"${PUB_KEY}","shortId":"${VLESS_SHORTID}"}
-      }
+      },
+      "sockopt":{"tcpUserTimeout":10000,"tcpKeepAliveIdle":45,"tcpKeepAliveInterval":45,"tcpFastOpen":true}
 EOF
 }
 
