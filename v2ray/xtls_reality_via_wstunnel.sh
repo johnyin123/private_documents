@@ -126,7 +126,7 @@ cat > v2_cli.json <<EOF
 {
   "log":{"access":"","error":"","loglevel":"debug"},
   "inbounds":[
-    {"tag":"cli-in-http","listen":"127.0.0.1","port":8080,"protocol":"http"},
+    {"tag":"cli-in-http","listen":"127.0.0.1","port":8080,"protocol":"http","sniffing":{"enabled":true,"destOverride":["http","tls","quic"]}},
     {"tag":"cli-in-udp","listen":"127.0.0.1","port":${SRV_WG_PORT},"protocol":"dokodemo-door","settings":{"address":"127.0.0.1","port":${SRV_WG_PORT},"network":"udp"}}
   ],
   "outbounds":[
@@ -142,6 +142,7 @@ $(gen_outbound ${CLI_WST_WG_PORT})
   ],
   "dns":{
     "hosts":{"test.com":"127.0.0.1"},
+    "queryStrategy": "UseIPv4",
     "servers":[
       {"address":"223.5.5.5","domains":["geosite:cn"]},
       {"address":"https://1.1.1.1/dns-query","domains":["geosite:geolocation-!cn"]},
