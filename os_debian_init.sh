@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("34c598d5[2026-04-13T08:32:49+08:00]:os_debian_init.sh")
+VERSION+=("0c2f9d66[2026-05-06T10:20:13+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -865,7 +865,7 @@ alias ll='ls -lh'
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
-alias df='df -h'
+alias df='df -T -h --exclude-type=overlay'
 alias grep='grep --color=auto'
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 [ -e /usr/lib/git-core/git-sh-prompt ] && {
