@@ -141,7 +141,12 @@ $(gen_outbound ${CLI_WST_WG_PORT})
     }
   ],
   "dns":{
-    "hosts":{"test.com":"127.0.0.1"}
+    "hosts":{"test.com":"127.0.0.1"},
+    "servers":[
+      {"address":"223.5.5.5","domains":["geosite:cn"]},
+      {"address":"https://1.1.1.1/dns-query","domains":["geosite:geolocation-!cn"]},
+      "localhost"
+    ]
   },
   "routing":{
     "domainStrategy":"IPIfNonMatch",
@@ -152,10 +157,10 @@ $(gen_outbound ${CLI_WST_WG_PORT})
         "domain":["domain:aria2e.com","geosite:category-ads-all"]
       },
       {"type":"field","outboundTag":"direct-out",
-        "domain":["domain:baidu.com","geosite:cn"]
+        "ip":["geoip:private","geoip:cn"]
       },
       {"type":"field","outboundTag":"direct-out",
-        "ip":["geoip:private","geoip:cn"]
+        "domain":["domain:baidu.com","geosite:cn"]
       },
       {"type":"field","outboundTag":"vless-out",
         "network":"tcp,udp"
