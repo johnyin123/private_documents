@@ -4,3 +4,6 @@ johnyin.news     /zany @
 aliy             /P
 bidu             /y
 hub              /iw
+
+Host rack
+    ProxyCommand=/etc/ns-v2ray/wstunnel client --http-upgrade-path-prefix /api/ws_term --local-to-remote stdio://127.0.0.1:60022 --http-headers 'Host:microsoft.com' wss://192.3.164.171:443
