@@ -8,11 +8,15 @@ cat <<'EOF'
 curl -kv -x http://srv:port http://www
 EOF
 random() { shuf -i ${1:-1}-${2:-65535} -n ${3:-1}; }
+randstr() {
+    local size=${1:-8}
+    tr </dev/urandom -dc A-Za-z0-9 | head -c ${size} || true
+}
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 cat <<EOF
 VLESS_IP          = ${VLESS_IP:-}
 VLESS_PORT        = ${VLESS_PORT:-}
-VLESS_UUID        = ${VLESS_UUID:-}
+VLESS_UUID        = ${VLESS_UUID:-}     # cat /proc/sys/kernel/random/uuid
 VLESS_SHORTID     = ${VLESS_SHORTID:-}  # openssl rand -hex 8
 SRV_WG_PORT       = ${SRV_WG_PORT:-}
 ##################################################################
@@ -37,12 +41,12 @@ SRV_WG_PORT=${SRV_WG_PORT:-?$(log "SRV_WG_PORT no found")}
 SRV_V2RAY_PORT=${SRV_V2RAY_PORT:-$(random 10000 14000)}
 
 SRV_WST_PORT=${SRV_WST_PORT:-$(random 60000 61000)}
-NGX_WSPATH=${NGX_WSPATH:-/wst/$(tr </dev/urandom -dc A-Za-z0-9 | head -c 12)}
+NGX_WSPATH=${NGX_WSPATH:-/wst/$(randstr 12)}
 
 SRV_WG_V2RAY_PORT=${SRV_WG_V2RAY_PORT:-$((${SRV_V2RAY_PORT}+1))}
 
 SRV_WG_WST_PORT=${SRV_WG_WST_PORT:-$((${SRV_WST_PORT}+1))}
-NGX_WG_WSPATH=${NGX_WG_WSPATH:-/wgt/$(tr </dev/urandom -dc A-Za-z0-9 | head -c 12)}
+NGX_WG_WSPATH=${NGX_WG_WSPATH:-/wgt/$(randstr 12)}
 
 PRIV_KEY=${PRIV_KEY:-}
 PUB_KEY=${PUB_KEY:-}

@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("aa87273f[2025-09-08T09:12:51+08:00]:functions.sh")
+VERSION+=("3f54fd86[2025-09-09T14:27:29+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -289,7 +289,7 @@ retry() {
 gen_passwd() {
     local size=${1:-8}
     # cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c ${size}
-    tr </dev/urandom -dc A-Za-z0-9 | head -c ${size}
+    tr </dev/urandom -dc A-Za-z0-9 | head -c ${size} || true
 }
 
 temp_folder() {
