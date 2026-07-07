@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("59a98bd5[2026-07-03T11:13:18+08:00]:tpl2disk.sh")
+VERSION+=("9b8e6f26[2026-07-07T15:00:36+08:00]:tpl2disk.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -168,7 +168,8 @@ EOSHELL
             echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
-    }  | tee ${root_dir}/etc/fstab
+        echo "# /dev/sda3    none     swap    sw,pri=-1    0    0"
+    } | tee ${root_dir}/etc/fstab
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
 }

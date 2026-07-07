@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c7673d51[2026-07-03T10:53:26+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("9b8e6f26[2026-07-07T15:00:36+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -141,7 +141,8 @@ EOSHELL
             echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
-    }  | tee ${root_dir}/etc/fstab
+        echo "# /dev/sda3    none     swap    sw,pri=-1    0    0"
+    } | tee ${root_dir}/etc/fstab
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
 }
