@@ -130,10 +130,11 @@ cat > v2_cli.json <<EOF
     {"tag":"cli-in-udp","listen":"127.0.0.1","port":${SRV_WG_PORT},"protocol":"dokodemo-door","settings":{"address":"127.0.0.1","port":${SRV_WG_PORT},"network":"udp"}}
   ],
   "outbounds":[
-    {"tag":"direct-out","protocol":"freedom"},
+    {"tag":"direct-out","protocol":"freedom","mux":{"enabled":true}},
     {"tag":"block-out","protocol":"blackhole","settings":{"response":{"type":"http"}}},
     $([ -z "${PROXY_SRV}" ] && echo -n "/*"){"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},$([ -z "${PROXY_SRV}" ] && echo -n "*/")
     {"tag":"vless-out","protocol":"vless",
+      /* "proxySettings":{"tag":"via-proxy-out"},// not worked ws,maybe tcp work */
 $(gen_outbound ${CLI_WST_PORT})
     },
     {"tag":"vless-out-udp","protocol":"vless",
@@ -184,11 +185,12 @@ EOF
 cat >> v2_srv_wstunnel.sh <<EOF
 systemd-run --unit wst-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}
 systemd-run --unit wstwg-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT}
-# systemctl stop wst-srv.service
-# systemctl stop wstwg-srv.service
-# systemctl stop v2ray-srv.service
-# systemctl stop ngx-srv.service
-# systemctl reset-failed
+cat <<EODOC
+systemctl stop wst-srv.service
+systemctl stop wstwg-srv.service
+systemctl stop v2ray-cli.service
+systemctl reset-failed
+EODOC
 EOF
 
 cat > v2_srv_wstunnel@.service <<EOF

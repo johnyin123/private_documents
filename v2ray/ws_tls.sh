@@ -142,7 +142,7 @@ cat > v2_cli.json <<EOF
     {"tag":"cli-in-udp","listen":"127.0.0.1","port":${SRV_WG_PORT},"protocol":"dokodemo-door","settings":{"address":"127.0.0.1","port":${SRV_WG_PORT},"network":"udp"}}
   ],
   "outbounds":[
-    {"tag":"direct-out","protocol":"freedom"},
+    {"tag":"direct-out","protocol":"freedom","mux":{"enabled":true}},
     {"tag":"block-out","protocol":"blackhole","settings":{"response":{"type":"http"}}},
     $([ -z "${PROXY_SRV}" ] && echo -n "/*"){"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},$([ -z "${PROXY_SRV}" ] && echo -n "*/")
     {"tag":"vless-out","protocol":"vless",
@@ -197,11 +197,12 @@ EOF
 cat >> v2_srv_wstunnel.sh <<EOF
 systemd-run --unit wst-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}
 systemd-run --unit wstwg-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT}
-# systemctl stop wst-srv.service
-# systemctl stop wstwg-srv.service
-# systemctl stop v2ray-srv.service
-# systemctl stop ngx-srv.service
-# systemctl reset-failed
+cat <<EODOC
+systemctl stop wst-srv.service
+systemctl stop wstwg-srv.service
+systemctl stop v2ray-cli.service
+systemctl reset-failed
+EODOC
 EOF
 
 cat > v2_srv_wstunnel@.service <<EOF
@@ -209,6 +210,7 @@ cat > v2_srv_wstunnel@.service <<EOF
 [Unit]
 After=network.target
 [Service]
+LimitNOFILE=65536
 Type=oneshot
 # DynamicUser=true
 RemainAfterExit=yes
@@ -330,12 +332,10 @@ cat > v2_srv.json <<EOF
     {"tag":"srv-in-all","listen":"127.0.0.1","port":${SRV_V2RAY_PORT},"protocol":"vless",
       "settings":{"decryption":"none","clients":[{"id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]},
       "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WSPATH}"},
-        "security":"tls","tlsSettings":{
-          "disableSystemRoot":true,
-          "certificates":[{
+        "security":"tls","tlsSettings":{"disableSystemRoot":true,
+          "certificates":[{"usage":"encipherment",
             "key":$(get_tls "v2_srv.key" "            "),
-            "certificate":$(get_tls "v2_srv.pem" "            "),
-            "usage":"encipherment"
+            "certificate":$(get_tls "v2_srv.pem" "            ")
           }]
         }
       }
@@ -343,12 +343,10 @@ cat > v2_srv.json <<EOF
     {"tag":"srv-in-udp","listen":"127.0.0.1","port":${SRV_WG_V2RAY_PORT},"protocol":"vless",
       "settings":{"decryption":"none","clients":[{"id":"${VLESS_UUID}","alterId":${VLESS_ALTERID}}]},
       "streamSettings":{"network":"ws","wsSettings":{"path":"${V2RAY_WG_WSPATH}"},
-        "security":"tls","tlsSettings":{
-          "disableSystemRoot":true,
-          "certificates":[{
+        "security":"tls","tlsSettings":{"disableSystemRoot":true,
+          "certificates":[{"usage":"encipherment",
             "key":$(get_tls "v2_srv.key" "            "),
-            "certificate":$(get_tls "v2_srv.pem" "            "),
-            "usage":"encipherment"
+            "certificate":$(get_tls "v2_srv.pem" "            ")
           }]
         }
       }
