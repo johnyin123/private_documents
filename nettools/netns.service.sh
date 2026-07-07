@@ -6,9 +6,9 @@ NS_NAME=ns-rank
 
 cat > ${NS_NAME}.conf <<EOF
 BRIDGE="br-int"
-ADDRESS="192.168.167.252/24"
-GATEWAY="192.168.167.1"
-DNS="127.0.0.1"
+# ADDRESS="192.168.167.252/24"
+# GATEWAY="192.168.167.1"
+# DNS="127.0.0.1"
 EOF
 cat > netns@.service <<'EOF'
 [Unit]
@@ -16,9 +16,11 @@ After=network.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+Environment=ADDRESS=""
+Environment=GATEWAY=""
 Environment=DNS=""
 EnvironmentFile=/etc/%i.conf
-ExecStart=/sbin/create_netns.sh --ipaddr ${ADDRESS} --nsname %i --bridge ${BRIDGE} --gw ${GATEWAY} --dns "${DNS}"
+ExecStart=/sbin/create_netns.sh --nsname %i --bridge ${BRIDGE} --ipaddr "${ADDRESS}" --gw "${GATEWAY}" --dns "${DNS}"
 ExecStart=/sbin/ip netns exec %i /bin/bash /etc/%i/startup.sh
 ExecStop=-/sbin/ip netns exec %i /bin/bash /etc/%i/teardown.sh
 ExecStop=-/sbin/create_netns.sh --delete %i
