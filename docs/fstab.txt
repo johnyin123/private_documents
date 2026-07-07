@@ -1,0 +1,12 @@
+1.File System (fs_spec):
+    The storage partition, network share, or device. Using the partition's universally unique identifier (UUID)—found using the blkid command—is highly recommended for persistent mounting over using raw device names (e.g., /dev/sda1).
+2.Mount Point (fs_file):
+    The directory (target) where the filesystem is made accessible in the Linux directory tree.
+3.File System Type (fs_vfstype):
+    The format of the drive, such as ext4, xfs, btrfs, vfat, or swap.
+4.Mount Options (fs_mntops):
+    Behaviors and rules for the drive, separated by commas (e.g., defaults, ro for read-only, or nofail to prevent boot errors if an external drive is unplugged).
+5.Backup Operation (fs_freq):
+    Typically set to 0. It is used by the legacy dump command to determine if a partition needs to be backed up.
+6.File System Check Order (fs_passno):
+    Used by fsck to determine the order of filesystem checks at boot. The root (/) filesystem should be 1, other drives should be 2, and drives that do not require checking should be 0.
