@@ -89,6 +89,8 @@ LOG="--log-lvl OFF --no-color 1"
 # PROXY="--http-proxy http://USER:PASS@SRV:PORT"
 # NS_NAME=
 
+# # cloudflared tunnel --no-tls-verify --url https://localhost
+# # --http-headers "Host:xxxxxxxxxxxxx.trycloudflare.com" wss://xxxxxxxxxxxxx.trycloudflare.com
 # # http
 PREFIX="${NGX_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
@@ -233,7 +235,7 @@ server {
     listen 443 ssl;
     listen ${VLESS_PORT} ssl;
     http2 on;
-    server_name ${VLESS_VHOST};
+    server_name *.trycloudflare.com ${VLESS_VHOST};
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
     # ssl_client_certificate ssl/ngx_verifyclient_ca.pem;
