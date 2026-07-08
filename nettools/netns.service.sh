@@ -44,18 +44,20 @@ set -o nounset -o pipefail -o errexit
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 
 ## ipv6 support start
-ipaddr=\${ADDRESS%/*}
-prefix=\${ADDRESS##*/}
-echo "\${ADDRESS} \${GATEWAY}"
-IFS='.' read -r a1 a2 a3 a4 <<< "\${ipaddr}"
-ipv6=\$(printf "2001::%x%02x:%x%02x\n" \${a1} \${a2} \${a3} \${a4})
-ip -6 addr add \${ipv6}/96 dev eth0 || true
-[ -z "\${GATEWAY}" ] || {
-    IFS='.' read -r a1 a2 a3 a4 <<< "\${GATEWAY}"
-    ipv6_gw=\$(printf "2001::%x%02x:%x%02x\n" \${a1} \${a2} \${a3} \${a4})
-    ip -6 route add default via \${ipv6_gw} dev eth0 || true
+[ -z "\${ADDRESS:-}" ] || {
+    ipaddr=\${ADDRESS%/*}
+    prefix=\${ADDRESS##*/}
+    echo "\${ADDRESS} \${GATEWAY}"
+    IFS='.' read -r a1 a2 a3 a4 <<< "\${ipaddr}"
+    ipv6=\$(printf "2001::%x%02x:%x%02x\n" \${a1} \${a2} \${a3} \${a4})
+    ip -6 addr add \${ipv6}/96 dev eth0 || true
+    [ -z "\${GATEWAY}" ] || {
+        IFS='.' read -r a1 a2 a3 a4 <<< "\${GATEWAY}"
+        ipv6_gw=\$(printf "2001::%x%02x:%x%02x\n" \${a1} \${a2} \${a3} \${a4})
+        ip -6 route add default via \${ipv6_gw} dev eth0 || true
+    }
+    sysctl -w net.ipv6.conf.all.forwarding=1
 }
-sysctl -w net.ipv6.conf.all.forwarding=1
 ## ipv6 support end
 
 # /usr/sbin/ip route add 192.3.164.171 via 192.168.167.1 || true # use proxy
