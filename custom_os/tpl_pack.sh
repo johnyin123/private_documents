@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4c0d84d[2023-01-16T15:18:57+08:00]:tpl_pack.sh")
+VERSION+=("82449545[2023-01-17T10:51:08+08:00]:tpl_pack.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -15,13 +15,8 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME} <src directory> <dest file name>
         -c|--comp   <comp>  select <comp> compression
-            Compressors available: like mksquashfs
-                gzip (default)
-                lzma
-                lzo
-                lz4
-                xz
-                zstd
+                    Compressors available:
+                        gzip,lzma,lzo,lz4,xz,zstd
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -65,7 +60,7 @@ main() {
     [ -z "${src}" ] && usage "source directory must input"
     [ -z "${dst}" ] && usage "output tpl filename must input"
     info_msg "create template ${src} ==> ${dst}\n"
-    try mksquashfs ${src} ${dst} ${comp:+-comp ${comp}} || true
+    try mksquashfs ${src} ${dst} -b 1M ${comp:+-comp ${comp}} || true
     info_msg "ALL DONE\n"
     return 0
 }

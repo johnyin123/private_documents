@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4e872612[2025-09-16T08:03:01+08:00]:build_debian_live_iso.sh")
+VERSION+=("6f27b2fa[2026-06-26T09:04:31+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -40,7 +40,7 @@ ${SCRIPTNAME}
         --onlynew         only new, need run whith --rebuild next
         -r|--rebuild    * continue build liveos
         -a|--addition     <pkg list>  addition package like "pkg1,pkg2,pkg3"
-        --comp <comp>     select <comp> compression, default lzo
+        --comp <comp>     select <comp> compression
                           Compressors available:
                               gzip,lzma,lzo,lz4,xz,zstd
         -b|--bootldr      <type> type:grub/syslinux, bootloader type, default grub
@@ -228,7 +228,7 @@ main() {
     local action=""
     local addition_pkg=""
     local isoimage=""
-    local comp="lzo"
+    local comp=""
     local bootldr="grub"
     local opt_short="nra:b:o:"
     local opt_long="new,onlynew,rebuild,addition:,comp:,bootldr:,isoimage:,"
@@ -281,7 +281,7 @@ EOSHELL
     try mkdir -p ${iso_dir}/live
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
-    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -no-duplicates -comp ${comp} -ef <(echo "${root_dir}/boot/")
+    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -b 1M -no-duplicates ${comp:+-comp ${comp}} -ef <(echo "${root_dir}/boot/")
     try cp ${root_dir}/boot/vmlinuz* ${iso_dir}/live/
     try cp ${root_dir}/boot/initrd.img* ${iso_dir}/live/
     # try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd

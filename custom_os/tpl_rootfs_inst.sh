@@ -4,17 +4,18 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("9b8e6f26[2026-07-07T15:00:36+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("72e2b7db[2026-07-07T15:10:44+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
         -t|--tpl  *   <str>   root squashfs(tpl) for install
+        -d|--disk *   <str>   disk, /dev/sdX
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
-        -d|--disk *   <str>   disk, /dev/sdX
         -p|--part *   <str>   install tpl in partition as rootfs, /dev/vda1, /dev/mapper/..
+        --swap        <str>   swap part, /dev/vda1, /dev/mapper/..
         --fs          <fstype> ext4/xfs, default xfs
                         initramfs include the right module!!
                         debian: echo "ext4" >> /etc/initramfs-tools/modules
@@ -46,9 +47,9 @@ EOF
     exit 1
 }
 main() {
-    local root_tpl="" disk="" part="" uefi="" fs="xfs"
+    local root_tpl="" disk="" part="" uefi="" fs="xfs" swap=""
     local opt_short+="t:d:p:xvh"
-    local opt_long+="tpl:,disk:,part:,uefi:,fs:,version,help"
+    local opt_long+="tpl:,disk:,part:,uefi:,fs:,swap:,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -56,8 +57,9 @@ main() {
             ########################################
             -t | --tpl)       shift; root_tpl=${1}; shift;;
             -d | --disk)      shift; disk=${1}; shift;;
-            -p | --part)      shift; part=${1}; shift;;
             --uefi)           shift; uefi=${1}; shift;;
+            -p | --part)      shift; part=${1}; shift;;
+            --swap)           shift; swap=${1}; shift;;
             --fs)             shift; fs=${1}; shift;;
             -V | --version)   shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)      shift; usage;;
@@ -91,6 +93,9 @@ main() {
         xfs)  chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}";;
         *)    umount -R -v ${work_dir} || true; echo "fstype not support"; exit 1;;
     esac
+    [ -z "${swap}" ] || {
+        chroot ${work_dir} mkswap -L swapfs "${SWAP_DEV}"
+    }
     umount -R -v ${work_dir} || true
     # xfs_admin -O bigtime=1 device # no work some version xfsprogs
     # xfs_repair -c bigtime=1 device
@@ -103,7 +108,11 @@ main() {
     # unsquashfs -f -d ${root_dir} ${root_tpl}
     local src_dir=$(mktemp -d /tmp/src.XXXXXX)
     mount ${root_tpl} ${src_dir} || true
-    tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
+    command -v "rsync" &> /dev/null && {
+        rsync -avzp --numeric-ids ${src_dir} ${root_dir} || true
+    } || {
+        tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
+    }
     # tar cv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"}  / | gzip > /mnt/system.backup/10.4.38.2-20201123.tar.gz
     umount -R -v ${src_dir} || true
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
@@ -132,16 +141,17 @@ case "${ID}" in
 esac
 exit 0
 EOSHELL
-    local new_uuid=$(blkid -s UUID -o value ${part})
     cat ${root_dir}/etc/fstab > ${root_dir}/etc/fstab.orig || true
     {
         echo "# $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "UUID=${new_uuid} / ${fs} noatime,relatime 0 1"
+        echo "UUID=$(blkid -s UUID -o value ${part})    / ${fs} noatime,relatime 0 1"
         [ -z "${uefi}" ] || {
-            echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
+            echo "UUID=$(blkid -s UUID -o value ${uefi})    /boot/efi vfat umask=0077 0 1"
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
-        echo "# /dev/sda3    none     swap    sw,pri=-1    0    0"
+        [ -z "${swap}" ] || {
+            echo "UUID=$(blkid -s UUID -o value ${swap})    none     swap    sw,pri=-1    0    0"
+        }
     } | tee ${root_dir}/etc/fstab
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
