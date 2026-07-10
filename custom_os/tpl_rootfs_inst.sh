@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("72e2b7db[2026-07-07T15:10:44+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("19b2a735[2026-07-10T08:00:29+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -94,7 +94,7 @@ main() {
         *)    umount -R -v ${work_dir} || true; echo "fstype not support"; exit 1;;
     esac
     [ -z "${swap}" ] || {
-        chroot ${work_dir} mkswap -L swapfs "${SWAP_DEV}"
+        chroot ${work_dir} mkswap -L swapfs "${swap}"
     }
     umount -R -v ${work_dir} || true
     # xfs_admin -O bigtime=1 device # no work some version xfsprogs
@@ -109,7 +109,7 @@ main() {
     local src_dir=$(mktemp -d /tmp/src.XXXXXX)
     mount ${root_tpl} ${src_dir} || true
     command -v "rsync" &> /dev/null && {
-        rsync -avzp --numeric-ids ${src_dir} ${root_dir} || true
+        rsync -aWAvp --numeric-ids ${src_dir}/ ${root_dir}/ || true
     } || {
         tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
     }
