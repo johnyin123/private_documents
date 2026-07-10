@@ -117,12 +117,16 @@ EOF
 cat <<'EOF' > /etc/docker/daemon.json
 {
   "insecure-registries": [ "quay.io", "registry.local" ],
-  "debug": true,
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 10,
   "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-level":"warn",
+  "log-opts": { "max-size": "100m", "max-file": "3" },
   "storage-driver": "overlay2",
   "bridge": "none",
   "ip-forward": false,
-  "iptables": false
+  "iptables": false,
+  "ip6tables": false
 }
 EOF
 dependent_install(){

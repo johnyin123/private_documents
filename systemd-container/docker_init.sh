@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("a2b58020[2024-12-21T21:48:09+08:00]:docker_init.sh")
+VERSION+=("1ecd5ba5[2025-12-16T08:44:16+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -24,7 +24,8 @@ init_docker() {
   ${dns:+  \"dns\": [\"${dns}\"],}
   "bridge": "none",
   "ip-forward": false,
-  "iptables": false
+  "iptables": false,
+  "ip6tables": false
 }
 EOF
     cfg_file=/etc/systemd/system/docker.service.d/opt.conf
