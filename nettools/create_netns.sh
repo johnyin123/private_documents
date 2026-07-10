@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4885612[2025-06-17T09:28:24+08:00]:create_netns.sh")
+VERSION+=("7dd3f29f[2026-07-06T08:25:19+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -87,9 +87,7 @@ main() {
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     bridge_exists "${host_br}" || exit_msg "${host_br} no found!!\n"
     try mkdir -p "/etc/netns/${ns_name}"
-    try touch /etc/netns/${ns_name}/resolv.conf << EOF
-$(cat /etc/resolv.conf)
-EOF
+    try cat /etc/resolv.conf \> /etc/netns/${ns_name}/resolv.conf || true
     write_file /etc/netns/${ns_name}/hosts << EOF
 $(cat /etc/hosts)
 EOF
