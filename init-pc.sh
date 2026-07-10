@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fa53ea6e[2026-07-03T15:33:14+08:00]:init-pc.sh")
+VERSION+=("cd945b2f[2026-07-06T14:42:40+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -437,6 +437,9 @@ apt_install alsa-utils pulseaudio pulseaudio-utils
 apt_install smplayer smplayer-l10n ffmpeg mkvtoolnix
 
 apt_install systemd-timesyncd recordmydesktop
+
+echo "屏幕放大工具 xfce alt+scroll up/down "
+apt_install magnus
 
 id johnyin &>/dev/null || useradd johnyin --create-home --home-dir /home/johnyin/ --shell /bin/bash
 debian_bash_init johnyin
