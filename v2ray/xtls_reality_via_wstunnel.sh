@@ -209,7 +209,19 @@ ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT
 [Install]
 WantedBy=multi-user.target
 EOF
-
+cat <<EOF
+wstunnel server --log-lvl TRACE --restrict-config rule.yml wss://127.0.0.1:${SRV_WST_PORT}
+# rule.yml
+restrictions:
+  - name: "Allow"
+    match:
+      - !PathPrefix "^.*$"
+    allow:
+      - !Tunnel
+        protocol: [Tcp]
+        cidr: [127.0.0.1/32]
+        port: [${SRV_V2RAY_PORT}, ${SRV_WG_V2RAY_PORT}]
+EOF
 cat > v2_srv_ngx.http <<EOF
 server {
     listen 443 ssl default_server reuseport;
