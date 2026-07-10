@@ -130,7 +130,7 @@ cat > v2_cli.json <<EOF
     {"tag":"cli-in-udp","listen":"127.0.0.1","port":${SRV_WG_PORT},"protocol":"dokodemo-door","settings":{"address":"127.0.0.1","port":${SRV_WG_PORT},"network":"udp"}}
   ],
   "outbounds":[
-    {"tag":"direct-out","protocol":"freedom","mux":{"enabled":true}},
+    {"tag":"direct-out","protocol":"freedom"},
     {"tag":"block-out","protocol":"blackhole","settings":{"response":{"type":"http"}}},
     $([ -z "${PROXY_SRV}" ] && echo -n "/*"){"tag":"via-proxy-out","protocol":"http","settings":{"servers":[{"address":"${PROXY_SRV}","port":${PROXY_PORT},"users":[{"user":"${PROXY_USER}","pass":"${PROXY_PASS}"}]}]}},$([ -z "${PROXY_SRV}" ] && echo -n "*/")
     {"tag":"vless-out","protocol":"vless",
