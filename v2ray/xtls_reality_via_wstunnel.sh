@@ -41,12 +41,10 @@ SRV_WG_PORT=${SRV_WG_PORT:-?$(log "SRV_WG_PORT no found")}
 SRV_V2RAY_PORT=${SRV_V2RAY_PORT:-$(random 10000 14000)}
 
 SRV_WST_PORT=${SRV_WST_PORT:-$(random 60000 61000)}
-NGX_WSPATH=${NGX_WSPATH:-/wst/$(randstr 12)}
+NGX_WSPATH=${NGX_WSPATH:-/wstun/$(randstr 12)}
 
 SRV_WG_V2RAY_PORT=${SRV_WG_V2RAY_PORT:-$((${SRV_V2RAY_PORT}+1))}
 
-SRV_WG_WST_PORT=${SRV_WG_WST_PORT:-$((${SRV_WST_PORT}+1))}
-NGX_WG_WSPATH=${NGX_WG_WSPATH:-/wgt/$(randstr 12)}
 
 PRIV_KEY=${PRIV_KEY:-}
 PUB_KEY=${PUB_KEY:-}
@@ -72,9 +70,7 @@ SRV_WST_PORT      = ${SRV_WST_PORT}
 SRV_V2RAY_PORT    = ${SRV_V2RAY_PORT}
 CLI_WST_WG_PORT   = ${CLI_WST_WG_PORT}
 SRV_WG_V2RAY_PORT = ${SRV_WG_V2RAY_PORT}
-SRV_WG_WST_PORT   = ${SRV_WG_WST_PORT}
 NGX_WSPATH        = ${NGX_WSPATH}
-NGX_WG_WSPATH     = ${NGX_WG_WSPATH}
 EOF
 read -n 1 -p "Press any key continue ..." value
 
@@ -91,24 +87,20 @@ LOG="--log-lvl OFF --no-color 1"
 
 # # cloudflared tunnel --no-tls-verify --url https://localhost
 # # --http-headers "Host:xxxxxxxxxxxxx.trycloudflare.com" wss://xxxxxxxxxxxxx.trycloudflare.com
-# # http
+# # http/udp
 PREFIX="${NGX_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
 systemd-run --unit wst-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
-\${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
-
-# # udp
-PREFIX="${NGX_WG_WSPATH}"
-PREFIX="\${PREFIX/#\//}" # remove first /
-systemd-run --unit wstwg-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
-\${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
+\${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} 
+--local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} \\
+--local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} \\
+wss://${VLESS_IP}:${VLESS_PORT}
 
 systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/v2ray run -c v2_cli.json
 
 cat <<EODOC
 systemctl stop wst-srv.service
-systemctl stop wstwg-srv.service
 systemctl stop v2ray-cli.service
 systemctl reset-failed
 EODOC
@@ -186,14 +178,15 @@ set -o nounset -o pipefail -o errexit
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 
 systemd-run --working-directory=\${DIRNAME} --unit ngx-srv \${DIRNAME}/nginx -g 'daemon off;'
-systemd-run --working-directory=\${DIRNAME} --unit v2ray-srv \${DIRNAME}/v2ray run -c \${DIRNAME}/v2_srv.json
-# # combine version: wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}, then ngx proxy_pass 127.0.0.1:${SRV_WST_PORT};
-systemd-run --unit wst-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}
-systemd-run --unit wstwg-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT}
+systemd-run --working-directory=\${DIRNAME} --unit ray-srv \${DIRNAME}/v2ray run -c \${DIRNAME}/v2_srv.json
+systemd-run --unit wst-srv \${DIRNAME}/wstunnel server \\
+    --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} \\
+    --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} \\
+    wss://127.0.0.1:${SRV_WST_PORT}
 cat <<EODOC
+systemctl stop ngx-srv.service
 systemctl stop wst-srv.service
-systemctl stop wstwg-srv.service
-systemctl stop v2ray-cli.service
+systemctl stop ray-srv.service
 systemctl reset-failed
 EODOC
 EOF
@@ -210,8 +203,7 @@ RemainAfterExit=yes
 WorkingDirectory=/%I
 ExecStart=/bin/sh -c "./nginx"
 ExecStart=/bin/sh -c "./v2ray run -c v2_srv.json &"
-ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT} &"
-ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT} &"
+ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT} &"
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -248,21 +240,6 @@ server {
         if (\$http_upgrade != "websocket") { return 404; }
         proxy_redirect off;
         proxy_pass https://api_srvs;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_buffering off;
-        proxy_read_timeout 90m;
-        proxy_send_timeout 90m;
-    }
-    location ${NGX_WG_WSPATH} {
-        if (\$request_method != "GET") { return 404; }
-        if (\$http_upgrade != "websocket") { return 404; }
-        proxy_redirect off;
-        proxy_pass https://127.0.0.1:${SRV_WG_WST_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
