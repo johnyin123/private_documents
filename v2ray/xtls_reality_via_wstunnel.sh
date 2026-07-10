@@ -14,8 +14,8 @@ randstr() {
 }
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 cat <<EOF
-VLESS_IP          = ${VLESS_IP:-}
-VLESS_PORT        = ${VLESS_PORT:-}
+NGX_IP            = ${NGX_IP:-}
+NGX_PORT          = ${NGX_PORT:-}
 VLESS_UUID        = ${VLESS_UUID:-}     # cat /proc/sys/kernel/random/uuid
 VLESS_SHORTID     = ${VLESS_SHORTID:-}  # openssl rand -hex 8
 SRV_WG_PORT       = ${SRV_WG_PORT:-}
@@ -30,11 +30,12 @@ PROXY_PASS=${PROXY_PASS:-UNDEF}
 CLI_WST_PORT=${CLI_WST_PORT:-$(random 61000 62000)}
 CLI_WST_WG_PORT=${CLI_WST_WG_PORT:-$(random 62000 63000)}
 
+NGX_IP=${NGX_IP:?$(log "NGX_IP no found")}
+NGX_PORT=${NGX_PORT:?$(log "NGX_PORT no found")}
 VLESS_VHOST=${VLESS_VHOST:-microsoft.com}
-VLESS_IP=${VLESS_IP:?$(log "VLESS_IP no found")}
-VLESS_PORT=${VLESS_PORT:?$(log "VLESS_PORT no found")}
 VLESS_UUID=${VLESS_UUID:?$(log "VLESS_UUID no found")}
 VLESS_SHORTID=${VLESS_SHORTID:?$(log "VLESS_SHORTID no found")}
+NGX_VHOST=${NGX_VHOST:-${VLESS_VHOST}}
 
 SRV_WG_PORT=${SRV_WG_PORT:-?$(log "SRV_WG_PORT no found")}
 
@@ -61,6 +62,8 @@ cat <<EOF
 PRIV_KEY          = ${PRIV_KEY}
 PUB_KEY           = ${PUB_KEY}
 VLESS_VHOST       = ${VLESS_VHOST}
+NGX_VHOST         = ${NGX_VHOST}
+NGX_WSPATH        = ${NGX_WSPATH}
 PROXY_SRV         = ${PROXY_SRV}
 PROXY_PORT        = ${PROXY_PORT}
 PROXY_USER        = ${PROXY_USER}
@@ -70,7 +73,6 @@ SRV_WST_PORT      = ${SRV_WST_PORT}
 SRV_V2RAY_PORT    = ${SRV_V2RAY_PORT}
 CLI_WST_WG_PORT   = ${CLI_WST_WG_PORT}
 SRV_WG_V2RAY_PORT = ${SRV_WG_V2RAY_PORT}
-NGX_WSPATH        = ${NGX_WSPATH}
 EOF
 read -n 1 -p "Press any key continue ..." value
 
@@ -91,10 +93,10 @@ LOG="--log-lvl OFF --no-color 1"
 PREFIX="${NGX_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
 systemd-run --unit wst-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
-\${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} 
+\${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --http-headers "Host: ${NGX_VHOST}" \${TLS:-} 
 --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} \\
 --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} \\
-wss://${VLESS_IP}:${VLESS_PORT}
+wss://${NGX_IP}:${NGX_PORT}
 
 systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/v2ray run -c v2_cli.json
@@ -211,12 +213,12 @@ EOF
 cat > v2_srv_ngx.http <<EOF
 server {
     listen 443 ssl default_server reuseport;
-    listen ${VLESS_PORT} ssl default_server reuseport;
+    listen ${NGX_PORT} ssl default_server reuseport;
     http2 on;
     server_name _;
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
-    location / { keepalive_timeout 0; access_log off; return 301 https://${VLESS_VHOST}; }
+    location / { keepalive_timeout 0; access_log off; return 301 https://${NGX_VHOST}; }
 }
 upstream api_srvs {
     server 127.0.0.1:${SRV_WST_PORT};
@@ -224,9 +226,9 @@ upstream api_srvs {
 }
 server {
     listen 443 ssl;
-    listen ${VLESS_PORT} ssl;
+    listen ${NGX_PORT} ssl;
     http2 on;
-    server_name *.trycloudflare.com ${VLESS_VHOST};
+    server_name *.trycloudflare.com ${NGX_VHOST};
     ssl_certificate        ssl/ngxsrv.pem;
     ssl_certificate_key    ssl/ngxsrv.key;
     # ssl_client_certificate ssl/ngx_verifyclient_ca.pem;
