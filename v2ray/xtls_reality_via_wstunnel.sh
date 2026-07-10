@@ -180,15 +180,14 @@ EOF
 ################################################################################
 # ./nginx -g 'daemon off;'
 # ./v2ray run -config v2_srv.json
-cat > v2_srv_wstunnel.sh <<'EOF'
+cat > v2_srv_wstunnel.sh <<EOF
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
-readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 
-systemd-run --working-directory=${DIRNAME} --unit ngx-srv ${DIRNAME}/nginx -g 'daemon off;'
-systemd-run --working-directory=${DIRNAME} --unit v2ray-srv ${DIRNAME}/v2ray run -c ${DIRNAME}/v2_srv.json
-EOF
-cat >> v2_srv_wstunnel.sh <<EOF
+systemd-run --working-directory=\${DIRNAME} --unit ngx-srv \${DIRNAME}/nginx -g 'daemon off;'
+systemd-run --working-directory=\${DIRNAME} --unit v2ray-srv \${DIRNAME}/v2ray run -c \${DIRNAME}/v2_srv.json
+# # combine version: wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}, then ngx proxy_pass 127.0.0.1:${SRV_WST_PORT};
 systemd-run --unit wst-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_V2RAY_PORT} wss://127.0.0.1:${SRV_WST_PORT}
 systemd-run --unit wstwg-srv \${DIRNAME}/wstunnel server --restrict-to 127.0.0.1:${SRV_WG_V2RAY_PORT} wss://127.0.0.1:${SRV_WG_WST_PORT}
 cat <<EODOC
