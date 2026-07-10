@@ -84,24 +84,14 @@ LOG="--log-lvl OFF --no-color 1"
 # # http
 PREFIX="${NGX_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
-systemd-run --unit wst-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
 
 # # udp
 PREFIX="${NGX_WG_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
-systemd-run --unit wstwg-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} --http-headers "Host: ${VLESS_VHOST}" \${TLS:-} wss://${VLESS_IP}:${VLESS_PORT}
 
-systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
 \${DIRNAME}/v2ray run -c v2_cli.json
-
-cat <<EODOC
-systemctl stop wst-srv.service
-systemctl stop wstwg-srv.service
-systemctl stop v2ray-cli.service
-systemctl reset-failed
-EODOC
 EOF
 }
 # "tlsSettings":{

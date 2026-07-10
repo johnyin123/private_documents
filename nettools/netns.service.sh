@@ -66,7 +66,11 @@ readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 /usr/sbin/ip route add 192.168.0.0/16 via 192.168.167.1 || true
 wg-quick up wgrank
 /usr/sbin/ip route replace default via 192.168.32.1 || true
-systemd-run --working-directory=\${DIRNAME} --unit cfdns \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} cloudflared proxy-dns
+systemd-run --working-directory=\${DIRNAME} --unit cfdns \\
+  \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/resolv.conf:/etc/resolv.conf} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/hosts:/etc/hosts} \\
+   cloudflared proxy-dns
 sysctl -w net.ipv4.ip_forward=1
 sysctl -w net.ipv4.ip_default_ttl=128
 sysctl -w net.ipv4.ping_group_range="0 2147483647" || true

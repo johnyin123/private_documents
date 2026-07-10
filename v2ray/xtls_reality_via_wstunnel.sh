@@ -92,17 +92,23 @@ LOG="--log-lvl OFF --no-color 1"
 # # http/udp
 PREFIX="${NGX_WSPATH}"
 PREFIX="\${PREFIX/#\//}" # remove first /
-systemd-run --unit wst-srv \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
+systemd-run --working-directory=\${DIRNAME} --unit wst-cli \\
+  \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/resolv.conf:/etc/resolv.conf} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/hosts:/etc/hosts} \\
 \${DIRNAME}/wstunnel client \${LOG:-} --connection-retry-max-backoff 1s \${PROXY:-} --http-upgrade-path-prefix \${PREFIX} --http-headers "Host: ${NGX_VHOST}" \${TLS:-} 
 --local-to-remote tcp://127.0.0.1:${CLI_WST_PORT}:127.0.0.1:${SRV_V2RAY_PORT} \\
 --local-to-remote tcp://127.0.0.1:${CLI_WST_WG_PORT}:127.0.0.1:${SRV_WG_V2RAY_PORT} \\
 wss://${NGX_IP}:${NGX_PORT}
 
-systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
+systemd-run --working-directory=\${DIRNAME} --unit v2ray-cli \\
+  \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/resolv.conf:/etc/resolv.conf} \\
+  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/hosts:/etc/hosts} \\
 \${DIRNAME}/v2ray run -c v2_cli.json
 
 cat <<EODOC
-systemctl stop wst-srv.service
+systemctl stop wst-cli.service
 systemctl stop v2ray-cli.service
 systemctl reset-failed
 EODOC
