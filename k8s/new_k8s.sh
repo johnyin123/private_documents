@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("465dd340[2025-06-24T08:21:06+08:00]:new_k8s.sh")
+VERSION+=("beb6baa7[2026-07-10T09:55:06+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -382,28 +382,20 @@ EOF
         mkdir -vp /etc/docker
         cat > /etc/docker/daemon.json <<EOF
 {
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "http://hub-mirror.c.163.com"
-  ],
-  "insecure-registries": [
-    "quay.io",
-    "${insec_registry}"
-  ],
+  "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
+  "insecure-registries": [ "quay.io", "${insec_registry}" ],
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 10,
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-level":"warn",
-  "log-opts": {
-    "max-size": "100m",
-    "max-file": "3"
-  },
-  "data-root": "/var/lib/docker",
   "storage-driver": "overlay2",
+  "log-level":"warn",
+  "log-opts": { "max-size": "100m", "max-file": "3" },
+  "data-root": "/var/lib/docker",
+  ${dns:+  \"dns\": [\"${dns}\"],}
+  "bridge": "none",
+  "ip-forward": false,
   "iptables": false,
-  "ip6tables": false,
-  "bridge": "none"
+  "ip6tables": false
 }
 EOF
         systemctl daemon-reload || true

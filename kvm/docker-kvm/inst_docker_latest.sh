@@ -114,15 +114,17 @@ OOMScoreAdjust=-999
 WantedBy=multi-user.target
 EOF
 # "data-root": "/docker",
-cat <<'EOF' > /etc/docker/daemon.json
+cat <<EOF > /etc/docker/daemon.json
 {
   "insecure-registries": [ "quay.io", "registry.local" ],
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 10,
   "exec-opts": ["native.cgroupdriver=systemd"],
+  "storage-driver": "overlay2",
   "log-level":"warn",
   "log-opts": { "max-size": "100m", "max-file": "3" },
-  "storage-driver": "overlay2",
+  "data-root": "/var/lib/docker",
+  ${dns:+  \"dns\": [\"${dns}\"],}
   "bridge": "none",
   "ip-forward": false,
   "iptables": false,

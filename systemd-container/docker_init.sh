@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("1ecd5ba5[2025-12-16T08:44:16+08:00]:docker_init.sh")
+VERSION+=("beb6baa7[2026-07-10T09:55:06+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -18,8 +18,12 @@ init_docker() {
 {
   "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
   "insecure-registries": [ "quay.io"${insec_registry:+, \"${insec_registry}\"} ],
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 10,
   "exec-opts": ["native.cgroupdriver=systemd"],
   "storage-driver": "overlay2",
+  "log-level":"warn",
+  "log-opts": { "max-size": "100m", "max-file": "3" },
   "data-root": "/var/lib/docker",
   ${dns:+  \"dns\": [\"${dns}\"],}
   "bridge": "none",
