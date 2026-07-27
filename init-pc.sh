@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a1863864[2026-07-10T09:00:09+08:00]:init-pc.sh")
+VERSION+=("beb6baa7[2026-07-10T09:55:06+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -586,8 +586,8 @@ table inet filter {
         # Drop invalid connections
         ct state invalid drop
         # Accept anything from lo,br-int interface"
-        iif { "lo", "br-int" } accept
-        iifname { "wg*" } accept
+        iif { "lo" } accept
+        iifname { "wg*", "br-int" } accept
         # tcp dport { 80, 443 } accept
     }
 }
