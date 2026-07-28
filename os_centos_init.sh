@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("d235ab73[2025-06-30T06:22:25+08:00]:os_centos_init.sh")
+VERSION+=("e6f0dd64[2025-11-21T14:45:28+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -225,7 +225,9 @@ net.ipv4.tcp_timestamps = 0
 #net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
 #net.ipv4.ip_forward = 1
+net.netfilter.nf_conntrack_max = 262144
 EOF
+# Memory usage: Each tracked connection consumes roughly 350 bytes of non-swappable kernel memory. Increasing nf_conntrack_max to 262144 reserves about ~92 MB of RAM
     cat << EOF > ${basedir}/etc/sysctl.d/90-bbr.conf
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
