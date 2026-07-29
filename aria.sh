@@ -508,3 +508,10 @@ fi
 exit 0
 EOF
 chmod 755 ~/.aria2/update_tracker.sh
+cat <<'EOF'
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+touch ${DIRNAME}/aria2.session
+cd ${DIRNAME} && ./aria2c.$(uname -m) --conf-path=aria2.conf
+EOF
