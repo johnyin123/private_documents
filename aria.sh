@@ -513,5 +513,16 @@ cat <<'EOF'
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 touch ${DIRNAME}/aria2.session
-cd ${DIRNAME} && ./aria2c.$(uname -m) --conf-path=aria2.conf
+
+# cd ${DIRNAME} && ./aria2c.$(uname -m) --conf-path=aria2.conf
+
+systemd-run --user --working-directory=${DIRNAME} --unit aria2 \
+  ${NS_NAME:+-p NetworkNamespacePath=/run/netns/${NS_NAME}} \
+  ${NS_NAME:+-p BindPaths=/etc/netns/${NS_NAME}/resolv.conf:/etc/resolv.conf} \
+  ${NS_NAME:+-p BindPaths=/etc/netns/${NS_NAME}/hosts:/etc/hosts} \
+  ${DIRNAME}/aria2c.$(uname -m) --conf-path=aria2.conf
+cat <<EO_DOC
+systemctl --user stop aria2.service
+systemctl reset-failed
+EO_DOC
 EOF
