@@ -7,11 +7,19 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ba445312[2026-06-11T13:34:37+08:00]:ngx_demo.sh")
+VERSION+=("148cb729[2026-07-03T10:08:53+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
+cat <<'EOF'>ngx-upgrade.txt
+# launch a new Nginx executable
+kill -USR2 $(cat /run/nginx.pid)
+# tell the old master process to gracefully shut down its worker processes
+kill -WINCH $(cat /run/nginx.pid.oldbin)
+# QUIT the old master
+kill -QUIT $(cat /run/nginx.pid.oldbin)
+EOF
 cat <<'EOF'>dnsmasq.txt
 echo 'address=/.mytest.com/127.0.0.1' > dnsmasq.conf
 # # catch all resolve to 127.0.0.1
