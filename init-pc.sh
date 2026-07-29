@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("beb6baa7[2026-07-10T09:55:06+08:00]:init-pc.sh")
+VERSION+=("54653138[2026-07-28T07:28:33+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -657,6 +657,7 @@ Kind=bridge
 EOF
 # # By setting the fsck pass number to 0, you prevent systemd-fstab-generator from attempting an inappropriate file system check on a non-device mount point
 echo '/home/johnyin/disk/storage /storage none defaults,bind 0 0' >> /etc/fstab
+echo '/home/johnyin/disk/swapfile none swap sw 0 0' >> /etc/fstab
 # wireguard-tools need install debian kernel
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 touch /etc/default/google-chrome
