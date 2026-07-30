@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("5f106155[2026-06-10T10:44:49+08:00]:build_deps.sh")
+VERSION+=("ea76d609[2026-06-10T12:32:06+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -349,3 +349,13 @@ log "Building ${CC:-} ${SRC_DIR} ....................................."
     && make -j "$(nproc)" install-headers install-pc install-lib) && { log "OK build ${SRC_DIR}"; } || { log "error build ${SRC_DIR}"; }
 
 log "Building ${CC:-} COMPLETE"
+
+# https://c-ares.org/download/c-ares-1.24.0.tar.gz
+# https://libssh2.org/download/libssh2-1.11.0.tar.gz
+# ./configure ${MYCROSS:+--host=${MYCROSS}} \
+#    --prefix=${MYLIB_DEPS} \
+#    ARIA2_STATIC=yes \
+#    --without-libxml2 --without-libgcrypt \
+#    --without-libnettle --without-gnutls --without-libgmp \
+#    --with-openssl --with-libssh2 --with-sqlite3 \
+#    --enable-shared=no
