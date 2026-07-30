@@ -34,7 +34,7 @@ file-allocation=none
 no-file-allocation-limit=64M
 
 # 禁用https证书检查
-check-certificate=true
+check-certificate=false
 
 # 断点续传
 continue=true
