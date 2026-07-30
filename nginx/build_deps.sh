@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("ea76d609[2026-06-10T12:32:06+08:00]:build_deps.sh")
+VERSION+=("65b60f38[2026-07-30T10:29:37+08:00]:build_deps.sh")
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 MYCROSS=${MYCROSS:-}  # x86_64-w64-mingw32 / i686-w64-mingw32 / aarch64-linux-gnu
@@ -352,10 +352,10 @@ log "Building ${CC:-} COMPLETE"
 
 # https://c-ares.org/download/c-ares-1.24.0.tar.gz
 # https://libssh2.org/download/libssh2-1.11.0.tar.gz
+# https://github.com/aria2/aria2
 # ./configure ${MYCROSS:+--host=${MYCROSS}} \
 #    --prefix=${MYLIB_DEPS} \
 #    ARIA2_STATIC=yes \
-#    --without-libxml2 --without-libgcrypt \
-#    --without-libnettle --without-gnutls --without-libgmp \
+#    --without-libgcrypt --without-libnettle --without-gnutls --without-libgmp \
 #    --with-openssl --with-libssh2 --with-sqlite3 \
 #    --enable-shared=no
