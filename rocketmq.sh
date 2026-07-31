@@ -104,4 +104,8 @@ sh mqshutdown proxy
 sh mqshutdown broker
 sh mqshutdown controller
 sh mqshutdown namesrv
+bin/runserver.sh (NameServer & Proxy)
+    JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m"
+bin/runbroker.sh (Broker & Controller)
+    JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MaxDirectMemorySize=2g"
 EOF
