@@ -5,6 +5,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 cat <<EOF
+RocketMQ 5.0 Cloud-Native Architecture
 |--------+------------------------------------------------------------------------|
 | Server | RocketMQ Component Roles                                               |
 |--------+------------------------------------------------------------------------|
@@ -108,4 +109,16 @@ bin/runserver.sh (NameServer & Proxy)
     JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m"
 bin/runbroker.sh (Broker & Controller)
     JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MaxDirectMemorySize=2g"
+# three brokers
+mqadmin clusterList -n 192.168.1.10:9876
+# Cluster Name     # Broker Name     # BID      # InSyncReplica
+DefaultCluster     broker-a          0          True   (Master on Node 1)
+DefaultCluster     broker-a          1          True   (Replica on Node 2)
+DefaultCluster     broker-a          2          True   (Replica on Node 3)
+DefaultCluster     broker-b          0          True   (Master on Node 2)
+DefaultCluster     broker-b          1          True   (Replica on Node 3)
+DefaultCluster     broker-b          2          True   (Replica on Node 1)
+DefaultCluster     broker-c          0          True   (Master on Node 3)
+DefaultCluster     broker-c          1          True   (Replica on Node 1)
+DefaultCluster     broker-c          2          True   (Replica on Node 2)
 EOF
