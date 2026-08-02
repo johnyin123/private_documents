@@ -90,6 +90,10 @@ log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 
 cat <<'EOF'
+# export NAMESRV_ADDR=localhost:9876
+# sh bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
+# sh bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
+
 nohup sh mqnamesrv &> ~/namesrv.log &
 nohup sh mqcontroller -c /opt/rocketmq/conf/controller.conf &> ~/controller.log &
 nohup sh mqbroker -c /opt/rocketmq/conf/broker-a.conf &> ~/broker-a.log &
