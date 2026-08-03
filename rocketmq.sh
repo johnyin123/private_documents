@@ -49,6 +49,11 @@ log "2. Proxy Configuration (Stateless Layer)"
 log "# On all nodes (rocketmq/config/rmq-proxy.json)"
 cat <<EOF
 {
+#   "grpcServerWorkerThreads": 64,
+#   "grpcServerSelectorThreads": 16,
+#   "remotingThreadPoolNums": 64,
+#   "clientExpiredPoolNums": 16,
+  "proxyMode":"CLUSTER",
   "rocketMQClusterName": "DefaultCluster",
   "grpcServerPort": 8081,
   "remotingListenPort": 8080,
@@ -59,6 +64,19 @@ EOF
 log "M. Broker Master-A Configuration"
 log "# (rocketmq/config/broker-a.conf)"
 cat <<EOF
+# # Netty thread pool configurations for handling raw I/O
+# serverSelectorThreads=8               # Thread count for Netty epoll selectors
+# serverWorkerThreads=32                # Worker threads for processing packet parsing
+# serverCallbackExecutorThreads=32      # Callback thread allocation
+#
+# # Core execution worker threads (scale up based on CPU cores)
+# sendMessageThreadPoolNums=64          # Dedicate more threads to handling ingestion
+# pullMessageThreadPoolNums=64          # Dedicate more threads to message polling
+#
+# # High connection stability parameters
+# clientChannelMaxIdleTimeSeconds=120   # Terminate stale dead connections
+# connectTimeoutMillis=5000             # Allow higher timeout for handshake queues
+
 brokerName=broker-a
 storePathRootDir=/home/rocketmq/store/broker-a
 clusterName=DefaultCluster
