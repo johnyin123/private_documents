@@ -56,11 +56,9 @@ cat > sshd_wstunnel.service <<EOF
 [Unit]
 After=network.target
 [Service]
-Type=oneshot
+Type=simple
 DynamicUser=true
-RemainAfterExit=yes
-ExecStart=/bin/sh -c "./wstunnel server --restrict-to 127.0.0.1:${SSH_PORT} wss://127.0.0.1:${WST_SSH_PORT} &"
+ExecStart=wstunnel server --restrict-to 127.0.0.1:${SSH_PORT} wss://127.0.0.1:${WST_SSH_PORT}
 [Install]
 WantedBy=multi-user.target
 EOF
-
