@@ -68,8 +68,8 @@ wg-quick up wgrank
 /usr/sbin/ip route replace default via 192.168.32.1 || true
 systemd-run --working-directory=\${DIRNAME} --unit cfdns \\
   \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS_NAME}} \\
-  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/resolv.conf:/etc/resolv.conf} \\
-  \${NS_NAME:+-p BindPaths=/etc/netns/\${NS_NAME}/hosts:/etc/hosts} \\
+  \${NS_NAME:+-p BindPaths=-/etc/netns/\${NS_NAME}/resolv.conf:/etc/resolv.conf} \\
+  \${NS_NAME:+-p BindPaths=-/etc/netns/\${NS_NAME}/hosts:/etc/hosts} \\
    cloudflared proxy-dns
 sysctl -w net.ipv4.ip_forward=1
 sysctl -w net.ipv4.ip_default_ttl=128

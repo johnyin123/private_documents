@@ -518,8 +518,8 @@ touch ${DIRNAME}/aria2.session
 
 systemd-run --user --working-directory=${DIRNAME} --unit aria2 \
   ${NS_NAME:+-p NetworkNamespacePath=/run/netns/${NS_NAME}} \
-  ${NS_NAME:+-p BindPaths=/etc/netns/${NS_NAME}/resolv.conf:/etc/resolv.conf} \
-  ${NS_NAME:+-p BindPaths=/etc/netns/${NS_NAME}/hosts:/etc/hosts} \
+  ${NS_NAME:+-p BindPaths=-/etc/netns/${NS_NAME}/resolv.conf:/etc/resolv.conf} \
+  ${NS_NAME:+-p BindPaths=-/etc/netns/${NS_NAME}/hosts:/etc/hosts} \
   ${DIRNAME}/aria2c.$(uname -m) --conf-path=aria2.conf
 cat <<EO_DOC
 systemctl --user stop aria2.service
