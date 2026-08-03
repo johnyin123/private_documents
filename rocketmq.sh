@@ -49,6 +49,9 @@ log "2. Proxy Configuration (Stateless Layer)"
 log "# On all nodes (rocketmq/config/rmq-proxy.json)"
 cat <<EOF
 {
+#   "grpcKeepAliveTimeMs": 60000,
+#   "grpcKeepAliveTimeoutMs": 20000,
+#   "grpcPermitKeepAliveWithoutCalls": true,
 #   "grpcServerWorkerThreads": 64,
 #   "grpcServerSelectorThreads": 16,
 #   "remotingThreadPoolNums": 64,
