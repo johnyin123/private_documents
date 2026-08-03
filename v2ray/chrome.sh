@@ -6,6 +6,7 @@ netns_exists() {
     # /var/run/netns/${ns_name} ?? exists
     ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
 }
+# ip netns pids ns-v2ray &>/dev/null || sudo systemctl start netns@ns-v2ray
 netns_exists ns-v2ray || sudo systemctl start netns@ns-v2ray
 export http_proxy=http://127.0.0.1:8080
 export https_proxy=http://127.0.0.1:8080
