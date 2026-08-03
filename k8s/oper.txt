@@ -40,7 +40,7 @@ nsenter -n -t  54438
 tcpdump -i eth0 udp dst port 53|grep youku.com
 tcpdump -i eth1 tcp port 53
 tcpdump -i enp1s9 dst 192.168.6.1 and src 192.168.6.2 and src port 80
-
+tcpdump -i wlan0 -nn host 192.168.2.78 -w log
 test_ok() {
     # 首先验证kube-apiserver, kube-controller-manager, kube-scheduler, pod network 是否正常
     kubectl create deployment nginx --image=nginx:alpine
