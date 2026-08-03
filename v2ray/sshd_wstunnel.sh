@@ -32,8 +32,8 @@ systemd-run --unit wst-sshd \${NS_NAME:+-p NetworkNamespacePath=/run/netns/\${NS
 # ssh -o ProxyCommand="wstunnel client --http-upgrade-path-prefix ${NGX_SSH_WSPATH} --local-to-remote stdio://%h:%p --http-headers 'Host:${SSH_VHOST}' wss://RemoteHost:443" root@127.0.0.1
 # ssh -o ProxyCommand="wstunnel client --http-upgrade-path-prefix ${NGX_SSH_WSPATH} --local-to-remote stdio://127.0.0.1:%p --http-headers 'Host:${SSH_VHOST}' wss://%h:443" root@srv -p ${SSH_PORT}
 
-Host rack
-    ProxyCommand=wstunnel client --http-upgrade-path-prefix ${NGX_SSH_WSPATH} --local-to-remote stdio://127.0.0.1:${SSH_PORT} --http-headers 'Host:${SSH_VHOST}' wss://srv:443
+Host <srv.ip>
+    ProxyCommand=wstunnel client --http-upgrade-path-prefix ${NGX_SSH_WSPATH} --local-to-remote stdio://127.0.0.1:%p --http-headers 'Host:${SSH_VHOST}' wss://%h:443
 EOF
 cat <<EOF > sshd_wstunnel_ngx.location
     location ${NGX_SSH_WSPATH} {
