@@ -379,6 +379,11 @@ After=network.target
 User=johnyin
 Group=johnyin
 ExecStart=/usr/bin/aria2c --conf-path=${USER_HOME}/.aria2/aria2.conf
+# NetworkNamespacePath=/run/netns/my_ns
+# BindReadOnlyPaths=-/etc/netns/my_ns/resolv.conf:/etc/resolv.conf
+# Slice=custom-application.slice
+# # --- Resource Controls ---
+# MemoryMax=512M
 [Install]
 WantedBy=default.target
 EOF
