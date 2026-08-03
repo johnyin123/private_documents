@@ -59,6 +59,9 @@ After=network.target
 Type=simple
 DynamicUser=true
 ExecStart=wstunnel server --restrict-to 127.0.0.1:${SSH_PORT} wss://127.0.0.1:${WST_SSH_PORT}
+Restart=always
+RestartSec=5
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 [Install]
 WantedBy=multi-user.target
 EOF
