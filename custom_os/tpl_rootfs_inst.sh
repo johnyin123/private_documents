@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("19b2a735[2026-07-10T08:00:29+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("1d8fb73b[2026-07-10T08:49:35+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -109,7 +109,7 @@ main() {
     local src_dir=$(mktemp -d /tmp/src.XXXXXX)
     mount ${root_tpl} ${src_dir} || true
     command -v "rsync" &> /dev/null && {
-        rsync -aWAvp --numeric-ids ${src_dir}/ ${root_dir}/ || true
+        rsync -aWAvtp --numeric-ids ${src_dir}/ ${root_dir}/ || true
     } || {
         tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
     }
