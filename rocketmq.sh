@@ -4,7 +4,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
-cat <<EOF
+cat <<'EOF'
 RocketMQ 5.0 Cloud-Native Architecture
 |--------+------------------------------------------------------------------------|
 | Server | RocketMQ Component Roles                                               |
@@ -34,7 +34,7 @@ namesrvAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9876;/g';echo ":9876
 controllerAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9877;/g';echo ":9877")
 log "1. Controller Configurations (Raft Consensus)"
 for node in ${!MAP_NODES[@]}; do
-    log "# ${node}: (rocketmq/config/controller.conf)"
+    log "# ${node}: (rocketmq/conf/controller.conf)"
     cat <<EOF
 controllerType=DLEDGER
 localAddress=${MAP_NODES[${node}]}:9877
@@ -46,7 +46,7 @@ EOF
 done
 
 log "2. Proxy Configuration (Stateless Layer)"
-log "# On all nodes (rocketmq/config/rmq-proxy.json)"
+log "# On all nodes (rocketmq/conf/rmq-proxy.json)"
 cat <<EOF
 {
 #   "grpcKeepAliveTimeMs": 60000,
@@ -65,8 +65,8 @@ cat <<EOF
 EOF
 
 log "M. Broker Master-A Configuration"
-log "# (rocketmq/config/broker-a.conf)"
-cat <<EOF
+log "# (rocketmq/conf/broker-a.conf)"
+:<<EOF
 # # Netty thread pool configurations for handling raw I/O
 # serverSelectorThreads=8               # Thread count for Netty epoll selectors
 # serverWorkerThreads=32                # Worker threads for processing packet parsing
@@ -80,24 +80,31 @@ cat <<EOF
 # clientChannelMaxIdleTimeSeconds=120   # Terminate stale dead connections
 # connectTimeoutMillis=5000             # Allow higher timeout for handshake queues
 
+# storePathRootDir=/home/rocketmq/store/broker-a
+# storePathCommitLog=/tmp/rmqstore/node00/commitlog
+# namesrvAddr=${namesrvAddr}
+EOF
+cat <<EOF
+brokerClusterName=DefaultCluster
 brokerName=broker-a
-storePathRootDir=/home/rocketmq/store/broker-a
-clusterName=DefaultCluster
-namesrvAddr=${namesrvAddr}
+brokerId=0
+deleteWhen=04
+fileReservedTime=48
 enableControllerMode=true
 controllerAddr=${controllerAddr}
 syncBrokerMetadataPeriod=5000
-brokerRole=ASYNC_MASTER
+brokerRole=SYNC_MASTER
 flushDiskType=ASYNC_FLUSH
 EOF
 
 log "R. Broker-A Replica Configuration"
-log "# (rocketmq/config/broker-a-replica.conf)"
+log "# (rocketmq/conf/broker-a-replica.conf)"
 cat <<EOF
+brokerClusterName=DefaultCluster
 brokerName=broker-a
-storePathRootDir=/home/rocketmq/store/broker-a-replica
-clusterName=DefaultCluster
-namesrvAddr=${namesrvAddr}
+brokerId=1
+deleteWhen=04
+fileReservedTime=48
 enableControllerMode=true
 controllerAddr=${controllerAddr}
 syncBrokerMetadataPeriod=5000
@@ -110,12 +117,56 @@ log "mqadmin clusterList -n ip:9876"
 log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 
-cat <<EOF >rocketmq.conf
+log "# (/etc/rocketmq.conf)"
+cat <<EOF
 ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
-NAME_SRV=srv1:9876,srv2:9876
+NAME_SRV=${namesrvAddr}
 BROKER_CONF=conf/2m-2s-sync/broker-b.properties
 EOF
-cat <<'EOF' >rocketmq-broker.service
+log "# (/etc/systemd/system/rocketmq-namesrv.service)"
+cat <<'EOF'
+[Unit]
+Description=RocketMQ NameServer
+After=network.target
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq"
+EnvironmentFile=-/etc/rocketmq.conf
+WorkingDirectory=${ROCKETMQ_HOME}
+ExecStart=${ROCKETMQ_HOME}/bin/mqnamesrv start
+ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown namesrv
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=655360
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+log "# (/etc/systemd/system/rocketmq-controller.service)"
+cat <<'EOF'
+[Unit]
+Description=RocketMQ Controller
+After=network.target rocketmq-namesrv.service
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq"
+EnvironmentFile=-/etc/rocketmq.conf
+WorkingDirectory=${ROCKETMQ_HOME}
+ExecStart=${ROCKETMQ_HOME}/bin/mqcontroller -n ${NAME_SRV} -c conf/controller.conf
+ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown controller
+Restart=on-failure
+RestartSec=5s
+EOF
+
+log "# (/etc/systemd/system/rocketmq-broker.service)"
+cat <<'EOF'
 [Unit]
 Description=RocketMQ Broker
 After=network.target rocketmq-namesrv.service
@@ -124,9 +175,7 @@ After=network.target rocketmq-namesrv.service
 Type=simple
 User=rocketmq
 Group=rocketmq
-Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
-Environment="NAME_SRV=localhost:9876"
-Environment="BROKER_CONF=conf/broker.conf
+Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
 # Environment="JAVA_OPT="
@@ -137,7 +186,9 @@ RestartSec=5s
 LimitNOFILE=655360
 LimitMEMLOCK=infinity
 EOF
-cat <<'EOF' > rocketmq-proxy.service
+
+log "# (/etc/systemd/system/rocketmq-proxy.service)"
+cat <<'EOF'
 [Unit]
 Description=RocketMQ Proxy
 After=network.target rocketmq-namesrv.service
@@ -146,32 +197,12 @@ After=network.target rocketmq-namesrv.service
 Type=simple
 User=rocketmq
 Group=rocketmq
-Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
+Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
+# Environment="JAVA_OPT="
 WorkingDirectory=${ROCKETMQ_HOME}
 ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n ${NAME_SRV} -pc conf/rmq-proxy.json
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown proxy
-Restart=on-failure
-RestartSec=5s
-LimitNOFILE=655360
-
-[Install]
-WantedBy=multi-user.target
-EOF
-cat <<'EOF' >rocketmq-namesrv.service
-[Unit]
-Description=RocketMQ NameServer
-After=network.target
-
-[Service]
-Type=simple
-User=rocketmq
-Group=rocketmq
-Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
-EnvironmentFile=-/etc/rocketmq.conf
-WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqnamesrv start
-ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown namesrv
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=655360
@@ -204,16 +235,4 @@ bin/runserver.sh (NameServer & Proxy)
     JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m"
 bin/runbroker.sh (Broker & Controller)
     JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MaxDirectMemorySize=2g"
-# three brokers
-mqadmin clusterList -n 192.168.1.10:9876
-# Cluster Name     # Broker Name     # BID      # InSyncReplica
-DefaultCluster     broker-a          0          True   (Master on Node 1)
-DefaultCluster     broker-a          1          True   (Replica on Node 2)
-DefaultCluster     broker-a          2          True   (Replica on Node 3)
-DefaultCluster     broker-b          0          True   (Master on Node 2)
-DefaultCluster     broker-b          1          True   (Replica on Node 3)
-DefaultCluster     broker-b          2          True   (Replica on Node 1)
-DefaultCluster     broker-c          0          True   (Master on Node 3)
-DefaultCluster     broker-c          1          True   (Replica on Node 1)
-DefaultCluster     broker-c          2          True   (Replica on Node 2)
 EOF
