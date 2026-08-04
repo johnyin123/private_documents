@@ -110,6 +110,10 @@ log "mqadmin clusterList -n ip:9876"
 log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 
+cat <<EOF >rocketmq.conf
+ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
+NAME_SRV=localhost:9876
+EOF
 cat <<'EOF' >rocketmq-broker.service
 [Unit]
 Description=RocketMQ Broker
@@ -120,10 +124,11 @@ Type=simple
 User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
+Environment="NAME_SRV=localhost:9876"
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
 # Environment="JAVA_OPT="
-ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n hios-mq-s01:9876;hios-mq-s02:9876 -c /opt/rocketmq-all-5.3.0-bin-release/conf/2m-2s-sync/broker-b.properties
+ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAME_SRV} -c ${ROCKETMQ_HOME}/conf/2m-2s-sync/broker-b.properties
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown broker
 Restart=on-failure
 RestartSec=5s
@@ -142,7 +147,7 @@ Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n hios-mq-s01:9876;hios-mq-s02:9876 -pc conf/rmq-proxy.json
+ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n ${NAME_SRV} -pc conf/rmq-proxy.json
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown proxy
 Restart=on-failure
 RestartSec=5s
