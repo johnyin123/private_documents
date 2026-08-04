@@ -112,7 +112,8 @@ log "mqadmin getControllerMetaData -a ip:9877"
 
 cat <<EOF >rocketmq.conf
 ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
-NAME_SRV=localhost:9876
+NAME_SRV=srv1:9876,srv2:9876
+BROKER_CONF=conf/2m-2s-sync/broker-b.properties
 EOF
 cat <<'EOF' >rocketmq-broker.service
 [Unit]
@@ -125,10 +126,11 @@ User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
 Environment="NAME_SRV=localhost:9876"
+Environment="BROKER_CONF=conf/broker.conf
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
 # Environment="JAVA_OPT="
-ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAME_SRV} -c ${ROCKETMQ_HOME}/conf/2m-2s-sync/broker-b.properties
+ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAME_SRV} -c ${BROKER_CONF}
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown broker
 Restart=on-failure
 RestartSec=5s
