@@ -110,6 +110,66 @@ log "mqadmin clusterList -n ip:9876"
 log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 
+cat <<EOF >rocketmq-broker.service
+[Unit]
+Description=RocketMQ Broker
+After=network.target rocketmq-namesrv.service
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
+WorkingDirectory=/opt/rocketmq-all-5.3.0-bin-release
+ExecStart=/opt/rocketmq-all-5.3.0-bin-release/bin/mqbroker -n hios-mq-s01:9876;hios-mq-s02:9876 -c /opt/rocketmq-all-5.3.0-bin-release/conf/2m-2s-sync/broker-b.properties
+ExecStop=/opt/rocketmq-all-5.3.0-bin-release/bin/mqshutdown broker
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=655360
+LimitMEMLOCK=infinity
+EOF
+cat <<EOF > rocketmq-proxy.service
+[Unit]
+Description=RocketMQ Proxy
+After=network.target rocketmq-namesrv.service
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
+WorkingDirectory=/opt/rocketmq-all-5.3.0-bin-release
+ExecStart=/opt/rocketmq-all-5.3.0-bin-release/bin/mqproxy -n hios-mq-s01:9876;hios-mq-s02:9876 -pc conf/rmq-proxy.json
+ExecStop=/opt/rocketmq-all-5.3.0-bin-release/bin/mqshutdown proxy
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=655360
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat <<EOF >rocketmq-namesrv.service
+[Unit]
+Description=RocketMQ NameServer
+After=network.target
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release"
+WorkingDirectory=/opt/rocketmq-all-5.3.0-bin-release
+ExecStart=/opt/rocketmq-all-5.3.0-bin-release/bin/mqnamesrv start
+ExecStop=/opt/rocketmq-all-5.3.0-bin-release/bin/mqshutdown namesrv
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=655360
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+
 cat <<'EOF'
 # export NAMESRV_ADDR=localhost:9876
 # sh bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
