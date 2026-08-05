@@ -224,6 +224,11 @@ jps | grep NamesrvStartup
 jps | grep ControllerStartup
 jps | grep ProxyStartup
 
+# # startup seq
+# [All Servers: NameServers] ==> [Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves]
+# # stop seq
+# Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves] ==> [All Servers: NameServers]
+
 sh mqshutdown proxy
 sh mqshutdown broker
 sh mqshutdown controller
@@ -232,4 +237,32 @@ bin/runserver.sh (NameServer & Proxy)
     JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m"
 bin/runbroker.sh (Broker & Controller)
     JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MaxDirectMemorySize=2g"
+
+!/bin/bash
+MASTERS=("192.168.1.10" "192.168.1.11")
+SLAVES=("192.168.1.12" "192.168.1.13")
+ALL_NODES=("192.168.1.10" "192.168.1.11" "192.168.1.12" "192.168.1.13")
+
+# Define RocketMQ installation path
+ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
+
+echo "Stopping Master Brokers..."
+for node in "${MASTERS[@]}"; do
+    ssh "$node" "sh ${ROCKETMQ_HOME}/bin/mqshutdown broker"
+done
+
+echo "Waiting for data sync to settle..."
+sleep 30
+
+echo "Stopping Slave Brokers..."
+for node in "${SLAVES[@]}"; do
+    ssh "$node" "sh ${ROCKETMQ_HOME}/bin/mqshutdown broker"
+done
+
+echo "Stopping NameServers..."
+for node in "${ALL_NODES[@]}"; do
+    ssh "$node" "sh ${ROCKETMQ_HOME}/bin/mqshutdown namesrv"
+done
+
+echo "2M2S Cluster shutdown complete."
 EOF
