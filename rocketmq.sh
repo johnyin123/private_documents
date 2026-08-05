@@ -32,16 +32,13 @@ for node in ${!MAP_NODES[@]}; do
 done
 namesrvAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9876;/g';echo ":9876")
 controllerAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9877;/g';echo ":9877")
-log "1. Controller Configurations (Raft Consensus)"
+log "1. Controller Configurations (Raft Consensus), ctrl can in namesrv plugin mode, samp: conf/controller/cluster-3n-namesrv-plugin"
 for node in ${!MAP_NODES[@]}; do
     log "# ${node}: (rocketmq/conf/controller.conf)"
     cat <<EOF
-controllerType=DLEDGER
-localAddress=${MAP_NODES[${node}]}:9877
-controllerDLegerPeerIds=$(IFS=';';echo "${peerids[*]}";)
+controllerDLegerGroup = group1
+controllerDLegerPeers=$(IFS=';';echo "${peerids[*]}";)
 controllerDLegerSelfId=${node}
-controllerStorePath=/home/rocketmq/store/controller
-enableElectUncleanMaster=false
 EOF
 done
 
