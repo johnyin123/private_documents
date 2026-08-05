@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("54653138[2026-07-28T07:28:33+08:00]:init-pc.sh")
+VERSION+=("75c5a63c[2026-07-29T13:31:49+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -22,7 +22,9 @@ ZRAM_SIZE=512
 apt_install() {
     apt -y -oAcquire::http::User-Agent=dler install $*
 }
-
+echo 'get battery info'
+echo 'cat /sys/class/power_supply/BAT0/capacity'
+echo 'cat /sys/class/power_supply/BAT0/status'
 debian_apt_init
 apt update
 apt -y upgrade
