@@ -192,7 +192,9 @@ log "mqadmin clusterList -n ip:9876"
 log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 log "# Get/Set consumer mode(pull/pop):"
-log "mqadmin queryConsumeMode -b 127.0.0.1:10911 -g [Consumer_Grp] -t [Topic]"
+log "export NAMESRV_ADDR=localhost:9876"
+log "mqadmin consumerProgress -s"
+log "mqadmin topicList"
 log "mqadmin setConsumeMode -b 127.0.0.1:10911 -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 
 cat <<'EOF'
