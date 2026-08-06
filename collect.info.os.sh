@@ -5,6 +5,7 @@ mqadmin getNamesrvConfig
 mqadmin consumerProgress
 mqadmin topicList
 
+{ uname -a;getsebool;ip a;free -h;cat /proc/cpuinfo;uptime;vmstat 1 10;iostat 1 10;ps -efwww;netstat -s;netstat -tunlpa;for p in $(pidof java);do echo $p;cat /proc/$p/limits; done;;journalctl --since "7 days ago";cat /proc/cmdline;sysctl -a; } &> $(hostname).log
 
 # sysctl -a | grep net.netfilter.nf_conntrack_max
 cat /proc/sys/net/netfilter/nf_conntrack_count
