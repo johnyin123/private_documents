@@ -21,6 +21,7 @@ RocketMQ 5.0 Cloud-Native Architecture
              ⚡ [ Broker-A ]     ⚡ [ Broker-B ]
              (Data Shard 1)      (Data Shard 2)
 EOF
+CLUSTER=${CLUSTER:-DefaultCluster}
 declare -A MAP_NODES=(
     [rmq01]=192.168.168.21
     [rmq02]=192.168.168.22
@@ -46,43 +47,24 @@ log "2. Proxy Configuration (Stateless Layer)"
 log "# On all nodes (rocketmq/conf/rmq-proxy.json)"
 cat <<EOF
 {
-#   "grpcKeepAliveTimeMs": 60000,
-#   "grpcKeepAliveTimeoutMs": 20000,
-#   "grpcPermitKeepAliveWithoutCalls": true,
-#   "grpcServerWorkerThreads": 64,
-#   "grpcServerSelectorThreads": 16,
-#   "remotingThreadPoolNums": 64,
-#   "clientExpiredPoolNums": 16,
   "proxyMode":"CLUSTER",
-  "rocketMQClusterName": "DefaultCluster",
+  "rocketMQClusterName": "${CLUSTER}",
   "grpcServerPort": 8081,
   "remotingListenPort": 8080,
   "enableGrpcEpoll":true
 }
 EOF
 
+log "3. Broker Configuration (M/S broker-a & broker-b)"
 log "M. Broker Master-A Configuration"
 log "# (rocketmq/conf/broker-a.conf)"
-:<<EOF
-# # Netty thread pool configurations for handling raw I/O
-# serverSelectorThreads=8               # Thread count for Netty epoll selectors
-# serverWorkerThreads=32                # Worker threads for processing packet parsing
-# serverCallbackExecutorThreads=32      # Callback thread allocation
-#
-# # Core execution worker threads (scale up based on CPU cores)
-# sendMessageThreadPoolNums=64          # Dedicate more threads to handling ingestion
-# pullMessageThreadPoolNums=64          # Dedicate more threads to message polling
-#
-# # High connection stability parameters
-# clientChannelMaxIdleTimeSeconds=120   # Terminate stale dead connections
-# connectTimeoutMillis=5000             # Allow higher timeout for handshake queues
-
-# storePathRootDir=/home/rocketmq/store/broker-a
-# storePathCommitLog=/tmp/rmqstore/node00/commitlog
-# namesrvAddr=${namesrvAddr}
-EOF
 cat <<EOF
-brokerClusterName=DefaultCluster
+# storePathRootDir=\$HOME/store/
+# storePathCommitLog=\$HOME/store/commitlog/
+# mappedFileSizeCommitLog=$(1024*1024*1024)
+# namesrvAddr=${namesrvAddr}
+# listenPort=10911
+brokerClusterName=${CLUSTER}
 brokerName=broker-a
 brokerId=0
 deleteWhen=04
@@ -97,7 +79,7 @@ EOF
 log "R. Broker-A Replica Configuration"
 log "# (rocketmq/conf/broker-a-replica.conf)"
 cat <<EOF
-brokerClusterName=DefaultCluster
+brokerClusterName=${CLUSTER}
 brokerName=broker-a
 brokerId=1
 deleteWhen=04
@@ -109,11 +91,7 @@ brokerRole=SLAVE
 flushDiskType=ASYNC_FLUSH
 EOF
 
-log "# Verify Check Cluster Topology:"
-log "mqadmin clusterList -n ip:9876"
-log "# Verify Check Controller Status:"
-log "mqadmin getControllerMetaData -a ip:9877"
-
+log "4. service files"
 log "# (/etc/rocketmq.conf)"
 cat <<EOF
 ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
@@ -207,6 +185,15 @@ LimitNOFILE=655360
 [Install]
 WantedBy=multi-user.target
 EOF
+
+log "5. ====================================================================="
+log "# Verify Check Cluster Topology:"
+log "mqadmin clusterList -n ip:9876"
+log "# Verify Check Controller Status:"
+log "mqadmin getControllerMetaData -a ip:9877"
+log "# Get/Set consumer mode(pull/pop):"
+log "mqadmin queryConsumeMode -b 127.0.0.1:10911 -g [Consumer_Grp] -t [Topic]"
+log "mqadmin setConsumeMode -b 127.0.0.1:10911 -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 
 cat <<'EOF'
 # export NAMESRV_ADDR=localhost:9876
