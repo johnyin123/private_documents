@@ -95,7 +95,7 @@ log "4. service files"
 log "# (/etc/rocketmq.conf)"
 cat <<EOF
 ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
-NAME_SRV=${namesrvAddr}
+NAMESRV_ADDR=${namesrvAddr}
 BROKER_CONF=conf/2m-2s-sync/broker-b.properties
 EOF
 log "# (/etc/systemd/system/rocketmq-namesrv.service)"
@@ -134,7 +134,7 @@ Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqcontroller -n ${NAME_SRV} -c conf/controller.conf
+ExecStart=${ROCKETMQ_HOME}/bin/mqcontroller -n ${NAMESRV_ADDR} -c conf/controller.conf
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown controller
 Restart=on-failure
 RestartSec=5s
@@ -154,7 +154,7 @@ Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
 WorkingDirectory=${ROCKETMQ_HOME}
 # Environment="JAVA_OPT="
-ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAME_SRV} -c ${BROKER_CONF}
+ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAMESRV_ADDR} -c ${BROKER_CONF}
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown broker
 Restart=on-failure
 RestartSec=5s
@@ -176,7 +176,7 @@ Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
 # Environment="JAVA_OPT="
 WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n ${NAME_SRV} -pc conf/rmq-proxy.json
+ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n ${NAMESRV_ADDR} -pc conf/rmq-proxy.json
 ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown proxy
 Restart=on-failure
 RestartSec=5s
@@ -193,7 +193,7 @@ log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 log "# Get/Set consumer mode(pull/pop):"
 log "export NAMESRV_ADDR=localhost:9876"
-log "mqadmin consumerProgress -s"
+log "mqadmin consumerProgress"
 log "mqadmin topicList"
 log "mqadmin setConsumeMode -b 127.0.0.1:10911 -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 

@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e6f0dd64[2025-11-21T14:45:28+08:00]:os_centos_init.sh")
+VERSION+=("2e3d937c[2026-07-29T07:12:55+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -290,7 +290,6 @@ UserKnownHostsFile=/dev/null
 ControlMaster auto
 ControlPath  ~/.ssh/%r@%h:%p
 ControlPersist 600
-Port 60022
 Host github.com
     Port 22
 EOF
