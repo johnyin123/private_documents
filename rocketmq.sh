@@ -195,7 +195,7 @@ log "# Get/Set consumer mode(pull/pop):"
 log "export NAMESRV_ADDR=localhost:9876"
 log "mqadmin consumerProgress"
 log "mqadmin topicList"
-log "mqadmin setConsumeMode -b 127.0.0.1:10911 -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
+log "mqadmin setConsumeMode -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 
 cat <<'EOF'
 # export NAMESRV_ADDR=localhost:9876
