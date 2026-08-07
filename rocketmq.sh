@@ -216,6 +216,7 @@ log "export NAMESRV_ADDR=localhost:9876"
 log "mqadmin consumerProgress"
 log "mqadmin topicList"
 log "mqadmin setConsumeMode -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
+log "mqadmin resetOffsetByTime -g sg-event-bus-64 -s '2026-08-06#00:00:00:000' -t tp-event-bus-64"
 
 cat <<'EOF'
 USER=rocketmq
