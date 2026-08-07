@@ -61,7 +61,7 @@ log "# (rocketmq/conf/broker-a.conf)"
 cat <<EOF
 # storePathRootDir=\$HOME/store/
 # storePathCommitLog=\$HOME/store/commitlog/
-# mappedFileSizeCommitLog=$(1024*1024*1024)
+# mappedFileSizeCommitLog=$((1024*1024*1024))
 # namesrvAddr=${namesrvAddr}
 # listenPort=10911
 brokerClusterName=${CLUSTER}
@@ -93,13 +93,15 @@ EOF
 
 log "4. service files"
 log "# (/etc/rocketmq.conf)"
-cat <<EOF
+cat <<EOF >rocketmq.conf
 ROCKETMQ_HOME=/opt/rocketmq-all-5.3.0-bin-release
 NAMESRV_ADDR=${namesrvAddr}
 BROKER_CONF=conf/2m-2s-sync/broker-b.properties
+DASHBOARD_PORT=18080
+JAVA_OPT="-Djava.net.preferIPv4Stack=true -Djava.security.egd=file:/dev/urandom"
 EOF
 log "# (/etc/systemd/system/rocketmq-namesrv.service)"
-cat <<'EOF'
+cat <<'EOF' >rocketmq-namesrv.service
 [Unit]
 Description=RocketMQ NameServer
 After=network.target
@@ -110,9 +112,8 @@ User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
-WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqnamesrv start
-ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown namesrv
+ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqnamesrv start >/dev/null"
+ExecStop=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqshutdown namesrv"
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=655360
@@ -122,7 +123,7 @@ WantedBy=multi-user.target
 EOF
 
 log "# (/etc/systemd/system/rocketmq-controller.service)"
-cat <<'EOF'
+cat <<'EOF' >rocketmq-controller.service
 [Unit]
 Description=RocketMQ Controller
 After=network.target rocketmq-namesrv.service
@@ -133,15 +134,14 @@ User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
-WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqcontroller -n ${NAMESRV_ADDR} -c conf/controller.conf
-ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown controller
+ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqcontroller -n ${NAMESRV_ADDR} -c conf/controller.conf >/dev/null"
+ExecStop=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqshutdown controller"
 Restart=on-failure
 RestartSec=5s
 EOF
 
 log "# (/etc/systemd/system/rocketmq-broker.service)"
-cat <<'EOF'
+cat <<'EOF' >rocketmq-broker.service
 [Unit]
 Description=RocketMQ Broker
 After=network.target rocketmq-namesrv.service
@@ -151,11 +151,11 @@ Type=simple
 User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
+Environment="NAMESRV_ADDR=127.0.0.1:9876"
+Environment="BROKER_CONF=conf/broker.conf"
 EnvironmentFile=-/etc/rocketmq.conf
-WorkingDirectory=${ROCKETMQ_HOME}
-# Environment="JAVA_OPT="
-ExecStart=${ROCKETMQ_HOME}/bin/mqbroker -n ${NAMESRV_ADDR} -c ${BROKER_CONF}
-ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown broker
+ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqbroker -n ${NAMESRV_ADDR} -c ${BROKER_CONF} >/dev/null"
+ExecStop=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqshutdown broker"
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=655360
@@ -163,7 +163,7 @@ LimitMEMLOCK=infinity
 EOF
 
 log "# (/etc/systemd/system/rocketmq-proxy.service)"
-cat <<'EOF'
+cat <<'EOF' >rocketmq-proxy.service
 [Unit]
 Description=RocketMQ Proxy
 After=network.target rocketmq-namesrv.service
@@ -173,11 +173,10 @@ Type=simple
 User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
+Environment="NAMESRV_ADDR=127.0.0.1:9876"
 EnvironmentFile=-/etc/rocketmq.conf
-# Environment="JAVA_OPT="
-WorkingDirectory=${ROCKETMQ_HOME}
-ExecStart=${ROCKETMQ_HOME}/bin/mqproxy -n ${NAMESRV_ADDR} -pc conf/rmq-proxy.json
-ExecStop=${ROCKETMQ_HOME}/bin/mqshutdown proxy
+ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqproxy -n ${NAMESRV_ADDR} -pc conf/rmq-proxy.json >/dev/null"
+ExecStop=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqshutdown proxy"
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=655360
@@ -186,6 +185,27 @@ LimitNOFILE=655360
 WantedBy=multi-user.target
 EOF
 
+log "# (/etc/systemd/system/rocketmq-dashboard.service)"
+cat <<'EOF' >rocketmq-dashboard.service
+[Unit]
+Description=RocketMQ Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=rocketmq
+Group=rocketmq
+Environment="ROCKETMQ_HOME=/opt/rocketmq"
+Environment="DASHBOARD_PORT=8080"
+EnvironmentFile=-/etc/rocketmq.conf
+ExecStart=/bin/sh -c "java -jar ${ROCKETMQ_HOME}/rocketmq-dashboard-2.0.0.jar --server.port=${DASHBOARD_PORT} >/dev/null"
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=655360
+
+[Install]
+WantedBy=multi-user.target
+EOF
 log "5. ====================================================================="
 log "# Verify Check Cluster Topology:"
 log "mqadmin clusterList -n ip:9876"
@@ -198,34 +218,25 @@ log "mqadmin topicList"
 log "mqadmin setConsumeMode -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 
 cat <<'EOF'
-# export NAMESRV_ADDR=localhost:9876
-# sh bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
-# sh bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
-
-nohup sh mqnamesrv &> ~/namesrv.log &
-nohup sh mqcontroller -c /opt/rocketmq/conf/controller.conf &> ~/controller.log &
-nohup sh mqbroker -c /opt/rocketmq/conf/broker-a.conf &> ~/broker-a.log &
-nohup sh mqbroker -c /opt/rocketmq/conf/broker-a-replica.conf &> ~/broker-a-replica.log &
-nohup sh mqproxy -c /opt/rocketmq/conf/rmq-proxy.json &> ~/proxy.log &
+USER=rocketmq
+GROUP=rocketmq
+getent group  ${GROUP} >/dev/null || groupadd ${GROUP} || :
+getent passwd ${USER} >/dev/null || useradd -g ${GROUP} --create-home --home-dir /home/${USER}/ --shell /bin/bash ${USER} 2> /dev/null || :
+echo "export PATH=$PATH:/opt/rocketmq/bin" >> /home/${USER}/.bashrc
+EOF
+cat <<EOF
+echo "export NAMESRV_ADDR=\"${namesrvAddr}\"" >> /home/\${USER}/.bashrc
 
 # Verify it started
 jps | grep NamesrvStartup
 jps | grep ControllerStartup
 jps | grep ProxyStartup
-
+EOF
+cat <<'EOF'
 # # startup seq
 # [All Servers: NameServers] ==> [Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves]
 # # stop seq
 # Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves] ==> [All Servers: NameServers]
-
-sh mqshutdown proxy
-sh mqshutdown broker
-sh mqshutdown controller
-sh mqshutdown namesrv
-bin/runserver.sh (NameServer & Proxy)
-    JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m"
-bin/runbroker.sh (Broker & Controller)
-    JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MaxDirectMemorySize=2g"
 
 !/bin/bash
 MASTERS=("192.168.1.10" "192.168.1.11")
