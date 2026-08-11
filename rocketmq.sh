@@ -141,6 +141,10 @@ RestartSec=5s
 EOF
 
 log "# (/etc/systemd/system/rocketmq-broker.service)"
+log "# nofile   1024000"
+log "# memlock  unlimited"
+log "# mount    noatime"
+log "# JAVA_OPT=-XX:+UseNUMA"
 cat <<'EOF' >rocketmq-broker.service
 [Unit]
 Description=RocketMQ Broker
