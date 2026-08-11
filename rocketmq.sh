@@ -33,7 +33,7 @@ for node in ${!MAP_NODES[@]}; do
 done
 namesrvAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9876;/g';echo ":9876")
 controllerAddr=$(IFS=';';echo -n "${MAP_NODES[*]}" | sed 's/;/:9877;/g';echo ":9877")
-log "1. Controller Configurations (Raft Consensus), ctrl can in namesrv plugin mode, samp: conf/controller/cluster-3n-namesrv-plugin"
+log "0. Controller Configurations (Raft Consensus), ctrl can in namesrv plugin mode, samp: conf/controller/cluster-3n-namesrv-plugin"
 for node in ${!MAP_NODES[@]}; do
     log "# ${node}: (rocketmq/conf/controller.conf)"
     cat <<EOF
@@ -42,7 +42,12 @@ controllerDLegerPeers=$(IFS=';';echo "${peerids[*]}";)
 controllerDLegerSelfId=${node}
 EOF
 done
-
+log "1 NameServer Configuration (Stateless Layer)"
+log "# On all nodes (rocketmq/conf/namesrv.conf)"
+cat <<EOF
+listenPort=9876
+useEpollNativeSelector=true
+EOF
 log "2. Proxy Configuration (Stateless Layer)"
 log "# On all nodes (rocketmq/conf/rmq-proxy.json)"
 cat <<EOF
@@ -59,6 +64,9 @@ log "3. Broker Configuration (M/S broker-a & broker-b)"
 log "M. Broker Master-A Configuration"
 log "# (rocketmq/conf/broker-a.conf)"
 cat <<EOF
+# autoCreateTopicEnable=true
+# defaultTopicQueueNums=16
+# useEpollNativeSelector=true
 # storePathRootDir=\$HOME/store/
 # storePathCommitLog=\$HOME/store/commitlog/
 # mappedFileSizeCommitLog=$((1024*1024*1024))
@@ -112,7 +120,7 @@ User=rocketmq
 Group=rocketmq
 Environment="ROCKETMQ_HOME=/opt/rocketmq"
 EnvironmentFile=-/etc/rocketmq.conf
-ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqnamesrv start >/dev/null"
+ExecStart=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqnamesrv start -c conf/namesrv.conf >/dev/null"
 ExecStop=/bin/sh -c "cd ${ROCKETMQ_HOME} && ./bin/mqshutdown namesrv"
 Restart=on-failure
 RestartSec=5s
@@ -266,7 +274,7 @@ done
 
 echo "Stopping NameServers..."
 for node in "${ALL_NODES[@]}"; do
-    ssh "$node" "sh ${ROCKETMQ_HOME}/bin/mqshutdown namesrv"
+    ssh "$node" "sh ${ROCKETMQ_HOME}/bin/mqshutdown namesrv "
 done
 
 echo "2M2S Cluster shutdown complete."
