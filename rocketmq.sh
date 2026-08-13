@@ -377,6 +377,7 @@ import org.slf4j.LoggerFactory;
 class RocketMQMultiTopicListener implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(RocketMQMultiTopicListener.class);
     private static final int mysleep = Integer.getInteger("test.sleep", 1000);
+    //java.util.concurrent.ExecutorService mypool = java.util.concurrent.Executors.newFixedThreadPool(10);
     private static void sleep(int ms) {
         try { Thread.sleep(ms); } catch (InterruptedException e) {}
     }
@@ -396,7 +397,7 @@ class RocketMQMultiTopicListener implements MessageListener {
             if(Integer.getInteger("task.async", 0) == 0) {
                 myTask(message);
             } else {
-                java.util.concurrent.CompletableFuture.runAsync(() -> { myTask(message); });
+                java.util.concurrent.CompletableFuture.runAsync(() -> { myTask(message); }/*, mypool*/);
             }
         } finally {
             log.info("complete: {}", messageId);
