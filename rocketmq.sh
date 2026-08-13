@@ -229,6 +229,7 @@ log "mqadmin consumerProgress"
 log "mqadmin topicList"
 log "mqadmin setConsumeMode -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
 log "mqadmin resetOffsetByTime -g sg-event-bus-64 -s '2026-08-06#00:00:00:000' -t tp-event-bus-64"
+log 'mqadmin updateConsumerGroup -c DefaultCluster -g grp -r 16 -s "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"'
 
 cat <<'EOF'
 USER=rocketmq
@@ -244,13 +245,14 @@ echo "export NAMESRV_ADDR=\"${namesrvAddr}\"" >> /home/\${USER}/.bashrc
 jps | grep NamesrvStartup
 jps | grep ControllerStartup
 jps | grep ProxyStartup
-EOF
-cat <<'EOF'
 # # startup seq
 # [All Servers: NameServers] ==> [Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves]
 # # stop seq
 # Server 1 & 2: Masters] ==> [Server 3 & 4: Slaves] ==> [All Servers: NameServers]
+EOF
 
+log 'shutdown script'
+cat <<'EOF'
 !/bin/bash
 MASTERS=("192.168.1.10" "192.168.1.11")
 SLAVES=("192.168.1.12" "192.168.1.13")
@@ -278,4 +280,165 @@ for node in "${ALL_NODES[@]}"; do
 done
 
 echo "2M2S Cluster shutdown complete."
+EOF
+
+log 'demo programs'
+cat <<'EOF'
+javac -cp rocketmq-client-java-5.2.1.jar:slf4j-api-2.0.3.jar MyConsumer.java  MyProducer.java
+
+java -cp ./:rocketmq-client-java-5.2.1.jar:slf4j-api-2.0.3.jar:slf4j-simple-2.0.3.jar \
+    -Drocketmq.endpoint="192.168.168.101:8081" \
+    -Drocketmq.topic="MyTopicName" \
+    -Drocketmq.group="MyConsumerGroupName" \
+    -Drocketmq.tag="myTag" \
+    -Drocketmq.rtimeout=3 \
+    MyProducer
+
+java -cp ./:rocketmq-client-java-5.2.1.jar:slf4j-api-2.0.3.jar:slf4j-simple-2.0.3.jar \
+    -Drocketmq.endpoint="192.168.168.101:8081" \
+    -Drocketmq.topic="MyTopicName" \
+    -Drocketmq.group="MyConsumerGroupName" \
+    -Drocketmq.tag="myTag" \
+    -Drocketmq.threads=20 \
+    -Drocketmq.rtimeout=3 \
+    -Dtest.sleep=6000 \
+    -Dtask.async=0 \
+    MyConsumer
+
+# # MyProducer.java
+import org.apache.rocketmq.client.apis.ClientConfiguration;
+import org.apache.rocketmq.client.apis.ClientConfigurationBuilder;
+import org.apache.rocketmq.client.apis.ClientServiceProvider;
+import org.apache.rocketmq.client.apis.message.Message;
+import org.apache.rocketmq.client.apis.producer.Producer;
+import org.apache.rocketmq.client.apis.producer.SendReceipt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class MyProducer {
+    private static final Logger log = LoggerFactory.getLogger(MyProducer.class);
+    private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
+    private static final String FIFO_TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
+    private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
+    private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
+    private static void sendLifecycleEvent(ClientServiceProvider provider, Producer producer, String messageGroupKey, String payload) {
+        try {
+            byte[] body = payload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            Message message = provider.newMessageBuilder()
+                .setTopic(FIFO_TOPIC)
+                .setTag(TAG)
+                .setKeys(messageGroupKey)
+                .setMessageGroup(messageGroupKey)
+                .setBody(body)
+                .build();
+            SendReceipt sendReceipt = producer.send(message);
+            log.info("[Send Success] Payload: '{}' mapped to Message Group: {}. MsgID: {}", payload, messageGroupKey, sendReceipt.getMessageId());
+        } catch (Exception e) {
+            log.error("Failed to send message sequence for group: {}", messageGroupKey, e);
+        }
+    }
+    public static void main(String[] args) {
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(ENDPOINT)
+            .setRequestTimeout(java.time.Duration.ofSeconds(Long.parseLong(System.getProperty("rocketmq.rtimeout", "3"))))
+            .build();
+        try {
+            Producer producer = provider.newProducerBuilder()
+                .setClientConfiguration(clientConfiguration)
+                .setTopics(FIFO_TOPIC)
+                .build();
+            log.info("Producer successfully started.");
+            for (int i = 0; i < 10000; i++) {
+                java.util.UUID uuid = java.util.UUID.randomUUID();
+                sendLifecycleEvent(provider, producer, uuid.toString(), "payload info");
+            }
+        } catch (Exception e) {
+            log.error("Error occurred during FIFO demo execution", e);
+        }
+    }
+}
+# # MyConsumer.java
+import org.apache.rocketmq.client.apis.ClientConfiguration;
+import org.apache.rocketmq.client.apis.ClientConfigurationBuilder;
+import org.apache.rocketmq.client.apis.ClientServiceProvider;
+import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
+import org.apache.rocketmq.client.apis.consumer.FilterExpression;
+import org.apache.rocketmq.client.apis.consumer.FilterExpressionType;
+import org.apache.rocketmq.client.apis.consumer.MessageListener;
+import org.apache.rocketmq.client.apis.consumer.PushConsumer;
+import org.apache.rocketmq.client.apis.message.MessageView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+class RocketMQMultiTopicListener implements MessageListener {
+    private static final Logger log = LoggerFactory.getLogger(RocketMQMultiTopicListener.class);
+    private static final int mysleep = Integer.getInteger("test.sleep", 1000);
+    private static void sleep(int ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException e) {}
+    }
+    private static void myTask(String payload) {
+        log.info("message payload：{}", payload);
+        sleep(mysleep);
+        log.info("task complete!");
+    }
+    public ConsumeResult consume(MessageView messageView) {
+        String messageId = messageView.getMessageId().toString();
+        int deliveryAttempt = messageView.getDeliveryAttempt();
+        try {
+            if (deliveryAttempt > 1) {
+                log.error("deliveryAttempt {}：{}, sleep={}", deliveryAttempt, messageView.toString(), mysleep);
+            }
+            String message = java.nio.charset.StandardCharsets.UTF_8.decode(messageView.getBody()).toString();
+            if(Integer.getInteger("task.async", 0) == 0) {
+                myTask(message);
+            } else {
+                java.util.concurrent.CompletableFuture.runAsync(() -> { myTask(message); });
+            }
+        } finally {
+            log.info("complete: {}", messageId);
+        }
+        return ConsumeResult.SUCCESS;
+    }
+}
+public class MyConsumer {
+    private static final Logger log = LoggerFactory.getLogger(MyConsumer.class);
+    private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
+    private static final String FIFO_TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
+    private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
+    private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
+
+    public static void main(String[] args) {
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(ENDPOINT)
+            .setRequestTimeout(java.time.Duration.ofSeconds(Long.parseLong(System.getProperty("rocketmq.rtimeout", "3"))))
+            .build();
+        try {
+            FilterExpression filterExpression = new FilterExpression(TAG, FilterExpressionType.TAG);
+            log.info("Starting RocketMQ Push Consumer, topic: {}", FIFO_TOPIC);
+            PushConsumer consumer = provider.newPushConsumerBuilder()
+                .setClientConfiguration(clientConfiguration)
+                .setConsumerGroup(CONSUMER_GROUP)
+                .setSubscriptionExpressions(java.util.Collections.singletonMap(FIFO_TOPIC, filterExpression))
+                .setMessageListener(new RocketMQMultiTopicListener())
+                .setConsumptionThreadCount(Integer.getInteger("rocketmq.threads", 20))
+                .build();
+            // Lock the thread to keep consumer active
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    if (consumer != null) {
+                        consumer.close();
+                    }
+                } catch (java.io.IOException e) {
+                    e.printStackTrace();
+                }
+                log.info("Consumer closed successfully.");
+            }));
+        } catch (Exception e) {
+            log.error("Failed to initialize RocketMQ consumer", e);
+            throw new RuntimeException(e);
+        }
+    }
+}
 EOF
