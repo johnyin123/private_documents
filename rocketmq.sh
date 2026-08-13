@@ -172,6 +172,9 @@ Restart=on-failure
 RestartSec=5s
 LimitNOFILE=655360
 LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 log "# (/etc/systemd/system/rocketmq-proxy.service)"
