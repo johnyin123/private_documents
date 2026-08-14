@@ -222,18 +222,21 @@ LimitNOFILE=655360
 WantedBy=multi-user.target
 EOF
 log "5. ====================================================================="
+log "export NAMESRV_ADDR=localhost:9876"
 log "# Verify Check Cluster Topology:"
-log "mqadmin clusterList -n ip:9876"
+log "mqadmin clusterList"
 log "# Verify Check Controller Status:"
 log "mqadmin getControllerMetaData -a ip:9877"
 log "# Get/Set consumer mode(pull/pop):"
-log "export NAMESRV_ADDR=localhost:9876"
 log "mqadmin consumerProgress"
 log "mqadmin topicList"
-log "mqadmin setConsumeMode -c ${CLUSTER} -g [Consumer_Grp] -t [Topic] -m POP -q 8"
-log "mqadmin resetOffsetByTime -g sg-event-bus-64 -s '2026-08-06#00:00:00:000' -t tp-event-bus-64"
-log 'mqadmin updateConsumerGroup -c DefaultCluster -g grp -r 16 -s "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"'
-
+log "mqadmin setConsumeMode -c DefaultCluster -g grp -t topic_name -m POP -q 8"
+cat <<'EOF'
+# # create FIFO topic and consumerGroup
+mqadmin updateTopic -c DefaultCluster --order true --attributes +message.type=FIFO --topic topic_name
+mqadmin updateSubGroup -c DefaultCluster -g grp --consumeEnable true --consumeMessageOrderly true ## --retryMaxTimes 4 --groupRetryPolicy '{"type":"CUSTOMIZED","customizedRetryPolicy":{"next":[1000,1000,1000,1000]}}'
+mqadmin resetOffsetByTime -g grp --timestamp '2026-08-06#00:00:00:000' --topic topic_name
+EOF
 cat <<'EOF'
 USER=rocketmq
 GROUP=rocketmq
@@ -321,14 +324,14 @@ import org.slf4j.LoggerFactory;
 public class MyProducer {
     private static final Logger log = LoggerFactory.getLogger(MyProducer.class);
     private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
-    private static final String FIFO_TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
+    private static final String TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
     private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
     private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
     private static void sendLifecycleEvent(ClientServiceProvider provider, Producer producer, String messageGroupKey, String payload) {
         try {
             byte[] body = payload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
             Message message = provider.newMessageBuilder()
-                .setTopic(FIFO_TOPIC)
+                .setTopic(TOPIC)
                 .setTag(TAG)
                 .setKeys(messageGroupKey)
                 .setMessageGroup(messageGroupKey)
@@ -346,10 +349,11 @@ public class MyProducer {
             .setEndpoints(ENDPOINT)
             .setRequestTimeout(java.time.Duration.ofSeconds(Long.parseLong(System.getProperty("rocketmq.rtimeout", "3"))))
             .build();
+        Producer producer = null;
         try {
-            Producer producer = provider.newProducerBuilder()
+            producer = provider.newProducerBuilder()
                 .setClientConfiguration(clientConfiguration)
-                .setTopics(FIFO_TOPIC)
+                .setTopics(TOPIC)
                 .build();
             log.info("Producer successfully started.");
             for (int i = 0; i < 10000; i++) {
@@ -358,6 +362,15 @@ public class MyProducer {
             }
         } catch (Exception e) {
             log.error("Error occurred during FIFO demo execution", e);
+        } finally {
+            if (producer != null) {
+                try {
+                    producer.close();
+                    log.info("Producer successfully closed.");
+                } catch (Exception e) {
+                    log.error("Failed to close producer", e);
+                }
+            }
         }
     }
 }
@@ -406,9 +419,13 @@ class RocketMQMultiTopicListener implements MessageListener {
     }
 }
 public class MyConsumer {
+    static {
+        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
+        System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd HH:mm:ss.SSS");
+    }
     private static final Logger log = LoggerFactory.getLogger(MyConsumer.class);
     private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
-    private static final String FIFO_TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
+    private static final String TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
     private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
     private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
 
@@ -420,11 +437,11 @@ public class MyConsumer {
             .build();
         try {
             FilterExpression filterExpression = new FilterExpression(TAG, FilterExpressionType.TAG);
-            log.info("Starting RocketMQ Push Consumer, topic: {}", FIFO_TOPIC);
+            log.info("Starting RocketMQ Push Consumer, topic: {}", TOPIC);
             PushConsumer consumer = provider.newPushConsumerBuilder()
                 .setClientConfiguration(clientConfiguration)
                 .setConsumerGroup(CONSUMER_GROUP)
-                .setSubscriptionExpressions(java.util.Collections.singletonMap(FIFO_TOPIC, filterExpression))
+                .setSubscriptionExpressions(java.util.Collections.singletonMap(TOPIC, filterExpression))
                 .setMessageListener(new RocketMQMultiTopicListener())
                 .setConsumptionThreadCount(Integer.getInteger("rocketmq.threads", 20))
                 .build();
