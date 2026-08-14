@@ -50,12 +50,14 @@ useEpollNativeSelector=true
 EOF
 log "2. Proxy Configuration (Stateless Layer)"
 log "# On all nodes (rocketmq/conf/rmq-proxy.json)"
+# defaultInvisibleTimeMills, consumer can hold message not commit
 cat <<EOF
 {
   "proxyMode":"CLUSTER",
   "rocketMQClusterName": "${CLUSTER}",
   "grpcServerPort": 8081,
   "remotingListenPort": 8080,
+  "defaultInvisibleTimeMills":60000,
   "enableGrpcEpoll":true
 }
 EOF
@@ -306,6 +308,7 @@ java -cp ./:rocketmq-client-java-5.2.1.jar:slf4j-api-2.0.3.jar:slf4j-simple-2.0.
     -Drocketmq.group="MyConsumerGroupName" \
     -Drocketmq.tag="myTag" \
     -Drocketmq.threads=20 \
+    -Drocketmq.cache.count=20 \
     -Drocketmq.rtimeout=3 \
     -Dtest.sleep=6000 \
     -Dtask.async=0 \
@@ -325,7 +328,6 @@ public class MyProducer {
     private static final Logger log = LoggerFactory.getLogger(MyProducer.class);
     private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
     private static final String TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
-    private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
     private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
     private static void sendLifecycleEvent(ClientServiceProvider provider, Producer producer, String messageGroupKey, String payload) {
         try {
@@ -395,25 +397,21 @@ class RocketMQMultiTopicListener implements MessageListener {
         try { Thread.sleep(ms); } catch (InterruptedException e) {}
     }
     private static void myTask(String payload) {
-        log.info("message payload：{}", payload);
+        log.info("payload：{}", payload);
         sleep(mysleep);
-        log.info("task complete!");
+        log.info("complete: {}", payload);
     }
     public ConsumeResult consume(MessageView messageView) {
         String messageId = messageView.getMessageId().toString();
         int deliveryAttempt = messageView.getDeliveryAttempt();
-        try {
-            if (deliveryAttempt > 1) {
-                log.error("deliveryAttempt {}：{}, sleep={}", deliveryAttempt, messageView.toString(), mysleep);
-            }
-            String message = java.nio.charset.StandardCharsets.UTF_8.decode(messageView.getBody()).toString();
-            if(Integer.getInteger("task.async", 0) == 0) {
-                myTask(message);
-            } else {
-                java.util.concurrent.CompletableFuture.runAsync(() -> { myTask(message); }/*, mypool*/);
-            }
-        } finally {
-            log.info("complete: {}", messageId);
+        if (deliveryAttempt > 1) {
+            log.error("deliveryAttempt {}：{}, sleep={}", deliveryAttempt, messageView.toString(), mysleep);
+        }
+        String message = java.nio.charset.StandardCharsets.UTF_8.decode(messageView.getBody()).toString();
+        if(Integer.getInteger("task.async", 0) == 0) {
+            myTask(message);
+        } else {
+            java.util.concurrent.CompletableFuture.runAsync(() -> { myTask(message); }/*, mypool*/);
         }
         return ConsumeResult.SUCCESS;
     }
@@ -443,10 +441,12 @@ public class MyConsumer {
                 .setConsumerGroup(CONSUMER_GROUP)
                 .setSubscriptionExpressions(java.util.Collections.singletonMap(TOPIC, filterExpression))
                 .setMessageListener(new RocketMQMultiTopicListener())
+                .setMaxCacheMessageCount(Integer.getInteger("rocketmq.cache.count", 20))
                 .setConsumptionThreadCount(Integer.getInteger("rocketmq.threads", 20))
                 .build();
             // Lock the thread to keep consumer active
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                log.info("START EXIT!!!!!!!!!!!!!!!!!!!");
                 try {
                     if (consumer != null) {
                         consumer.close();
