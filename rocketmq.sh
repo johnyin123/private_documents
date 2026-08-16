@@ -239,7 +239,7 @@ TOPIC=topic_name
 GROUP=grp
 mqadmin updateTopic -c DefaultCluster --order true --attributes +message.type=FIFO --topic ${TOPIC}
 mqadmin updateSubGroup -c DefaultCluster -g ${GROUP} --consumeEnable true --consumeMessageOrderly true ## --retryMaxTimes 4 --groupRetryPolicy '{"type":"CUSTOMIZED","customizedRetryPolicy":{"next":[1000,1000,1000,1000]}}'
-mqadmin resetOffsetByTime -g ${GROUP} --timestamp '2026-08-06#00:00:00:000' --topic ${TOPIC}
+mqadmin resetOffsetByTime -g ${GROUP} --timestamp now --topic ${TOPIC}
 EOF
 cat <<'EOF'
 USER=rocketmq
@@ -360,9 +360,14 @@ public class MyProducer {
                 .setTopics(TOPIC)
                 .build();
             log.info("Producer successfully started.");
-            for (int i = 0; i < 10000; i++) {
-                java.util.UUID uuid = java.util.UUID.randomUUID();
-                sendLifecycleEvent(provider, producer, uuid.toString(), "payload info");
+            for (int i = 0; i < 100; i++) {
+                //java.util.UUID uuid = java.util.UUID.randomUUID();
+                String uuid = "group-key-0";
+                sendLifecycleEvent(provider, producer, uuid.toString(), "payload info: " + i);
+            }
+            for (int i = 100; i < 200; i++) {
+                String uuid = "group-key-1";
+                sendLifecycleEvent(provider, producer, uuid.toString(), "payload info: " + i);
             }
         } catch (Exception e) {
             log.error("Error occurred during FIFO demo execution", e);
