@@ -235,9 +235,11 @@ log "mqadmin topicList"
 log "mqadmin setConsumeMode -c DefaultCluster -g grp -t topic_name -m POP -q 8"
 cat <<'EOF'
 # # create FIFO topic and consumerGroup
-mqadmin updateTopic -c DefaultCluster --order true --attributes +message.type=FIFO --topic topic_name
-mqadmin updateSubGroup -c DefaultCluster -g grp --consumeEnable true --consumeMessageOrderly true ## --retryMaxTimes 4 --groupRetryPolicy '{"type":"CUSTOMIZED","customizedRetryPolicy":{"next":[1000,1000,1000,1000]}}'
-mqadmin resetOffsetByTime -g grp --timestamp '2026-08-06#00:00:00:000' --topic topic_name
+TOPIC=topic_name
+GROUP=grp
+mqadmin updateTopic -c DefaultCluster --order true --attributes +message.type=FIFO --topic ${TOPIC}
+mqadmin updateSubGroup -c DefaultCluster -g ${GROUP} --consumeEnable true --consumeMessageOrderly true ## --retryMaxTimes 4 --groupRetryPolicy '{"type":"CUSTOMIZED","customizedRetryPolicy":{"next":[1000,1000,1000,1000]}}'
+mqadmin resetOffsetByTime -g ${GROUP} --timestamp '2026-08-06#00:00:00:000' --topic ${TOPIC}
 EOF
 cat <<'EOF'
 USER=rocketmq
