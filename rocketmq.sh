@@ -240,6 +240,8 @@ GROUP=grp
 mqadmin updateTopic -c DefaultCluster --order true --attributes +message.type=FIFO --topic ${TOPIC}
 mqadmin updateSubGroup -c DefaultCluster -g ${GROUP} --consumeEnable true --consumeMessageOrderly true ## --retryMaxTimes 4 --groupRetryPolicy '{"type":"CUSTOMIZED","customizedRetryPolicy":{"next":[1000,1000,1000,1000]}}'
 mqadmin resetOffsetByTime -g ${GROUP} --timestamp now --topic ${TOPIC}
+mqadmin deleteTopic -c DefaultCluster -t ${TOPIC}
+mqadmin deleteSubGroup -c DefaultCluster -g ${GROUP}
 EOF
 cat <<'EOF'
 USER=rocketmq
