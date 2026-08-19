@@ -434,9 +434,14 @@ public class MyConsumer {
     private static final String ENDPOINT = System.getProperty("rocketmq.endpoint", "192.168.168.101:8081");
     private static final String TOPIC = System.getProperty("rocketmq.topic", "MyTopicName");
     private static final String CONSUMER_GROUP = System.getProperty("rocketmq.group", "MyConsumerGroupName");
-    private static final String TAG = System.getProperty("rocketmq.tag", "myTag");
+    private static final String TAG = System.getProperty("rocketmq.tag", "*");
 
     public static void main(String[] args) {
+        String prefix = "rocketmq.";
+        System.getProperties().entrySet().stream()
+            .map(e -> java.util.Map.entry(String.valueOf(e.getKey()), String.valueOf(e.getValue())))
+            .filter(e -> e.getKey().startsWith(prefix))
+            .forEach(e -> System.out.printf("%-25s = %s\n", e.getKey() ,e.getValue()));
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
             .setEndpoints(ENDPOINT)
