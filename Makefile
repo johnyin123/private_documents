@@ -30,8 +30,6 @@ GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || ec
 GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
 GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
 BUILD_DATE  := $(shell date --iso=seconds)
-PANDOCDOC   := pandoc --toc --number-sections --latex-engine=xelatex -V lang=frenchb -V fontsize=11pt -V geometry:margin=3cm -V papersize=a4paper
-DOCX        := $(patsubst %.md,%.md.docx,$(wildcard *.md))
 CC          := $(CROSS_COMPILE)gcc
 C_STANDARD   = -std=c99
 CPP_STANDARD = -std=c++20
@@ -46,6 +44,17 @@ else
 	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
 endif
 
+ifeq ($(V),1)
+	Q =
+	msg =
+else
+	Q = @
+	msg = @printf ' %-8s %s%s\n' \
+		      "$(1)"             \
+		      "$(if $(2), $(2))" \
+		      "$(if $(3), $(3))";
+endif
+
 # ifeq ($(shell pkg-config --exists mylibs || echo NO),)
 # CFLAGS += -D$(shell echo "MYLIBS=noexist")
 # endif
@@ -56,17 +65,12 @@ SRCPP=$(wildcard *.cpp)
 OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
 %.o: %.c
-	@printf "\033[1;31m"
-	$(CC) $(C_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
-	@printf "\033[m"
+	$(call msg,GCC,$@)
+	$(Q)$(CC) $(C_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 
 %.o: %.cpp
-	@printf "\033[1;35m"
-	$(CC) $(CPP_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
-	@printf "\033[m"
-
-%.md.docx : %.md
-	$(PANDOCDOC) $< -o $@
+	$(call msg,G++,$@)
+	$(Q)$(CC) $(CPP_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 
 .PHONY : all
 all: $(EXE) strip
@@ -74,16 +78,15 @@ all: $(EXE) strip
 
 strip: $(EXE)
 	@printf "\033[1;33m  STRIP $(EXE) SUCCESS\n\033[m"
-	@$(STRIP) $(EXE)
+	$(Q)$(STRIP) $(EXE)
 
 $(EXE): $(OBJ)
-	@printf "\033[1;32m"
-	$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) -o $@ $(LIBFLAGS) $(LDFLAGS)
-	@printf "\033[m"
+	$(Q)$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) -o $@ $(LIBFLAGS) $(LDFLAGS)
 
 .PHONY : clean
 clean:
-	-$(RM) $(OBJ) $(EXE) $(DOCX)
+	$(call msg,CLEAN)
+	-$(Q)$(RM) $(OBJ) $(EXE)
 
 version:
 	$(shell if [ ! -f "version.h" ]; then {  \
@@ -131,10 +134,6 @@ coverage: gcov
 	mkdir -p tmp/lcov
 	lcov -d . -c -o tmp/lcov/$(notdir $(EXE)).info
 	genhtml --legend -o tmp/lcov/report tmp/lcov/$(notdir $(EXE)).info
-
-docs: $(DOCX)
-
-
 
 # @manager = admin
 # @developer = admin
