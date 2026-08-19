@@ -414,7 +414,9 @@ class RocketMQMultiTopicListener implements MessageListener {
         String messageId = messageView.getMessageId().toString();
         int deliveryAttempt = messageView.getDeliveryAttempt();
         if (deliveryAttempt > 1) {
-            log.error("deliveryAttempt {}：{}, sleep={}", deliveryAttempt, messageView.toString(), mysleep);
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SSS");
+            String borntime = fmt.format(new java.sql.Timestamp(messageView.getBornTimestamp()));
+            log.error("deliveryAttempt {}：{}, sleep={}, borntime={}", deliveryAttempt, messageView.toString(), mysleep, borntime);
         }
         String message = java.nio.charset.StandardCharsets.UTF_8.decode(messageView.getBody()).toString();
         if(Integer.getInteger("task.async", 0) == 0) {
