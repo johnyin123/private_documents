@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0d41d47[2025-01-24T08:56:30+08:00]:virt-imgbootup.sh")
+VERSION+=("346938be[2025-03-13T13:04:16+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -18,7 +18,8 @@ ${SCRIPTNAME}
         env ARCH=aarch64 set arch, default x86_64
         env CPU=kvm64 set cpu type, default host
         env NET=e1000e set netcard type, default virtio-net-pci
-        env MACHINE=pc set machine(winxp us pc), default q35(x86_64):virt(aarch64)
+        env MACHINE=pc set machine(winxp use pc), default q35(x86_64):virt(aarch64)
+        env DISK=virtio set disk type virtio/sata, default virtio,(win10 use sata)
         env FAKE=EC2/OPENSTACK/NOCLOUD set smibios enum ec2/openstack if no set no enum
                  NOCLOUD:http://169.254.169.254/__dmi.system-uuid__/
         -c|--cpu    <int>     number of cpus (default 1)
@@ -199,9 +200,16 @@ main() {
         let _id+=1
     done
     _id=0
+    case "${DISK:-virtio}" in
+        sata)      options+=("-device" "ich9-ahci,id=ahci");;
+    esac
     for _u in "${disk[@]}"; do
         local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format" "raw")}
-        options+=("-drive" "file=${_u},index=${_id},cache=none,aio=native,if=virtio,format=${_fmt}")
+        case "${DISK:-virtio}" in
+            sata)      options+=("-drive" "file=${_u},if=none,id=drive-sata${_id},format=${_fmt}" "-device" "ide-hd,drive=drive-sata${_id},bus=ahci.0");;
+            virtio|*)  options+=("-drive" "file=${_u},index=${_id},cache=none,aio=native,if=virtio,format=${_fmt}");;
+        esac
+
         let _id+=1
     done
     for _u in "${simusb[@]}"; do
