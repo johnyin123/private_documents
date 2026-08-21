@@ -12,7 +12,7 @@ DEBUG_FLAG  += -Wall -Wextra
 C_STANDARD   = -std=c99
 EXE         ?= main_bpf
 CFLAGS      += -g -Wall
-CLANG       := bpf-gcc -g -O2 -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu -I./inc
+CLANG       := bpf-gcc -g -O2 -Wall -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu
 LLVM_STRIP  := bpf-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
@@ -57,7 +57,7 @@ clean:
 
 $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(call msg,BPF_BIN,$@)
-	$(Q)$(CLANG) -o $@ $(ARCH_FLAG) -c $<
+	$(Q)$(CLANG) $(CFLAGS) $(INC_PATH) -o $@ $(ARCH_FLAG) -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
 	$(Q)$(LLVM_STRIP) -g $@
 	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,,$*))
