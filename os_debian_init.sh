@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("2e3d937c[2026-07-29T07:12:55+08:00]:os_debian_init.sh")
+VERSION+=("c0d1b1e7[2026-08-06T12:19:56+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -604,7 +604,7 @@ func SetTitle()
         call setline(2, "#include <getopt.h>")
         call setline(3, "#include <string.h>")
         call setline(4, "#include <stdlib.h>")
-        call setline(5, "")
+        call setline(5, "#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))")
         call setline(6, "struct env {")
         call setline(7, "    int verbose;")
         call setline(8, "} g_env = {")
@@ -619,11 +619,11 @@ func SetTitle()
         call setline(17, "};")
         call setline(18, "/*")
         call setline(19, " * { \"demo\",    required_argument, NULL, 'd' }, ")
-        call setline(20, " * strncpy(g_env.demo, optarg, 10);")
+        call setline(20, " * snprintf(g_env.demo, ARRAY_LEN(g_env.demo), \"%s\", optarg);")
         call setline(21, " * g_env.demo = strtol(optarg, NULL, 10);")
         call setline(22, "*/")
         call setline(23, "")
-        call setline(24, "static void usage(char *prog) {")
+        call setline(24, "static void usage(const char *prog) {")
         call setline(25, "    printf(\"Usage: %s\\n\", prog);")
         call setline(26, "    printf(\"    -h|--help help\\n\");")
         call setline(27, "    printf(\"    -V|--verbose\\n\");")
