@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c0d1b1e7[2026-08-06T12:19:56+08:00]:os_debian_init.sh")
+VERSION+=("ebb9b1fa[2026-08-21T09:18:42+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -620,13 +620,13 @@ func SetTitle()
         call setline(18, "/*")
         call setline(19, " * { \"demo\",    required_argument, NULL, 'd' }, ")
         call setline(20, " * snprintf(g_env.demo, ARRAY_LEN(g_env.demo), \"%s\", optarg);")
-        call setline(21, " * g_env.demo = strtol(optarg, NULL, 10);")
-        call setline(22, "*/")
-        call setline(23, "")
-        call setline(24, "static void usage(const char *prog) {")
-        call setline(25, "    printf(\"Usage: %s\\n\", prog);")
-        call setline(26, "    printf(\"    -h|--help help\\n\");")
-        call setline(27, "    printf(\"    -V|--verbose\\n\");")
+        call setline(21, " * g_env.demo = strtol(optarg, NULL, 10); */")
+        call setline(22, "static void usage(const char *prog) {")
+        call setline(23, "    fprintf(stderr,")
+        call setline(24, "        \"Usage: %s\\n\"")
+        call setline(25, "        \"    -h|--help help\\n\"")
+        call setline(26, "        \"    -V|--verbose\\n\"")
+        call setline(27, "        , prog);")
         call setline(28, "    exit(0);")
         call setline(29, "}")
         call setline(30, "static int parse_command_line(int argc, char **argv) {")
@@ -636,9 +636,9 @@ func SetTitle()
         call setline(34, "            case 'h':")
         call setline(35, "                usage(argv[0]);")
         call setline(36, "                return 0;")
-        call setline(40, "            case 'V':")
-        call setline(41, "                g_env.verbose = 1;")
-        call setline(42, "                break;")
+        call setline(37, "            case 'V':")
+        call setline(38, "                g_env.verbose = 1;")
+        call setline(39, "                break;")
         call setline(40, "            default:")
         call setline(41, "                usage(argv[0]);")
         call setline(42, "                return 1;")
@@ -653,7 +653,6 @@ func SetTitle()
     endif
 endfunc
 EOF
-
     sed -i "s/mouse=a/mouse=/g" /usr/share/vim/vim*/defaults.vim || true
 }
 export -f debian_vim_init
