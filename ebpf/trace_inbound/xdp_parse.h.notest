@@ -1,0 +1,131 @@
+#include <linux/icmp.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
+#include <linux/bpf.h>
+#include <bpf/bpf_endian.h>
+#include <bpf/bpf_helpers.h>
+
+/*
+SEC("xdp") int xdp(struct xdp_md *ctx) {
+    void* data = (void*)(long) ctx->data;
+    void* data_end = (void*)(long) ctx->data_end;
+    struct ethhdr *eth;
+    struct iphdr *ip;
+    struct tcphdr *tcp;
+    retVal = parse_ethhdr(&data, data_end, &eth);
+    if (bpf_ntohs(retVal) != ETH_P_IP) return XDP_PASS;
+    retVal = parse_ipv4hdr(&data, data_end, &ip);
+    if (retVal != IPPROTO_TCP) return XDP_PASS;
+    switch(retVal) {
+        case IPPROTO_TCP:
+            break;
+        case IPPROTO_UDP:
+            break;
+        case IPPROTO_ICMP:
+            break;
+    }
+    retVal = parse_tcphdr(&data, data_end, &tcp);
+    if (retVal < 20) return XDP_PASS;
+    ...
+} 
+ */
+static __always_inline int parse_ethhdr(unsigned char **data, void *data_end, struct ethhdr **eth) {
+    struct ethhdr *h = (struct ethhdr *)*data;
+    if ((void *)(h + 1) > data_end)
+        return -1;
+    *eth = h;
+    *data = (unsigned char *)(h + 1);
+    return bpf_ntohs(h->h_proto);
+}
+
+static __always_inline int parse_ipv4hdr(unsigned char **data, void *data_end, struct iphdr **ip) {
+    struct iphdr *h = (struct iphdr *)*data;
+    __u32 hdr_len;
+    /* Minimum IPv4 header */
+    if ((void *)(h + 1) > data_end)
+        return -1;
+    if (h->version != 4)
+        return -1;
+    /* IHL is number of 32-bit words. Minimum = 5, maximum = 15. */
+    if (h->ihl < 5 || h->ihl > 15)
+        return -1;
+    hdr_len = (__u32)h->ihl * 4;
+    if ((void *)h + hdr_len > data_end)
+        return -1;
+    *ip = h;
+    *data = (unsigned char *)h + hdr_len;
+    return h->protocol;
+}
+
+static __always_inline int parse_tcphdr(unsigned char **data, void *data_end, struct tcphdr **tcp) {
+    struct tcphdr *h = (struct tcphdr *)*data;
+    __u32 hdr_len;
+    /* Minimum TCP header */
+    if ((void *)(h + 1) > data_end)
+        return -1;
+    /* TCP data offset is number of 32-bit words. Minimum = 5, maximum = 15. */
+    if (h->doff < 5 || h->doff > 15)
+        return -1;
+    hdr_len = (__u32)h->doff * 4;
+    if ((void *)h + hdr_len > data_end)
+        return -1;
+    *tcp = h;
+    *data = (unsigned char *)h + hdr_len;
+    return 0;
+}
+
+static __always_inline int parse_udphdr(unsigned char **data, void *data_end, struct udphdr **udp) {
+    struct udphdr *h = (struct udphdr *)*data;
+    __u16 len;
+    if ((void *)(h + 1) > data_end)
+        return -1;
+    len = bpf_ntohs(h->len);
+    /* UDP length includes the UDP header. */
+    if (len < sizeof(*h))
+        return -1;
+    if ((void *)h + len > data_end)
+        return -1;
+    *udp = h;
+    /* Normally the caller wants to parse the payload next, so advance only past the UDP header. */
+    *data = (unsigned char *)(h + 1);
+    return len;
+}
+
+static __always_inline int parse_icmphdr(unsigned char **data, void *data_end, struct icmphdr **icmp) {
+    struct icmphdr *h = (struct icmphdr *)*data;
+    if ((void *)(h + 1) > data_end)
+        return -1;
+    *icmp = h;
+    *data = (unsigned char *)(h + 1);
+    return h->type;
+}
+static __always_inline __u16 ip_checksum(struct iphdr *ipHdr, int ipHdrSize) {
+    unsigned long csum = 0;
+    csum = bpf_csum_diff(0, 0, (void *)ipHdr, ipHdrSize, 0);
+    csum = (csum & 0xFFFF) + (csum >> 16);
+    csum = (csum & 0xFFFF) + (csum >> 16);
+    return ~csum;
+}
+static __always_inline __u16 tcp_checksum(struct tcphdr *tcpHdr, int tcpHdrSize) {
+    unsigned long csum = 0;
+    csum = bpf_csum_diff(0, 0, (void *)tcpHdr, tcpHdrSize, 0);
+    csum = (csum & 0xFFFF) + (csum >> 16);
+    csum = (csum & 0xFFFF) + (csum >> 16);
+    return ~csum;
+}
+static __always_inline void swap_mac_addrs(struct ethhdr *etherHeader) {
+	__u8 tmp[ETH_ALEN];
+	__builtin_memcpy(tmp, etherHeader->h_source, ETH_ALEN);
+	__builtin_memcpy(etherHeader->h_source, etherHeader->h_dest, ETH_ALEN);
+	__builtin_memcpy(etherHeader->h_dest, tmp, ETH_ALEN);
+}
+
+static __always_inline void swap_ipv4_addrs(struct iphdr *ipHeader) {
+	__be32 tmp = ipHeader->saddr;
+	ipHeader->saddr = ipHeader->daddr;
+	ipHeader->daddr = tmp;
+}
+
