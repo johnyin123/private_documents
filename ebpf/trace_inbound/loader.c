@@ -53,7 +53,7 @@ static int parse_command_line(int argc, char **argv) {
                 usage(argv[0]);
                 return 0;
             case 'V':
-                env.verbose = 1;
+                env.verbose++;
                 break;
             default:
                 usage(argv[0]);
@@ -142,6 +142,7 @@ int main(int argc, char *argv[]) {
     }
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
     /* 5. 保持运行，信号触发退出 */
+    struct data_stats stats;
     while (!exiting) {
         err = ring_buffer__poll(rb, 100 /* timeout ms */);
         if (err == -EINTR)
@@ -150,6 +151,9 @@ int main(int argc, char *argv[]) {
             log_error("Error polling ring buffer: %d", err);
             break;
         }
+        __u32 array_idx = 0;
+        if (0 == bpf_map__lookup_elem(skel->maps.traffic_map, &array_idx, sizeof(array_idx), &stats, sizeof(stats), 0))
+            log_info("total income: %-15llu", stats.in_cnt);
     }
     log_info("Detaching XDP program...");
 cleanup:

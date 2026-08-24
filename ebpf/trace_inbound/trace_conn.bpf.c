@@ -7,10 +7,20 @@
 #include <bpf/bpf_endian.h>
 #include "trace_conn.h"
 char LICENSE[] SEC("license") = "GPL";
-
+/*
+ 握手失败率 (SLI)
+(总SYN_SENT次数 - 总ESTABLISHED次数) / 总SYN_SENT次数
+如果这个指标突增，代表网络层或对端应用层存在不可达。
+*/
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);
+    __type(value, struct data_stats);
+    __uint(max_entries, 1);
+} traffic_map SEC(".maps");
 // Internal Map: Tracks ongoing handshake steps
 struct {
-    __uint(type, BPF_MAP_TYPE_LRU_HASH); /*BPF_MAP_TYPE_HASH*/
+    __uint(type, BPF_MAP_TYPE_LRU_PERCPU_HASH); /*BPF_MAP_TYPE_HASH*/
     __uint(max_entries, 10240);
     __type(key, struct connection_key);
     __type(value, __u8); 
@@ -39,6 +49,7 @@ int xdp_prog(struct xdp_md *ctx)
     struct connection_key key = { .saddr = ip->saddr, .daddr = ip->daddr, .sport = tcp->source, .dport = tcp->dest };
     // CASE 1: Inbound SYN
     if (tcp->syn && !tcp->ack) {
+        //__u64 time_ns = bpf_ktime_get_ns();
         bpf_printk("SYN: %pI4:%d -> %pI4:%d\n", &key.saddr, bpf_ntohs(key.sport), &key.daddr, bpf_ntohs(key.dport));
         __u8 tracking = 1;
         bpf_map_update_elem(&pending_incoming_map, &key, &tracking, BPF_ANY);
@@ -53,6 +64,11 @@ int xdp_prog(struct xdp_md *ctx)
             if (e) {
                 *e = key;
                 bpf_ringbuf_submit(e, 0);
+            }
+            __u32 array_idx = 0;
+            struct data_stats *stats = bpf_map_lookup_elem(&traffic_map, &array_idx);
+            if(stats) {
+                __sync_fetch_and_add(&stats->in_cnt, 1);
             }
             bpf_map_delete_elem(&pending_incoming_map, &key);
         }

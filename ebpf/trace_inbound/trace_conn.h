@@ -5,6 +5,9 @@ extern "C" {
 #endif
 
 #include <linux/types.h>
+struct data_stats {
+    __u64 in_cnt;
+};
 struct connection_key {
     __u32 saddr;
     __u32 daddr;
