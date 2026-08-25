@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("bc875cf6[2026-08-21T09:48:07+08:00]:os_debian_init.sh")
+VERSION+=("6a36873f[2026-08-21T11:02:44+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -252,6 +252,18 @@ Host github.com
     # HostName 10.31.90.3
     # User root
     # IdentityFile ~/.ssh/id_rsa
+
+Host 192.168.168.254
+    Port 60022
+    PubkeyAcceptedAlgorithms +ssh-rsa
+    HostKeyAlgorithms +ssh-rsa
+
+Host 192.168.168.101
+    Port 22
+    MACs=+hmac-sha2-512,hmac-sha2-256
+
+Host 192.168.1.2
+    ProxyCommand=/etc/ns-v2ray/wstunnel client --http-upgrade-path-prefix /api/ws_term --local-to-remote stdio://127.0.0.1:%p --http-headers 'Host:microsoft.com' wss://%h:443
 EOF
     chmod 0600 /root/.ssh/config
 
