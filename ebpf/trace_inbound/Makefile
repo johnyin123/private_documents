@@ -12,7 +12,7 @@ DEBUG_FLAG  += -Wall -Wextra
 C_STANDARD   = -std=c99
 EXE         ?= main_bpf
 CFLAGS      += -g -Wall
-BPF_CC      := bpf-gcc -g -O2 -Wall -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu
+BPF_CC      := bpf-gcc -g -gbtf -O2 -Wall -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu
 BPF_STRIP   := bpf-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool

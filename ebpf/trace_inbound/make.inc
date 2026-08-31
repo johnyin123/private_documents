@@ -1,7 +1,7 @@
 EXE=loader
 CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN
 LDFLAGS+=-Wl,-Bstatic -lbpf
-LDFLAGS+=-Wl,-Bdynamic -lelf -lz -lzstd -pthread
+LDFLAGS+=-Wl,-Bdynamic -lelf -lz -pthread
 # LDFLAGS+=-Wl,--start-group -lelf -leu -Wl,--end-group
 LDFLAGS+=-static-libgcc -static-libstdc++
 # LDFLAGS+=-static
@@ -9,7 +9,12 @@ LIBFLAGS+= # -Wl,-rpath,./  # relative path .so load
 INC_PATH+=-I./inc
 LIB_PATH+=-L./lib
 
-# apt install -y gcc-bpf binutils-bpf
+# make -C ${DIRNAME}/libbpf/src \
+#         BUILD_STATIC_ONLY=1 \
+#         OBJDIR=${DIRNAME} DESTDIR= \
+#         INCLUDEDIR=${DIRNAME}/inc LIBDIR=${DIRNAME}/lib UAPIDIR= \
+#         install
+# apt install -y linux-headers-$(uname -r) gcc make gcc-bpf binutils-bpf
 # bpf-gcc -g -O2 -I/usr/include -I/usr/include/$(uname -m)-linux-gnu -I./inc -c redirect.bpf.c
 # ip link set dev $1 xdp obj ${SCRIPTPATH}/../ebpf/xdp_redirect.o sec xdp
 # cat /sys/kernel/debug/tracing/trace_pipe
