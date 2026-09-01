@@ -189,10 +189,10 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     } else { return XDP_PASS; }
     if (ip_type == IPPROTO_UDP) {
         if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
-        udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
+        //udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
     } else if (ip_type == IPPROTO_TCP) {
         if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
-        tcphdr->dest = bpf_htons(bpf_ntohs(tcphdr->dest) - 1);
+        //tcphdr->dest = bpf_htons(bpf_ntohs(tcphdr->dest) - 1);
     }
     ...
 }

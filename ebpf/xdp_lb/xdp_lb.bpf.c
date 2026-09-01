@@ -37,18 +37,32 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
     struct hdr_cursor nh = { .pos = data };
     struct ethhdr *eth;
     struct iphdr *iphdr;
+    struct udphdr *udphdr;
     struct tcphdr *tcphdr;
-    if (parse_ethhdr(&nh, data_end, &eth) != bpf_htons(ETH_P_IP)) { return XDP_PASS; }
-    if (parse_iphdr(&nh, data_end, &iphdr) != IPPROTO_TCP) { return XDP_PASS; }
-    if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
+    int eth_type, ip_type;
+    __be16 src_port = 0, dst_port = 0;
+    eth_type = parse_ethhdr(&nh, data_end, &eth);
+    if (eth_type < 0) { return XDP_PASS; }
+    if (eth_type == bpf_htons(ETH_P_IP)) {
+        ip_type = parse_iphdr(&nh, data_end, &iphdr);
+    } else { return XDP_PASS; }
+    if (ip_type == IPPROTO_UDP) {
+        if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
+        src_port = udphdr->source;
+        dst_port = udphdr->dest;
+    } else if (ip_type == IPPROTO_TCP) {
+        if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
+        src_port = tcphdr->source;
+        dst_port = tcphdr->dest;
+    } else { return XDP_PASS; }
     // Retrieve system configuration parameters from user-space map
-    struct key key = { .ip_addr = iphdr->daddr, .port = tcphdr->dest };
+    struct key key = { .ip_addr = iphdr->daddr, .port = dst_port };
     struct backend_config *lb_cfg = bpf_map_lookup_elem(&config_map, &key);
     if (!lb_cfg) return XDP_PASS;
     __u16 num_backends = lb_cfg->num;
     if (num_backends == 0 || num_backends > MAX_PEERS) { return XDP_PASS; }
     /*TODO: source hash persistent*/
-    __u32 hash = iphdr->daddr ^ tcphdr->dest;
+    __u32 hash = iphdr->saddr ^ iphdr->daddr ^ ((__u32)src_port << 16) ^ dst_port ^ iphdr->protocol;
 #if 1
     __u32 idx = hash % num_backends;
     set_backend_mac(eth, lb_cfg, idx);
@@ -73,6 +87,7 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
         idx = *assigned_idx;
     } else {
         __u32 hash = iphdr->saddr ^ tcphdr->source; // Source hash affinity seed
+        //__u32 hash = iphdr->saddr ^ iphdr->daddr ^ ((__u32)src_port << 16) ^ dst_port ^ iphdr->protocol;
         idx = hash % num_backends;
         bpf_map_update_elem(&session_cache, &flow_key, &idx, BPF_ANY);
     }
