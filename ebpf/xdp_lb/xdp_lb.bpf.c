@@ -9,6 +9,12 @@ struct {
     __type(key, struct key);
     __type(value, struct backend_config);
 } config_map SEC(".maps");
+struct {
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __uint(max_entries, 100000);
+    __type(key, struct flow_5tuple);
+    __type(value, __u32); /* Stores the chosen backend index */
+} session_cache SEC(".maps");
 static __always_inline void set_backend_mac(struct ethhdr *eth, const struct backend_config *cfg, __u32 idx) {
     switch (idx) {
     case 0:
@@ -59,3 +65,17 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
     bpf_printk("LB-DR: VIP %pI4:%d Peer Index %d/%d\n", &key.ip_addr, bpf_ntohs(key.port), idx, num_backends);
     return XDP_TX;
 }
+/*
+    struct flow_5tuple flow_key = { .saddr = iphdr->saddr, .daddr = iphdr->daddr, .sport = tcphdr->source, .dport = tcphdr->dest, .protocol = IPPROTO_TCP };
+    __u32 *assigned_idx = bpf_map_lookup_elem(&session_cache, &flow_key);
+    __u32 idx;
+    if (assigned_idx) {
+        idx = *assigned_idx;
+    } else {
+        __u32 hash = iphdr->saddr ^ tcphdr->source; // Source hash affinity seed
+        idx = hash % num_backends;
+        bpf_map_update_elem(&session_cache, &flow_key, &idx, BPF_ANY);
+    }
+    if (idx >= MAX_PEERS || idx >= num_backends) { return XDP_PASS; }
+    set_backend_mac(eth, lb_cfg, idx);
+*/

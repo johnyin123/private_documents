@@ -22,6 +22,12 @@ struct backend_config {
         unsigned char mac_addr[ETH_ALEN];
     } backends[MAX_PEERS];
 };
+struct flow_5tuple {
+    __u32 saddr, daddr;
+    __u16 sport, dport;
+    __u8  protocol;
+    __u8  padding[3];
+};
 #define MAX_CONF_ENTRIES  16
 
 #ifdef __cplusplus
