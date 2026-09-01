@@ -15,15 +15,18 @@
 
 #define UNUSED(x)     ((void)(x))
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define PIN_PATH      "/sys/fs/bpf/xdp_lb_link"
 
 struct env {
     char ifname[IF_NAMESIZE];
     struct backend_config lb_cfg;
+    int persist;
     int verbose;
     volatile bool exiting;
 } env = {
     .ifname = { 0 },
     .lb_cfg = { .vip = { 0 }, .num = 0, },
+    .persist = 0,
     .verbose = 3,
     .exiting = false,
 };
@@ -31,8 +34,9 @@ enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTIC
 #define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-const char *opt_short="hVi:v:p:R:";
+const char *opt_short="hVi:Pv:p:R:";
 struct option opt_long[] = {
+    { "persist", no_argument, NULL, 'P' },
     { "help",    no_argument, NULL, 'h' },
     { "verbose", no_argument, NULL, 'V' },
     { 0, 0, 0, 0 }
@@ -44,12 +48,38 @@ static void usage(const char *prog) {
         "    -v  * <ip>        virtual ipaddr\n"
         "    -p  * <port>      virtual port\n"
         "    -R  * <ip>        real srv ipaddr\n"
+        "    -P|--persist      persistent ebpf when exit\n"
         "    -h|--help help\n"
         "    -V|--verbose\n"
         "Example:\n"
         "  %s -i eth0\n"
         , prog, prog);
     exit(0);
+}
+void dump_config_map(struct bpf_map *map) {
+    struct key lookup_key, next_key;
+    struct backend_config value;
+    struct in_addr ip = { .s_addr = 0 };
+    int err;
+    fprintf(stderr, "--- Dumping Standard Map Entries ---\n");
+    /* Pass NULL to fetch the first key from the kernel. */
+    err = bpf_map__get_next_key(map, NULL, &next_key, sizeof(next_key));
+    while (err == 0) {
+        lookup_key = next_key;
+        err = bpf_map__lookup_elem(map, &lookup_key, sizeof(lookup_key), &value, sizeof(value), 0);
+        if (err == 0) {
+            ip.s_addr = value.vip.ip_addr;
+            fprintf(stderr, "VIP %s:%d ->\n", inet_ntoa(ip), ntohs(value.vip.port));
+            for (int i=0;i<value.num;i++) {
+                ip.s_addr = value.backends[i].ip_addr;
+                const unsigned char *mac_addr = value.backends[i].mac_addr;
+                fprintf(stderr, "    %s:%02X:%02X:%02X:%02X:%02X:%02X\n", inet_ntoa(ip), mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+            }
+        } else {
+            log_error("Failed lookup for key %d, %d: %s", lookup_key.ip_addr, ntohs(lookup_key.port), strerror(-err));
+        }
+        err = bpf_map__get_next_key(map, &lookup_key, &next_key, sizeof(next_key));
+    }
 }
 static int get_mac_from_arp_cache(__be32 target_ip, unsigned char *mac_out) {
     FILE *fp = fopen("/proc/net/arp", "r");
@@ -122,6 +152,9 @@ static int parse_command_line(int argc, char **argv) {
                     }
                 }
                 break;
+            case 'P':
+                env.persist = 1;
+                break;
             case 'h':
                 usage(argv[0]);
                 break;
@@ -177,15 +210,31 @@ int main(int argc, char *argv[]) {
     /* 2. 加载到内核 */
     int err = xdp_lb__load(skel);
     if (err) {
-        log_error("Failed to load BPF skeleton: %d", err);
+        log_error("Failed to load BPF skeleton: %d, %s", err, strerror(errno));
         goto cleanup;
     }
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
-    skel->links.xdp_load_balancer = bpf_program__attach_xdp(skel->progs.xdp_load_balancer, ifindex);
-    if (!skel->links.xdp_load_balancer) {
-        err = -errno;
-        log_error("Failed to attach XDP to %s: %d", env.ifname, err);
-        goto cleanup;
+    struct bpf_link *link = bpf_link__open(PIN_PATH);
+    if (link) {
+        log_info("Found an existing pinned XDP link. Reusing it.");
+        skel->links.xdp_load_balancer = link;
+    } else {
+        skel->links.xdp_load_balancer = bpf_program__attach_xdp(skel->progs.xdp_load_balancer, ifindex);
+        if (!skel->links.xdp_load_balancer) {
+            err = -errno;
+            log_error("Failed to attach XDP to %s: %d", env.ifname, err);
+            goto cleanup;
+        }
+        if (env.persist) {
+            log_info("Pin the link to the BPF filesystem");
+            err = bpf_link__pin(skel->links.xdp_load_balancer, PIN_PATH);
+            if (err) {
+                log_error("Failed to pin link to %s: %d", PIN_PATH, err);
+                goto cleanup;
+            }
+        }
+        // // Standard POSIX unlink removes the pin file from bpffs
+        // if (unlink(PIN_PATH) != 0) { log_error("Failed unlink %s", PIN_PATH); }
     }
     log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
     /* 4. set  config_map */
@@ -194,7 +243,7 @@ int main(int argc, char *argv[]) {
     if (err) {
         log_error("set lb config error");
     }
-    fprintf(stderr, "%d,%d\n", key.ip_addr, key.port);
+    dump_config_map(skel->maps.config_map);
     /* 5. 保持运行，信号触发退出 */
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
     while (!env.exiting) {

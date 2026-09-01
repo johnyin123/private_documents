@@ -5,6 +5,7 @@ char _license[] SEC("license") = "GPL";
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, MAX_CONF_ENTRIES);
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
     __type(key, struct key);
     __type(value, struct backend_config);
 } config_map SEC(".maps");

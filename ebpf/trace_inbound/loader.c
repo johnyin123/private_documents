@@ -15,20 +15,26 @@
 
 #define UNUSED(x)     ((void)(x))
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define PIN_PATH      "/sys/fs/bpf/trace_conn_link"
 
 struct env {
     char ifname[IF_NAMESIZE];
+    int persist;
     int verbose;
+    volatile bool exiting;
 } env = {
     .ifname = { 0 },
+    .persist = 0,
     .verbose = 3,
+    .exiting = false,
 };
 enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
 #define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-const char *opt_short="hVi:";
+const char *opt_short="hVi:P";
 struct option opt_long[] = {
+    { "persist", no_argument, NULL, 'P' },
     { "help",    no_argument, NULL, 'h' },
     { "verbose", no_argument, NULL, 'V' },
     { 0, 0, 0, 0 }
@@ -37,6 +43,7 @@ static void usage(const char *prog) {
     fprintf(stderr,
         "Usage: %s\n"
         "    -i  * <ifname>    attach network device name\n"
+        "    -P|--persist      persistent ebpf when exit\n"
         "    -h|--help help\n"
         "    -V|--verbose\n"
         "Example:\n"
@@ -51,6 +58,9 @@ static int parse_command_line(int argc, char **argv) {
             case 'i':
                 snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
                 break;
+            case 'P':
+                env.persist = 1;
+                break;
             case 'h':
                 usage(argv[0]);
                 return 0;
@@ -64,10 +74,9 @@ static int parse_command_line(int argc, char **argv) {
     }
     return 0;
 }
-static volatile bool exiting = false;
 static void sig_int(int signo) {
     UNUSED(signo);
-    exiting = true;
+    env.exiting = true;
 }
 static void print_libbpf_ver() { 
     log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version()); 
@@ -129,11 +138,25 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
-    skel->links.xdp_prog = bpf_program__attach_xdp(skel->progs.xdp_prog, ifindex);
-    if (!skel->links.xdp_prog) {
-        err = -errno;
-        log_error("Failed to attach XDP to %s: %d", env.ifname, err);
-        goto cleanup;
+    struct bpf_link *link = bpf_link__open(PIN_PATH);
+    if (link) {
+        log_info("Found an existing pinned XDP link. Reusing it.");
+        skel->links.xdp_prog = link;
+    } else {
+        skel->links.xdp_prog = bpf_program__attach_xdp(skel->progs.xdp_prog, ifindex);
+        if (!skel->links.xdp_prog) {
+            err = -errno;
+            log_error("Failed to attach XDP to %s: %d", env.ifname, err);
+            goto cleanup;
+        }
+        if (env.persist) {
+            log_info("Pin the link to the BPF filesystem");
+            err = bpf_link__pin(skel->links.xdp_prog, PIN_PATH);
+            if (err) {
+                log_error("Failed to pin link to %s: %d", PIN_PATH, err);
+                goto cleanup;
+            }
+        }
     }
     log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
     /* 4. 创建 ringbuf 轮询 */
@@ -145,7 +168,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
     /* 5. 保持运行，信号触发退出 */
     struct data_stats stats;
-    while (!exiting) {
+    while (!env.exiting) {
         err = ring_buffer__poll(rb, 100 /* timeout ms */);
         if (err == -EINTR)
             break;
