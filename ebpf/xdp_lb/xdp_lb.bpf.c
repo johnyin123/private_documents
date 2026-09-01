@@ -57,6 +57,7 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
     } else { return XDP_PASS; }
     // Retrieve system configuration parameters from user-space map
     struct key key = { .ip_addr = iphdr->daddr, .port = dst_port };
+    //if ((tcphdr->rst) || (tcphdr->fin)) { bpf_map_delete_elem(&config_map, &key); return XDP_DROP; }
     struct backend_config *lb_cfg = bpf_map_lookup_elem(&config_map, &key);
     if (!lb_cfg) return XDP_PASS;
     __u16 num_backends = lb_cfg->num;
