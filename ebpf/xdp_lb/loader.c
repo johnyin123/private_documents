@@ -18,12 +18,12 @@
 
 struct env {
     char ifname[IF_NAMESIZE];
-    char vip[46];
-    __u16 vport; 
-    char rip[46];
+    struct backend_config lb_cfg;
     int verbose;
     volatile bool exiting;
 } env = {
+    .ifname = { 0 },
+    .lb_cfg = { .vip = { 0 }, .num = 0, },
     .verbose = 3,
     .exiting = false,
 };
@@ -51,60 +51,7 @@ static void usage(const char *prog) {
         , prog, prog);
     exit(0);
 }
-static int parse_command_line(int argc, char **argv) {
-    int opt, option_index;
-    while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
-        switch (opt) {
-            case 'i':
-                snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
-                break;
-            case 'v':
-                snprintf(env.vip, ARRAY_LEN(env.vip), "%s", optarg);
-                break;
-            case 'p':
-                env.vport = strtol(optarg, NULL, 10);
-                break;
-            case 'R':
-                snprintf(env.rip, ARRAY_LEN(env.rip), "%s", optarg);
-                break;
-            case 'h':
-                usage(argv[0]);
-                break;
-            case 'V':
-                env.verbose++;
-                break;
-            default:
-                usage(argv[0]);
-        }
-    }
-    return 0;
-}
-static void sig_int(int signo) {
-    UNUSED(signo);
-    env.exiting = true;
-}
-static void print_libbpf_ver() { 
-    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version()); 
-}
-static int bump_memlock_rlimit() {
-    struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
-    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
-void force_kernel_arp_resolution(__be32 target_ip) {
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) return;
-    struct sockaddr_in target = { .sin_family = AF_INET, .sin_port = htons(1), .sin_addr.s_addr = target_ip };
-    char dummy = 0;
-    sendto(sock, &dummy, 1, 0, (struct sockaddr *)&target, sizeof(target));
-    close(sock);
-    usleep(5000); 
-}
-int get_mac_from_arp_cache(__be32 target_ip, unsigned char *mac_out) {
+static int get_mac_from_arp_cache(__be32 target_ip, unsigned char *mac_out) {
     FILE *fp = fopen("/proc/net/arp", "r");
     if (!fp) {
         log_error("Error: Cannot open /proc/net/arp");
@@ -134,50 +81,78 @@ cleanup:
     fclose(fp);
     return -1;
 }
-#include <sys/ioctl.h>
-#include <ifaddrs.h>
-int get_local_mac_by_ip(const char *ipaddr, unsigned char *mac_out, char *if_name_out) {
-    struct ifaddrs *ifaddr, *ifa;
-    int found = 0;
-    // 1. Get all network interfaces
-    if (getifaddrs(&ifaddr) == -1) { return -1; }
-    // 2. Walk through the linked list to find the matching IP
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == NULL) continue;
-        // Check only IPv4 interfaces (AF_INET)
-        if (ifa->ifa_addr->sa_family == AF_INET) {
-            struct sockaddr_in *current_addr = (struct sockaddr_in *)ifa->ifa_addr;
-            char *current_ip = inet_ntoa(current_addr->sin_addr);
-            // Check if this interface matches our targeted local IP
-            if (strcmp(current_ip, ipaddr) == 0) {
-                snprintf(if_name_out, IFNAMSIZ, "%s", ifa->ifa_name);
-                found = 1;
+static void force_kernel_arp_resolution(__be32 target_ip) {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) return;
+    struct sockaddr_in target = { .sin_family = AF_INET, .sin_port = htons(1), .sin_addr.s_addr = target_ip };
+    char dummy = 0;
+    sendto(sock, &dummy, 1, 0, (struct sockaddr *)&target, sizeof(target));
+    close(sock);
+    usleep(5000);
+}
+static int parse_command_line(int argc, char **argv) {
+    int opt, option_index;
+    while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
+        switch (opt) {
+            case 'i':
+                snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
                 break;
-            }
+            case 'v':
+                env.lb_cfg.vip.ip_addr = inet_addr(optarg);
+                break;
+            case 'p':
+                env.lb_cfg.vip.port = htons(strtol(optarg, NULL, 10));
+                break;
+            case 'R':
+                if(env.lb_cfg.num >= ARRAY_LEN(env.lb_cfg.backends)) {  usage(argv[0]); }
+                in_addr_t addr = inet_addr(optarg);
+                unsigned char *mac_addr = env.lb_cfg.backends[env.lb_cfg.num].mac_addr;
+                env.lb_cfg.backends[env.lb_cfg.num++].ip_addr = addr;
+                if (get_mac_from_arp_cache(addr, mac_addr) == 0) {
+                    log_debug("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", addr, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+                } else {
+                    log_error("Node %u is unreachable retry.", addr);
+                    force_kernel_arp_resolution(addr);
+                    if (get_mac_from_arp_cache(addr, mac_addr) == 0) {
+                        log_debug("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", addr, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+                    } else {
+                        struct in_addr ip_struct = { .s_addr = addr };
+                        log_error("Node %s [%u] is unreachable.", inet_ntoa(ip_struct), addr);
+                        exit(0);
+                    }
+                }
+                break;
+            case 'h':
+                usage(argv[0]);
+                break;
+            case 'V':
+                env.verbose++;
+                break;
+            default:
+                usage(argv[0]);
         }
     }
-    freeifaddrs(ifaddr);
-    if (!found) { return -2; }
-    // 3. Open a dummy socket to query the MAC address via ioctl
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) { return -3; }
-    struct ifreq request = {0};
-    snprintf(request.ifr_name, sizeof(request.ifr_name), "%s", if_name_out);
-    // Fetch the hardware (MAC) address
-    if (ioctl(sock, SIOCGIFHWADDR, &request) < 0) {
-        close(sock);
-        return -4;
-    }
-    close(sock);
-    // 4. Copy the 6-byte MAC address into our buffer
-    memcpy(mac_out, request.ifr_hwaddr.sa_data, 6);
     return 0;
 }
-
+static void sig_int(int signo) {
+    UNUSED(signo);
+    env.exiting = true;
+}
+static void print_libbpf_ver() { 
+    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version()); 
+}
+static int bump_memlock_rlimit() {
+    struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
+    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
+}
+static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
+    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
+        return 0;
+    return vfprintf(stderr, format, args);
+}
 int main(int argc, char *argv[]) {
-    struct bpf_link *link = NULL;
     parse_command_line(argc, argv);
-    if ((strlen(env.ifname) == 0) || (strlen(env.vip) == 0) || (strlen(env.rip) == 0) || (!env.vport)) {
+    if ((strlen(env.ifname) == 0) || (env.lb_cfg.vip.ip_addr == 0) || (env.lb_cfg.backends[0].ip_addr == 0) || (!env.lb_cfg.vip.port)) {
         log_error("required args");
         usage(argv[0]);
     }
@@ -206,34 +181,16 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
-    link = bpf_program__attach_xdp(skel->progs.xdp_load_balancer, ifindex);
-    if (!link) {
+    skel->links.xdp_load_balancer = bpf_program__attach_xdp(skel->progs.xdp_load_balancer, ifindex);
+    if (!skel->links.xdp_load_balancer) {
         err = -errno;
         log_error("Failed to attach XDP to %s: %d", env.ifname, err);
         goto cleanup;
     }
     log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
     /* 4. set  config_map */
-    struct backend_config lb_cfg = {
-        .vip = { .ip_addr = inet_addr(env.vip), .port = htons(env.vport), .mac_addr = {0} },
-        .num = 1,
-        .backends = {
-            { .ip_addr = inet_addr(env.rip), },
-        }
-    };
-    for (int i=0;i<lb_cfg.num;i++) {
-        if (get_mac_from_arp_cache(lb_cfg.backends[i].ip_addr, lb_cfg.backends[i].mac_addr) == 0) {
-            log_info("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", lb_cfg.backends[i].ip_addr, lb_cfg.backends[i].mac_addr[0], lb_cfg.backends[i].mac_addr[1], lb_cfg.backends[i].mac_addr[2], lb_cfg.backends[i].mac_addr[3], lb_cfg.backends[i].mac_addr[4], lb_cfg.backends[i].mac_addr[5]);
-        } else {
-            log_error("Node %u is unreachable retry.", lb_cfg.backends[i].ip_addr);
-            force_kernel_arp_resolution(lb_cfg.backends[i].ip_addr);
-            if (get_mac_from_arp_cache(lb_cfg.backends[i].ip_addr, lb_cfg.backends[i].mac_addr) == 0) {
-                log_info("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", lb_cfg.backends[i].ip_addr, lb_cfg.backends[i].mac_addr[0], lb_cfg.backends[i].mac_addr[1], lb_cfg.backends[i].mac_addr[2], lb_cfg.backends[i].mac_addr[3], lb_cfg.backends[i].mac_addr[4], lb_cfg.backends[i].mac_addr[5]);
-            }
-        }
-    }
-    struct key key = { .ip_addr = lb_cfg.vip.ip_addr, .port= lb_cfg.vip.port };
-    err = bpf_map__update_elem(skel->maps.config_map, &key, sizeof(key), &lb_cfg, sizeof(lb_cfg), BPF_ANY);
+    struct key key = { .ip_addr = env.lb_cfg.vip.ip_addr, .port= env.lb_cfg.vip.port };
+    err = bpf_map__update_elem(skel->maps.config_map, &key, sizeof(key), &env.lb_cfg, sizeof(env.lb_cfg), BPF_ANY);
     if (err) {
         log_error("set lb config error");
     }
@@ -245,8 +202,6 @@ int main(int argc, char *argv[]) {
     }
     log_info("Detaching XDP program...");
 cleanup:
-    if (link)
-        bpf_link__destroy(link);   /* detach XDP */
     xdp_lb__destroy(skel);
     return err < 0 ? 1 : 0;
 }

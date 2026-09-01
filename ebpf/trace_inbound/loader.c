@@ -12,13 +12,15 @@
 #include <bpf/libbpf.h>
 #include "trace_conn_skel.h"
 #include "trace_conn.h"
+
 #define UNUSED(x)     ((void)(x))
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 
 struct env {
-    char ifname[128];
+    char ifname[IF_NAMESIZE];
     int verbose;
 } env = {
+    .ifname = { 0 },
     .verbose = 3,
 };
 enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
@@ -34,7 +36,7 @@ struct option opt_long[] = {
 static void usage(const char *prog) {
     fprintf(stderr,
         "Usage: %s\n"
-        "    -i <ifname>    目标网卡（必需）\n"
+        "    -i  * <ifname>    attach network device name\n"
         "    -h|--help help\n"
         "    -V|--verbose\n"
         "Example:\n"
@@ -95,25 +97,25 @@ static int handle_event(void *ctx, void *data, size_t data_sz) {
     return 0;
 }
 int main(int argc, char *argv[]) {
-    struct bpf_link *link = NULL;
     struct ring_buffer *rb = NULL;
     parse_command_line(argc, argv);
-    print_libbpf_ver();
-    /* Set up libbpf errors and debug info callback */
-    libbpf_set_print(libbpf_print_fn);
-    bump_memlock_rlimit();
     if (strlen(env.ifname) == 0) {
         log_error("interface name is required.");
         usage(argv[0]);
         return 1;
     }
+    signal(SIGINT, sig_int);
+    signal(SIGTERM, sig_int);
+    print_libbpf_ver();
+    /* Set up libbpf errors and debug info callback */
+    if (env.verbose>=LOG_DEBUG) { libbpf_set_print(libbpf_print_fn); }
+    else { libbpf_set_print(NULL); }
+    bump_memlock_rlimit();
     int ifindex = if_nametoindex(env.ifname);
     if (ifindex == 0) {
         log_error("invalid interface %s: %s", env.ifname, strerror(errno));
         return 1;
     }
-    signal(SIGINT, sig_int);
-    signal(SIGTERM, sig_int);
     /* 1. 打开 skeleton */
     struct trace_conn *skel = trace_conn__open();
     if (!skel) {
@@ -127,8 +129,8 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
-    link = bpf_program__attach_xdp(skel->progs.xdp_prog, ifindex);
-    if (!link) {
+    skel->links.xdp_prog = bpf_program__attach_xdp(skel->progs.xdp_prog, ifindex);
+    if (!skel->links.xdp_prog) {
         err = -errno;
         log_error("Failed to attach XDP to %s: %d", env.ifname, err);
         goto cleanup;
@@ -158,8 +160,6 @@ int main(int argc, char *argv[]) {
     log_info("Detaching XDP program...");
 cleanup:
     ring_buffer__free(rb);
-    if (link)
-        bpf_link__destroy(link);   /* 自动 detach XDP */
     trace_conn__destroy(skel);
     return err < 0 ? 1 : 0;
 }
