@@ -291,10 +291,14 @@ VIP=172.16.16.100/32
 ip link add name dummy0 type dummy
 ip a a ${VIP} dev dummy0
 ip link set dummy0 up
+# 抑制 ARP，防止 RS 宣告 VIP
 sysctl -w net.ipv4.conf.all.arp_ignore=1
-sysctl -w net.ipv4.conf.eth0.arp_ignore=1
 sysctl -w net.ipv4.conf.all.arp_announce=2
+sysctl -w net.ipv4.conf.eth0.arp_ignore=1
 sysctl -w net.ipv4.conf.eth0.arp_announce=2
+# 关闭反向路径过滤，允许 eth0 接收目的IP属于lo的包
+sysctl -w net.ipv4.conf.all.rp_filter=0
+sysctl -w net.ipv4.conf.eth0.rp_filter=0
 
 # # lb srv
 VIP=172.16.16.100/32
