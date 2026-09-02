@@ -56,10 +56,13 @@ static void usage(const char *prog) {
         , prog, prog);
     exit(0);
 }
+const char *ip_str(in_addr_t addr) {
+    struct in_addr ip_struct = { .s_addr = addr };
+    return inet_ntoa(ip_struct);
+}
 void dump_config_map(struct bpf_map *map) {
     struct key lookup_key, next_key;
     struct backend_config value;
-    struct in_addr ip = { .s_addr = 0 };
     int err;
     fprintf(stderr, "--- Dumping Standard Map Entries ---\n");
     /* Pass NULL to fetch the first key from the kernel. */
@@ -68,12 +71,11 @@ void dump_config_map(struct bpf_map *map) {
         lookup_key = next_key;
         err = bpf_map__lookup_elem(map, &lookup_key, sizeof(lookup_key), &value, sizeof(value), 0);
         if (err == 0) {
-            ip.s_addr = value.vip.ip_addr;
-            fprintf(stderr, "VIP %s:%d ->\n", inet_ntoa(ip), ntohs(value.vip.port));
+            const unsigned char *mac_addr = value.vip.mac_addr;
+            fprintf(stderr, "VIP %s:%d[%02X:%02X:%02X:%02X:%02X:%02X] ->\n", ip_str(value.vip.ip_addr), ntohs(value.vip.port), mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
             for (int i=0;i<value.num;i++) {
-                ip.s_addr = value.backends[i].ip_addr;
-                const unsigned char *mac_addr = value.backends[i].mac_addr;
-                fprintf(stderr, "    %s:%02X:%02X:%02X:%02X:%02X:%02X\n", inet_ntoa(ip), mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+                mac_addr = value.backends[i].mac_addr;
+                fprintf(stderr, "    %s:[%02X:%02X:%02X:%02X:%02X:%02X]\n", ip_str(value.backends[i].ip_addr), mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
             }
         } else {
             log_error("Failed lookup for key %d, %d: %s", lookup_key.ip_addr, ntohs(lookup_key.port), strerror(-err));
@@ -120,8 +122,34 @@ static void force_kernel_arp_resolution(__be32 target_ip) {
     close(sock);
     usleep(5000);
 }
+#include <sys/ioctl.h>
+#include <ifaddrs.h>
+int get_local_mac_by_ip(__be32 target_ip, unsigned char *mac_out) {
+    struct ifaddrs *ifaddr;
+    int ret = -1;
+    // Get all network interfaces
+    if (getifaddrs(&ifaddr) == -1) { return -1; }
+    for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) continue;
+        if (ifa->ifa_addr->sa_family != AF_INET) continue;
+        struct sockaddr_in *current_addr = (struct sockaddr_in *)ifa->ifa_addr;
+        // Check only IPv4 interfaces (AF_INET)
+        if (current_addr->sin_addr.s_addr != target_ip) continue;
+        struct ifreq request = {0};
+        snprintf(request.ifr_name, ARRAY_LEN(request.ifr_name), "%s", ifa->ifa_name);
+        log_info("VIP interface: %s", ifa->ifa_name);
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock < 0) { ret = -3; break; }
+        if (ioctl(sock, SIOCGIFHWADDR, &request) >= 0) { ret = 0; }
+        close(sock);
+        memcpy(mac_out, request.ifr_hwaddr.sa_data, ETH_ALEN);
+    }
+    freeifaddrs(ifaddr);
+    return ret;
+}
 static int parse_command_line(int argc, char **argv) {
     int opt, option_index;
+    unsigned char *mac_addr;
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
             case 'i':
@@ -129,6 +157,11 @@ static int parse_command_line(int argc, char **argv) {
                 break;
             case 'v':
                 env.lb_cfg.vip.ip_addr = inet_addr(optarg);
+                mac_addr = env.lb_cfg.vip.mac_addr;
+                if (get_local_mac_by_ip(env.lb_cfg.vip.ip_addr, mac_addr) != 0) {
+                    log_error("VIP %s can not get MAC address", optarg);
+                    exit(0);
+                }
                 break;
             case 'p':
                 env.lb_cfg.vip.port = htons(strtol(optarg, NULL, 10));
@@ -136,18 +169,13 @@ static int parse_command_line(int argc, char **argv) {
             case 'R':
                 if(env.lb_cfg.num >= ARRAY_LEN(env.lb_cfg.backends)) {  usage(argv[0]); }
                 in_addr_t addr = inet_addr(optarg);
-                unsigned char *mac_addr = env.lb_cfg.backends[env.lb_cfg.num].mac_addr;
+                mac_addr = env.lb_cfg.backends[env.lb_cfg.num].mac_addr;
                 env.lb_cfg.backends[env.lb_cfg.num++].ip_addr = addr;
-                if (get_mac_from_arp_cache(addr, mac_addr) == 0) {
-                    log_debug("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", addr, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-                } else {
+                if (get_mac_from_arp_cache(addr, mac_addr) != 0) {
                     log_error("Node %u is unreachable retry.", addr);
                     force_kernel_arp_resolution(addr);
-                    if (get_mac_from_arp_cache(addr, mac_addr) == 0) {
-                        log_debug("MAC %u: %02X:%02X:%02X:%02X:%02X:%02X", addr, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-                    } else {
-                        struct in_addr ip_struct = { .s_addr = addr };
-                        log_error("Node %s [%u] is unreachable.", inet_ntoa(ip_struct), addr);
+                    if (get_mac_from_arp_cache(addr, mac_addr) != 0) {
+                        log_error("Node %s [%u] is unreachable.", optarg, addr);
                         exit(0);
                     }
                 }

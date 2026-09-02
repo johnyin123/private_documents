@@ -78,6 +78,8 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
 #endif
     /*No IP or TCP checksum recalculation needed!*/
     bpf_printk("LB-DR: VIP %pI4:%d Peer Index %d/%d\n", &key.ip_addr, bpf_ntohs(key.port), idx, num_backends);
+    /* 必须同时更新源MAC为LB自身的MAC，防止交换机MAC学习错误(when in eth0 out eth1) */
+    __builtin_memcpy(eth->h_source, lb_cfg->vip.mac_addr, ETH_ALEN);
     return XDP_TX;
 }
 /*
