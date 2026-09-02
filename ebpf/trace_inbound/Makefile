@@ -19,9 +19,9 @@ BPFTOOL     := /usr/sbin/bpftool
 
 HOST_ARCH ?= $(shell uname -m)
 ifeq ($(HOST_ARCH),x86_64)
-	ARCH_FLAG = -D__x86_64__
+	ARCH_FLAG = -D__x86_64__ -D__TARGET_ARCH_x86
 else ifeq ($(HOST_ARCH),aarch64)
-	ARCH_FLAG = -D__aarch64__
+	ARCH_FLAG = -D__aarch64__ -D__TARGET_ARCH_arm64
 endif
 
 BPF_SRC=$(wildcard *.bpf.c)

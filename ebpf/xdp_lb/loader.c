@@ -222,9 +222,8 @@ int main(int argc, char *argv[]) {
     }
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
-    print_libbpf_ver();
     /* Set up libbpf errors and debug info callback */
-    if (env.verbose>=LOG_DEBUG) { libbpf_set_print(libbpf_print_fn); }
+    if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
     bump_memlock_rlimit();
     int ifindex = if_nametoindex(env.ifname);
@@ -247,13 +246,13 @@ int main(int argc, char *argv[]) {
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
     struct bpf_link *link = bpf_link__open(PIN_PATH);
     if (link) {
-        log_info("Found an existing pinned XDP link. Reusing it.");
+        log_info("Found an existing pinned bpf link. Reusing it.");
         skel->links.xdp_load_balancer = link;
     } else {
         skel->links.xdp_load_balancer = bpf_program__attach_xdp(skel->progs.xdp_load_balancer, ifindex);
         if (!skel->links.xdp_load_balancer) {
             err = -errno;
-            log_error("Failed to attach XDP to %s: %d", env.ifname, err);
+            log_error("Failed to attach bpf: %d, %s", err, strerror(errno));
             goto cleanup;
         }
         if (env.persist) {
@@ -280,7 +279,7 @@ int main(int argc, char *argv[]) {
     while (!env.exiting) {
         sleep(1);
     }
-    log_info("Detaching XDP program...");
+    log_info("Detaching bpf program...");
 cleanup:
     xdp_lb__destroy(skel);
     return err < 0 ? 1 : 0;

@@ -115,9 +115,8 @@ int main(int argc, char *argv[]) {
     }
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
-    print_libbpf_ver();
     /* Set up libbpf errors and debug info callback */
-    if (env.verbose>=LOG_DEBUG) { libbpf_set_print(libbpf_print_fn); }
+    if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
     bump_memlock_rlimit();
     int ifindex = if_nametoindex(env.ifname);
@@ -134,19 +133,19 @@ int main(int argc, char *argv[]) {
     /* 2. 加载到内核 */
     int err = trace_conn__load(skel);
     if (err) {
-        log_error("Failed to load BPF skeleton: %d", err);
+        log_error("Failed to load BPF skeleton: %d, %s", err, strerror(errno));
         goto cleanup;
     }
     /* 3. 附加到网卡（libbpf 自动尝试驱动模式，失败则回退到 skb 通用模式） */
     struct bpf_link *link = bpf_link__open(PIN_PATH);
     if (link) {
-        log_info("Found an existing pinned XDP link. Reusing it.");
+        log_info("Found an existing pinned bpf link. Reusing it.");
         skel->links.xdp_prog = link;
     } else {
         skel->links.xdp_prog = bpf_program__attach_xdp(skel->progs.xdp_prog, ifindex);
         if (!skel->links.xdp_prog) {
             err = -errno;
-            log_error("Failed to attach XDP to %s: %d", env.ifname, err);
+            log_error("Failed to attach bpf: %d, %s", err, strerror(errno))
             goto cleanup;
         }
         if (env.persist) {
@@ -170,9 +169,7 @@ int main(int argc, char *argv[]) {
     struct data_stats stats;
     while (!env.exiting) {
         err = ring_buffer__poll(rb, 100 /* timeout ms */);
-        if (err == -EINTR)
-            break;
-        if (err < 0) {
+        if (err < 0 && err != -EINTR) {
             log_error("Error polling ring buffer: %d", err);
             break;
         }
@@ -180,9 +177,9 @@ int main(int argc, char *argv[]) {
         if (0 == bpf_map__lookup_elem(skel->maps.traffic_map, &array_idx, sizeof(array_idx), &stats, sizeof(stats), 0))
             log_info("total income: %-15llu", stats.in_cnt);
     }
-    log_info("Detaching XDP program...");
+    log_info("Detaching bpf program...");
 cleanup:
-    ring_buffer__free(rb);
+    if (rb) { ring_buffer__free(rb); }
     trace_conn__destroy(skel);
     return err < 0 ? 1 : 0;
 }
