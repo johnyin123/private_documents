@@ -13,6 +13,7 @@
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define PIN_PATH      "/sys/fs/bpf/pod_trace_link"
 #define PIN_PATH_RET  "/sys/fs/bpf/pod_trace_ret_link"
+#define CGROUP_ROOT   "/sys/fs/cgroup"
 
 struct env {
     int persist;
@@ -82,10 +83,10 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 #include <sys/stat.h>
 #include <dirent.h>
 static void resolve_cgroup_id_to_pod(__u64 target_id, char *out_path, const char *base_dir) {
-    DIR *dir = opendir(base_dir);
-    if (!dir) return;
     struct dirent *entry;
-    char path[1024];
+    char path[PATH_MAX];
+    DIR *dir = opendir(base_dir);
+    if (!dir) { log_error("opendir(%s): %s\n", base_dir, strerror(errno)); return; }
     while ((entry = readdir(dir))) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
         if (entry->d_type != DT_DIR) continue;
@@ -118,10 +119,10 @@ static int handle_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx); UNUSED(data_sz);
     const struct event *e = data;
     char pod_resolved_identity[1024] = "Host / Non-K8s Process";
-    resolve_cgroup_id_to_pod(e->cgroup_id, pod_resolved_identity, "/sys/fs/cgroup");
+    resolve_cgroup_id_to_pod(e->cgroup_id, pod_resolved_identity, CGROUP_ROOT);
     fprintf(stderr, "[Cgroup ID: %llu]\n", e->cgroup_id);
     fprintf(stderr, " ├─ Location: %s\n", pod_resolved_identity);
-    fprintf(stderr, " └─ Traffic:  %s (PID: %d) -> %s:%d\n", e->comm, e->pid, ip_str(e->daddr), ntohs(e->dport));
+    fprintf(stderr, " └─ Traffic: %s (PID: %d) -> %s:%d\n", e->comm, e->pid, ip_str(e->daddr), ntohs(e->dport));
     return 0;
 }
 int main(int argc, char *argv[]) {

@@ -31,10 +31,7 @@ SEC("kprobe/tcp_v4_connect") int BPF_KPROBE(tcp_v4_connect, struct sock *sk) {
 SEC("kretprobe/tcp_v4_connect") int BPF_KRETPROBE(tcp_v4_connect_exit, int ret) {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     /* Only proceed if the connection initialization returned success (0) */
-    if (ret != 0) {
-        bpf_map_delete_elem(&sock_store, &pid_tgid);
-        return 0;
-    }
+    if (ret != 0) { bpf_map_delete_elem(&sock_store, &pid_tgid); return 0; }
     struct sock **skpp = bpf_map_lookup_elem(&sock_store, &pid_tgid);
     if (!skpp) { return 0; }
     struct sock *sk = *skpp;
