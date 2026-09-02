@@ -57,8 +57,11 @@ static void usage(const char *prog) {
     exit(0);
 }
 const char *ip_str(in_addr_t addr) {
-    struct in_addr ip_struct = { .s_addr = addr };
-    return inet_ntoa(ip_struct);
+    static __thread char buf[INET_ADDRSTRLEN];
+    struct in_addr ip = { .s_addr = addr };
+    if (inet_ntop(AF_INET, &ip, buf, sizeof(buf)) == NULL)
+        return "<invalid>";
+    return buf;
 }
 void dump_config_map(struct bpf_map *map) {
     struct key lookup_key, next_key;
