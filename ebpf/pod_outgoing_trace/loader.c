@@ -82,6 +82,25 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+bool get_container_id(const char *name, char *container_id, size_t size) {
+    const char *prefix = "cri-containerd-";
+    const char *suffix = ".scope";
+    size_t prefix_len = strlen(prefix);
+    size_t suffix_len = strlen(suffix);
+    size_t name_len = strlen(name);
+    if (name_len <= prefix_len + suffix_len)
+        return false;
+    if (strncmp(name, prefix, prefix_len) != 0)
+        return false;
+    if (strcmp(name + name_len - suffix_len, suffix) != 0)
+        return false;
+    size_t id_len = name_len - prefix_len - suffix_len;
+    if (id_len + 1 > size)
+        return false;
+    memcpy(container_id, name + prefix_len, id_len);
+    container_id[id_len] = '\0';
+    return true;
+}
 static void resolve_cgroup_id_to_pod(__u64 target_id, char *out_path, const char *base_dir) {
     struct dirent *entry;
     char path[PATH_MAX];
@@ -115,14 +134,24 @@ const char *ip_str(in_addr_t addr) {
         return "<invalid>";
     return buf;
 }
+// 100% safe anywhere, anytime
+void ip_str_r(in_addr_t addr, char *buf, size_t size) {
+    struct in_addr ip = { .s_addr = addr };
+    if (inet_ntop(AF_INET, &ip, buf, size) == NULL) {
+        snprintf(buf, size, "<invalid>");
+    }
+}
 static int handle_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx); UNUSED(data_sz);
     const struct event *e = data;
     char pod_resolved_identity[1024] = "Host / Non-K8s Process";
+    char src[128], dst[128];
+    ip_str_r(e->saddr, src, sizeof(src));
+    ip_str_r(e->daddr, dst, sizeof(dst));
     resolve_cgroup_id_to_pod(e->cgroup_id, pod_resolved_identity, CGROUP_ROOT);
-    fprintf(stderr, "[Cgroup ID: %llu]\n", e->cgroup_id);
+    fprintf(stderr, "[Cgroup ID: %llu], Duration: %llu ns\n", e->cgroup_id, e->time_consuming);
     fprintf(stderr, " ├─ Location: %s\n", pod_resolved_identity);
-    fprintf(stderr, " └─ Traffic: errno = %d(%s), %s (PID: %d) -> %s:%d\n", e->final_errno, e->final_errno ? strerror(e->final_errno) : "Success", e->comm, e->pid, ip_str(e->daddr), e->dport);
+    fprintf(stderr, " └─ Traffic: errno = %d(%s), %s (PID: %d) %s:%d -> %s:%d\n", e->final_errno, e->final_errno ? strerror(e->final_errno) : "Success", e->comm, e->pid, src, e->sport, dst, e->dport);
     return 0;
 }
 int main(int argc, char *argv[]) {
