@@ -23,7 +23,12 @@ struct {
 #ifndef AF_INET
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
+#if 1
 SEC("kprobe/tcp_v4_connect") int BPF_KPROBE(tcp_v4_connect, struct sock *sk) {
+#else
+SEC("kprobe/tcp_v4_connect") int tcp_v4_connect(struct pt_regs *ctx) {
+    struct sock *sk = (struct sock *) PT_REGS_PARM1(ctx);
+#endif
     if (!sk) { return 0; }
     __u64 sk_key = (__u64)sk; // Cast socket address to u64 map key
     struct event el = {};
