@@ -61,8 +61,8 @@ $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(Q)$(CLANG) -target bpf $(CLANG_BPF_SYS_INCLUDES) -o $@ -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
 	$(Q)$(LLVM_STRIP) -g $@
-	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,_skel,$*))
-	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,_skel,$*) > $(subst .bpf,_skel,$*).h
+	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,,$*))
+	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,,$*) > $(subst .bpf,_skel,$*).h
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
 	$(call msg,USR_OBJ,$@)
