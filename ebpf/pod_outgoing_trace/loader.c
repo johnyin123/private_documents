@@ -5,7 +5,6 @@
 #include <signal.h>
 #include <sys/resource.h>
 
-#include <bpf/libbpf.h>
 #include "pod_trace_skel.h"
 #include "pod_trace.h"
 
@@ -102,6 +101,7 @@ bool get_container_id(const char *name, char *container_id, size_t size) {
     container_id[id_len] = '\0';
     return true;
 }
+#include <limits.h>
 static void resolve_cgroup_id_to_pod(__u64 target_id, char *out_path, const char *base_dir) {
     struct dirent *entry;
     char path[PATH_MAX];
