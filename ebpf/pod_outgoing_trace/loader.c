@@ -82,6 +82,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+/*cri-containerd-a37f9239aaf65aa5793eff26f9d93f304da3bc63091c41dc3ba5843a3065161d.scope*/
 bool get_container_id(const char *name, char *container_id, size_t size) {
     const char *prefix = "cri-containerd-";
     const char *suffix = ".scope";

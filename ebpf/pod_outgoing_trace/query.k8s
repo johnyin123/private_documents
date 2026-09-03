@@ -1,0 +1,124 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <curl/curl.h>
+
+#define TOKEN_PATH   "/var/run/secrets/kubernetes.io/serviceaccount/token"
+#define CA_CERT_PATH "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+struct MemoryBuffer {
+    char *response;
+    size_t size;
+};
+
+// Callback to accumulate JSON response chunks
+static size_t WriteCallback(void *data, size_t size, size_t nmemb, void *userp) {
+    size_t realsize = size * nmemb;
+    struct MemoryBuffer *mem = (struct MemoryBuffer *)userp;
+    char *ptr = realloc(mem->response, mem->size + realsize + 1);
+    if (!ptr) return 0; // Out of memory
+    mem->response = ptr;
+    memcpy(&(mem->response[mem->size]), data, realsize);
+    mem->size += realsize;
+    mem->response[mem->size] = 0;
+    return realsize;
+}
+
+// Simple parser to extract the pod name based on container ID placement
+void find_pod_by_container_id(const char *json, const char *target_id) {
+    // K8s returns containerID format as "containerd://<id>" or "docker://<id>"
+    const char *id_ptr = strstr(json, target_id);
+    if (!id_ptr) {
+        printf("Container ID '%s' not found in this namespace.\n", target_id);
+        return;
+    }
+
+    // Step backwards to find the nearest matching pod metadata definition
+    // Pod blocks start with tracking definitions like "metadata":{"name":"..."
+    const char *search = id_ptr;
+    while (search > json) {
+        if (strncmp(search, "\"metadata\"", 10) == 0) {
+            const char *name_start = strstr(search, "\"name\":\"");
+            if (name_start && name_start < id_ptr) {
+                name_start += 8; // skip past "name":"
+                const char *name_end = strchr(name_start, '"');
+                if (name_end) {
+                    printf("Found Target Pod Name: %.*s\n", (int)(name_end - name_start), name_start);
+                    return;
+                }
+            }
+        }
+        search--;
+    }
+    printf("Container ID located, but could not backtrack to Pod Name block.\n");
+}
+
+int main(int argc, char **argv) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <target-container-id>\n", argv[0]);
+        return 1;
+    }
+    const char *target_container_id = argv[1];
+    CURL *curl;
+    FILE *token_file = fopen(TOKEN_PATH, "r");
+    char token[2048] = {0};
+    char auth_header[2100] = {0};
+    char url[512] = {0};
+    if (!token_file || !fgets(token, sizeof(token), token_file)) {
+        perror("Failed to parse ServiceAccount token. Ensure code runs inside a Cluster Pod.");
+        if(token_file) fclose(token_file);
+        return 1;
+    }
+    fclose(token_file);
+    token[strcspn(token, "\r\n")] = 0;
+    char *api_host = getenv("KUBERNETES_SERVICE_HOST");
+    char *api_port = getenv("KUBERNETES_SERVICE_PORT");
+    if (!api_host || !api_port) return 1;
+    // Fetch the target namespace from the local service account path 
+    char namespace[64] = "default";
+    FILE *ns_file = fopen("/var/run/secrets/kubernetes.io/serviceaccount/namespace", "r");
+    if (ns_file) {
+        if(fgets(namespace, sizeof(namespace), ns_file)) {
+            namespace[strcspn(namespace, "\r\n")] = 0;
+        }
+        fclose(ns_file);
+    }
+    // HTTP Endpoint targeting all Pod definitions in the namespace
+    snprintf(url, sizeof(url), "https://%s:%s/api/v1/namespaces/%s/pods", api_host, api_port, namespace);
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+    if (curl) {
+        struct MemoryBuffer chunk = { .response = malloc(1), .size = 0 };
+        struct curl_slist *headers = NULL;
+        snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+        headers = curl_slist_append(headers, auth_header);
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_CERT_PATH);
+        if (curl_easy_perform(curl) == CURLE_OK) {
+            find_pod_by_container_id(chunk.response, target_container_id);
+        } else {
+            fprintf(stderr, "API Connection Failure.\n");
+        }
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        free(chunk.response);
+    }
+    curl_global_cleanup();
+    return 0;
+}
+/*
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: allow-pod-read
+subjects:
+- kind: ServiceAccount
+  name: default # replace with your specific service account if changed
+roleRef:
+  kind: ClusterRole
+  name: view # Built-in role allowing read-only access
+  apiGroup: rbac.authorization.k8s.io
+*/
