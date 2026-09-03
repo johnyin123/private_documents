@@ -8,42 +8,55 @@ char LICENSE[] SEC("license") = "GPL";
 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 1 << 16);
-    __uint(pinning, LIBBPF_PIN_BY_NAME);
+    __uint(max_entries, 256 * 1024);
+    /*__uint(pinning, LIBBPF_PIN_BY_NAME);*/
 } rb SEC(".maps");
 
 /* Temporary storage map to hold the socket pointer until the function finishes */
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 4096);
-    __type(key, u64);
-    __type(value, struct sock *);
+    __uint(max_entries, 10240);
+    __type(key, __u64);
+    __type(value, struct event);
 } sock_store SEC(".maps");
 
-// 1. Hook the entry point to catch and stash the socket reference
+#ifndef AF_INET
+#define AF_INET      2   /* Internet IP Protocol 	*/
+#endif
 SEC("kprobe/tcp_v4_connect") int BPF_KPROBE(tcp_v4_connect, struct sock *sk) {
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    /* Store the socket pointer temporarily using thread ID as key */
-    bpf_map_update_elem(&sock_store, &pid_tgid, &sk, BPF_ANY);
+    if (!sk) { return 0; }
+    __u64 sk_key = (__u64)sk; // Cast socket address to u64 map key
+    struct event el = {};
+    el.cgroup_id = bpf_get_current_cgroup_id();
+    el.pid = bpf_get_current_pid_tgid() >> 32;
+    bpf_get_current_comm(&el.comm, sizeof(el.comm));
+    el.final_errno = 0; // Default placeholder, updated later on tracepoint exit
+    bpf_map_update_elem(&sock_store, &sk_key, &el, BPF_ANY);
     return 0;
 }
-// 2. Hook the exit point where skc_daddr is guaranteed to be populated
-SEC("kretprobe/tcp_v4_connect") int BPF_KRETPROBE(tcp_v4_connect_exit, int ret) {
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    /* Only proceed if the connection initialization returned success (0) */
-    if (ret != 0) { bpf_map_delete_elem(&sock_store, &pid_tgid); return 0; }
-    struct sock **skpp = bpf_map_lookup_elem(&sock_store, &pid_tgid);
-    if (!skpp) { return 0; }
-    struct sock *sk = *skpp;
-    bpf_map_delete_elem(&sock_store, &pid_tgid);
-    struct event *el = bpf_ringbuf_reserve(&rb, sizeof(*el), 0);
+SEC("tracepoint/sock/inet_sock_set_state") int sock_set_state(struct trace_event_raw_inet_sock_set_state *ctx) {
+    // Filter down evaluation strictly to standard IPv4 TCP transport structures
+    if (ctx->protocol != IPPROTO_TCP || ctx->family != AF_INET) { return 0; }
+    __u64 sk_key = (__u64)ctx->skaddr;
+    struct event *el = bpf_map_lookup_elem(&sock_store, &sk_key);
     if (!el) { return 0; }
-    el->cgroup_id = bpf_get_current_cgroup_id();
-    el->pid = bpf_get_current_pid_tgid() >> 32;
-    bpf_get_current_comm(&el->comm, sizeof(el->comm));
-    // Read socket endpoints using BPF CO-RE (Compile Once - Run Everywhere)
-    el->daddr = BPF_CORE_READ(sk, __sk_common.skc_daddr);
-    el->dport = BPF_CORE_READ(sk, __sk_common.skc_dport);
-    bpf_ringbuf_submit(el, 0);
+    if ((ctx->oldstate == TCP_SYN_SENT && ctx->newstate == TCP_CLOSE) || (ctx->newstate == BPF_TCP_ESTABLISHED)) {
+        __builtin_memcpy(&el->daddr, ctx->daddr, sizeof(el->daddr));
+        el->dport = ctx->dport;
+        if (ctx->newstate == TCP_CLOSE) {
+            struct sock *sk = (struct sock *)ctx->skaddr;
+            int err = 0;
+            bpf_probe_read_kernel(&err, sizeof(err), &sk->sk_err);
+            el->final_errno = err;
+        } else {
+            el->final_errno = 0; // Handshake completed without issue
+        }
+        struct event *to_send = bpf_ringbuf_reserve(&rb, sizeof(struct event), 0);
+        if (to_send) {
+            *to_send = *el;
+            bpf_ringbuf_submit(to_send, 0);
+        }
+        bpf_map_delete_elem(&sock_store, &sk_key);
+    }
     return 0;
 }

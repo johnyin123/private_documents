@@ -11,8 +11,8 @@
 
 #define UNUSED(x)     ((void)(x))
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define PIN_PATH      "/sys/fs/bpf/pod_trace_link"
-#define PIN_PATH_RET  "/sys/fs/bpf/pod_trace_ret_link"
+#define PIN_PATH      "/sys/fs/bpf/pod_connect_link"
+#define PIN_PATH_RET  "/sys/fs/bpf/pod_sock_stae_link"
 #define CGROUP_ROOT   "/sys/fs/cgroup"
 
 struct env {
@@ -122,7 +122,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz) {
     resolve_cgroup_id_to_pod(e->cgroup_id, pod_resolved_identity, CGROUP_ROOT);
     fprintf(stderr, "[Cgroup ID: %llu]\n", e->cgroup_id);
     fprintf(stderr, " ├─ Location: %s\n", pod_resolved_identity);
-    fprintf(stderr, " └─ Traffic: %s (PID: %d) -> %s:%d\n", e->comm, e->pid, ip_str(e->daddr), ntohs(e->dport));
+    fprintf(stderr, " └─ Traffic: errno = %d(%s), %s (PID: %d) -> %s:%d\n", e->final_errno, e->final_errno ? strerror(e->final_errno) : "Success", e->comm, e->pid, ip_str(e->daddr), e->dport);
     return 0;
 }
 int main(int argc, char *argv[]) {
@@ -152,15 +152,15 @@ int main(int argc, char *argv[]) {
     if ((link) && (link_ret)) {
         log_info("Found an existing pinned bpf link. Reusing it.");
         skel->links.tcp_v4_connect = link;
-        skel->links.tcp_v4_connect_exit = link_ret;
+        skel->links.sock_set_state = link_ret;
     } else {
         skel->links.tcp_v4_connect = bpf_program__attach(skel->progs.tcp_v4_connect);
         if (!skel->links.tcp_v4_connect) {
             log_error("Failed to attach bpf: %d, %s", err, strerror(errno));
             goto cleanup;
         }
-        skel->links.tcp_v4_connect_exit = bpf_program__attach(skel->progs.tcp_v4_connect_exit);
-        if (!skel->links.tcp_v4_connect_exit) {
+        skel->links.sock_set_state = bpf_program__attach(skel->progs.sock_set_state);
+        if (!skel->links.sock_set_state) {
             log_error("Failed to attach bpf: %d, %s", err, strerror(errno));
             goto cleanup;
         }
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
                 log_error("Failed to pin link to %s: %d", PIN_PATH, err);
                 goto cleanup;
             }
-            err = bpf_link__pin(skel->links.tcp_v4_connect_exit, PIN_PATH_RET);
+            err = bpf_link__pin(skel->links.sock_set_state, PIN_PATH_RET);
             if (err) {
                 log_error("Failed to pin link to %s: %d", PIN_PATH_RET, err);
                 goto cleanup;
