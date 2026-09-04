@@ -151,6 +151,14 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u32 *cs
     *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
     *csum = csum_fold_helper(*csum);
 }
+static __always_inline void csum_replace4(__sum16 *csum, __be32 from, __be32 to) {
+    __u32 e_from = ~bpf_ntohl(from);
+    __u32 e_to = bpf_ntohl(to);
+    __u32 sum = bpf_ntohs(*csum) + (e_from >> 16) + (e_from & 0xFFFF) + (e_to >> 16) + (e_to & 0xFFFF);
+    sum = (sum & 0xFFFF) + (sum >> 16);
+    sum = (sum & 0xFFFF) + (sum >> 16);
+    *csum = bpf_htons(~sum);
+}
 #ifdef __cplusplus
 }
 #endif
@@ -187,7 +195,14 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     if (ip_type == IPPROTO_UDP) {
         if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
     }
-    // if (iphdr) { __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum; }
+#if defined(DPORT_TEST)
+    if (tcphdr) { tcphdr->dest = bpf_htons(80); }
+    if (udphdr) { udphdr->dest = bpf_htons(81); }
+    if (iphdr) { __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum; }
+#elif defined(DADDR_TEST)
+    if (iphdr) { csum_replace4(&iphdr->check, iphdr->daddr, bpf_htonl(0xC0A80164)); }
+#endif
+    //IPv6 has NO header checksum
     return XDP_PASS;
 }
 */
