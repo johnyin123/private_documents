@@ -196,11 +196,21 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
         if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
     }
 #if defined(DPORT_TEST)
-    if (tcphdr) { tcphdr->dest = bpf_htons(80); }
-    if (udphdr) { udphdr->dest = bpf_htons(81); }
-    if (iphdr) { __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum; }
+    if (tcphdr) {
+        tcphdr->dest = bpf_htons(80);
+        __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
+    }
+    if (udphdr) {
+        udphdr->dest = bpf_htons(81);
+        if (udphdr->check) {
+            __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
+        }
+    }
 #elif defined(DADDR_TEST)
+    // csum_replace4 only changing the IP addresses or 32-bit fields.
     if (iphdr) { csum_replace4(&iphdr->check, iphdr->daddr, bpf_htonl(0xC0A80164)); }
+    // Finally, overwrite the actual destination IP
+    iphdr->daddr = bpf_htonl(0xC0A80164);
 #endif
     //IPv6 has NO header checksum
     return XDP_PASS;
