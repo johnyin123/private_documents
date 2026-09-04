@@ -118,9 +118,7 @@ static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh, void *dat
     *icmphdr = h;
     return h->type;
 }
-/*
- * parse_udphdr: parse the udp header and return the length of the udp payload
- */
+/* parse_udphdr: parse the udp header and return the length of the udp payload */
 static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr) {
     int len;
     struct udphdr *h = nh->pos;
@@ -131,9 +129,7 @@ static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, s
     if (len < 0) return -1;
     return len;
 }
-/*
- * parse_tcphdr: parse and return the length of the tcp header
- */
+/* parse_tcphdr: parse and return the length of the tcp header */
 static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr) {
     int len;
     struct tcphdr *h = nh->pos;
@@ -147,23 +143,13 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, s
     *tcphdr = h;
     return len;
 }
-
-static __always_inline __u16 csum_fold_helper(__u64 csum) {
-    int i;
-#if defined(__clang__)
-    #pragma unroll
-#elif defined(__GNUC__)
-    #pragma GCC unroll 2
-#endif
-    for (i = 0; i < 4; i++) {
-        if(csum >> 16) csum = (csum & 0xffff) + (csum >> 16);
-    }
-    return ~csum;
+static __always_inline __u16 csum_fold_helper(__u32 csum) {
+    csum = (csum & 0xffff) + (csum >> 16);
+    return ~((csum & 0xffff) + (csum >> 16));
 }
-static __always_inline __u16 iph_csum(struct iphdr *iph) {
-    iph->check = 0;
-    unsigned long long csum = bpf_csum_diff(0, 0, (unsigned int *)iph, sizeof(struct iphdr), 0);
-    return csum_fold_helper(csum);
+static __always_inline void ipv4_csum(void *data_start, int data_size, __u32 *csum) {
+    *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
+    *csum = csum_fold_helper(*csum);
 }
 #ifdef __cplusplus
 }
@@ -175,25 +161,33 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     void *data_end = (void *)(long)ctx->data_end;
     struct hdr_cursor nh = { .pos = data };
     struct ethhdr *eth;
-    struct iphdr *iphdr;
-    struct ipv6hdr *ipv6hdr;
-    struct udphdr *udphdr;
-    struct tcphdr *tcphdr;
-    int eth_type, ip_type;
-    eth_type = parse_ethhdr(&nh, data_end, &eth);
+    struct iphdr *iphdr = NULL;
+    struct ipv6hdr *ipv6hdr = NULL;
+    struct udphdr *udphdr = NULL;
+    struct tcphdr *tcphdr = NULL;
+    int ip_type = -1;
+    // Ethernet
+    int eth_type = parse_ethhdr(&nh, data_end, &eth);
     if (eth_type < 0) { return XDP_PASS; }
+    // IPv4
     if (eth_type == bpf_htons(ETH_P_IP)) {
         ip_type = parse_iphdr(&nh, data_end, &iphdr);
+    // IPv6
     } else if (eth_type == bpf_htons(ETH_P_IPV6)) {
         ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
     } else { return XDP_PASS; }
+    if (ip_type < 0) { return XDP_PASS; }
+    // TCP
+    if (ip_type == IPPROTO_TCP) {
+        if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
+        if (iphdr) { bpf_printk("TCP: %pI4:%u -> %pI4:%u", &iphdr->saddr, bpf_ntohs(tcphdr->source), &iphdr->daddr, bpf_ntohs(tcphdr->dest)); }
+        if (ipv6hdr) { bpf_printk("TCP: %pI6:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
+    }
+    // UDP
     if (ip_type == IPPROTO_UDP) {
         if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
-        //udphdr->dest = bpf_htons(bpf_ntohs(udphdr->dest) - 1);
-    } else if (ip_type == IPPROTO_TCP) {
-        if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
-        //tcphdr->dest = bpf_htons(bpf_ntohs(tcphdr->dest) - 1);
     }
-    ...
+    // if (iphdr) { __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum; }
+    return XDP_PASS;
 }
 */
