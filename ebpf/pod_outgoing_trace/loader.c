@@ -12,7 +12,7 @@
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define PIN_PATH      "/sys/fs/bpf/pod_connect_link"
 #define PIN_PATH_RET  "/sys/fs/bpf/pod_sock_stae_link"
-#define CGROUP_ROOT   "/sys/fs/cgroup"
+#define CGROUP_ROOT   "/sys/fs/cgroup" /*/sys/fs/cgroup/misc/kubepods.slice*/
 
 struct env {
     int persist;
