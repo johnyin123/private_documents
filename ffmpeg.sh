@@ -7,12 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ee97673e[2024-11-15T08:25:49+08:00]:ffmpeg.sh")
+VERSION+=("88114c65[2025-05-22T20:47:43+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
-scale=${scale--2:720,format=yuv420p}
 frame=${frame-}
+scale=${scale--2:720,format=yuv420p}
 
 cat <<EOF
 mkvpropedit -t all: "${name}"
@@ -25,8 +25,7 @@ ffmpeg -hide_banner -i "${name}" 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 ffmpeg -hide_banner -hwaccel auto -i "${name}" -loglevel info \
      -movflags +faststart \
      -map 0:a:? -map 0:s:? -map 0:v:? \
-     ${scale:+-vf scale=${scale}}  \
-     ${frame:+-filter:v fps=fps=${frame}} \
+     ${scale:+-vf scale=${scale}${frame:+,fps=${frame}}}  \
      -c:v libx264 -crf 23 \
      -c:a copy -c:s copy \
      "${name%.*}.convert.mkv"
@@ -37,7 +36,6 @@ ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
     -movflags +faststart \
     -map 0:a:? -map 0:s:? -map 0:v:? \
     ${scale:+-vf scale=${scale}}  \
-    ${frame:+-filter:v fps=fps=${frame}} \
     -c:a libmp3lame -b:a 128k -c:s copy \
     ${name%.*}.convert.mkv
 EOF
