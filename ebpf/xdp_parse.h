@@ -17,17 +17,19 @@ extern "C" {
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 
+#ifdef DEBUG
+/* cat /sys/kernel/debug/tracing/trace_pipe */
+#define bpf_debug bpf_printk
+#else
+#define bpf_debug(fmt, ...){;}
+#endif
+
 struct hdr_cursor {
     void *pos;
 };
 struct vlan_hdr {
     __be16    h_vlan_TCI;
     __be16    h_vlan_encapsulated_proto;
-};
-struct icmphdr_common {
-    __u8        type;
-    __u8        code;
-    __sum16    cksum;
 };
 
 #ifndef VLAN_MAX_DEPTH
@@ -111,13 +113,6 @@ static __always_inline int parse_icmphdr(struct hdr_cursor *nh, void *data_end, 
     *icmphdr = icmph;
     return icmph->type;
 }
-static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh, void *data_end, struct icmphdr_common **icmphdr) {
-    struct icmphdr_common *h = nh->pos;
-    if (h + 1 > (struct icmphdr_common *)data_end) return -1;
-    nh->pos  = h + 1;
-    *icmphdr = h;
-    return h->type;
-}
 /* parse_udphdr: parse the udp header and return the length of the udp payload */
 static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr) {
     int len;
@@ -151,14 +146,6 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u32 *cs
     *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
     *csum = csum_fold_helper(*csum);
 }
-static __always_inline void csum_replace4(__sum16 *csum, __be32 from, __be32 to) {
-    __u32 e_from = ~bpf_ntohl(from);
-    __u32 e_to = bpf_ntohl(to);
-    __u32 sum = bpf_ntohs(*csum) + (e_from >> 16) + (e_from & 0xFFFF) + (e_to >> 16) + (e_to & 0xFFFF);
-    sum = (sum & 0xFFFF) + (sum >> 16);
-    sum = (sum & 0xFFFF) + (sum >> 16);
-    *csum = bpf_htons(~sum);
-}
 #ifdef __cplusplus
 }
 #endif
@@ -176,41 +163,49 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     int ip_type = -1;
     // Ethernet
     int eth_type = parse_ethhdr(&nh, data_end, &eth);
-    if (eth_type < 0) { return XDP_PASS; }
-    // IPv4
-    if (eth_type == bpf_htons(ETH_P_IP)) {
-        ip_type = parse_iphdr(&nh, data_end, &iphdr);
-    // IPv6
-    } else if (eth_type == bpf_htons(ETH_P_IPV6)) {
-        ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
-    } else { return XDP_PASS; }
-    if (ip_type < 0) { return XDP_PASS; }
-    // TCP
-    if (ip_type == IPPROTO_TCP) {
-        if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
-        if (iphdr) { bpf_printk("TCP: %pI4:%u -> %pI4:%u", &iphdr->saddr, bpf_ntohs(tcphdr->source), &iphdr->daddr, bpf_ntohs(tcphdr->dest)); }
-        if (ipv6hdr) { bpf_printk("TCP: %pI6:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
+    switch (bpf_ntohs(eth_type)) {
+        case ETH_P_IP:
+            ip_type = parse_iphdr(&nh, data_end, &iphdr);
+            break;
+        case ETH_P_IPV6:
+            ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
+            break;
+        case ETH_P_ARP:
+        case ETH_P_8021Q:
+        default:
+            return XDP_PASS;
     }
-    // UDP
-    if (ip_type == IPPROTO_UDP) {
-        if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
+    switch (ip_type) {
+        case IPPROTO_TCP:
+            if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
+            if (iphdr) { bpf_debug("TCP: %pI4:%u -> %pI4:%u", &iphdr->saddr, bpf_ntohs(tcphdr->source), &iphdr->daddr, bpf_ntohs(tcphdr->dest)); }
+            if (ipv6hdr) { bpf_debug("TCP: %pI6:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
+            break;
+        case IPPROTO_UDP:
+            if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
+            break;
+        case IPPROTO_ICMP:
+        case IPPROTO_IGMP:
+        default:
+            return XDP_PASS;
     }
 #if defined(DPORT_TEST)
-    if (tcphdr) {
+    if (tcphdr && iphdr) {
         tcphdr->dest = bpf_htons(80);
         __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
     }
-    if (udphdr) {
+    if (udphdr && iphdr) {
         udphdr->dest = bpf_htons(81);
-        if (udphdr->check) {
-            __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
-        }
+        // UDP, setting the checksum to 0 forces the receiving OS skip validation entirely.
+        udphdr->check = 0;
     }
-#elif defined(DADDR_TEST)
-    // csum_replace4 only changing the IP addresses or 32-bit fields.
-    if (iphdr) { csum_replace4(&iphdr->check, iphdr->daddr, bpf_htonl(0xC0A80164)); }
-    // Finally, overwrite the actual destination IP
-    iphdr->daddr = bpf_htonl(0xC0A80164);
+#endif
+#if defined(DADDR_TEST)
+    if (iphdr) {
+        iphdr->daddr = bpf_htonl(0xC0A80164);
+        iphdr->check = 0;
+        __u32 csum = 0; ipv4_csum(iphdr, sizeof(struct iphdr), &csum); iphdr->check = csum;
+    }
 #endif
     //IPv6 has NO header checksum
     return XDP_PASS;
