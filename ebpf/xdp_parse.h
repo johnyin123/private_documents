@@ -24,6 +24,9 @@ extern "C" {
 #define bpf_debug(fmt, ...){;}
 #endif
 
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
 struct hdr_cursor {
     void *pos;
 };
@@ -189,12 +192,21 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
         default:
             return XDP_PASS;
     }
+    // __u16 src_port = (tcphdr) ? tcphdr->source : (udphdr) ? udphdr->source : 0;
+    // __u16 dst_port = (tcphdr) ? tcphdr->dest : (udphdr) ? udphdr->dest : 0;
 #if defined(DPORT_TEST)
-    if (tcphdr && iphdr) {
+    if (tcphdr && (iphdr || ipv6hdr)) {
+        __u32 csum_diff = ~tcphdr->dest + bpf_htons(80);
         tcphdr->dest = bpf_htons(80);
-        __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
+        __u32 new_tcp_csum = bpf_ntohs(tcphdr->check) + csum_diff;
+        new_tcp_csum = (new_tcp_csum & 0xFFFF) + (new_tcp_csum >> 16);
+        tcphdr->check = bpf_htons(new_tcp_csum);
+        if (iphdr) {
+            iphdr->check = 0;
+            __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
+        }
     }
-    if (udphdr && iphdr) {
+    if (udphdr && (iphdr || ipv6hdr)) {
         udphdr->dest = bpf_htons(81);
         // UDP, setting the checksum to 0 forces the receiving OS skip validation entirely.
         udphdr->check = 0;
@@ -205,6 +217,22 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
         iphdr->daddr = bpf_htonl(0xC0A80164);
         iphdr->check = 0;
         __u32 csum = 0; ipv4_csum(iphdr, sizeof(struct iphdr), &csum); iphdr->check = csum;
+    }
+    if (ipv6hdr) {
+        struct in6_addr old_daddr = ipv6hdr->daddr;
+        ipv6hdr->daddr.s6_addr32[0] = bpf_htonl(0x20010db8);
+        ipv6hdr->daddr.s6_addr32[1] = 0;
+        ipv6hdr->daddr.s6_addr32[2] = 0;
+        ipv6hdr->daddr.s6_addr32[3] = bpf_htonl(0x00000001);
+        // IPv6 has NO header checksum field to update here!
+        if (tcphdr) {
+            __u32 csum_diff = bpf_csum_diff((__be32 *)&old_daddr, 16, (__be32 *)&ipv6hdr->daddr, 16, 0);
+            __u32 new_tcp_csum = (__u32)(~bpf_ntohs(tcphdr->check) & 0xFFFF) + csum_diff;
+            tcphdr->check = bpf_htons(csum_fold_helper(new_tcp_csum));
+        }
+        if (udphdr) {
+            udphdr->check = 0;
+        }
     }
 #endif
     //IPv6 has NO header checksum
