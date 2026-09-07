@@ -149,6 +149,9 @@ static __always_inline void ipv4_csum(void *data_start, int data_size, __u32 *cs
     *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
     *csum = csum_fold_helper(*csum);
 }
+static __always_inline void fast_udp_checksum_bypass(struct udphdr *udph) {
+    if (udph) { udph->check = 0; }
+}
 #ifdef __cplusplus
 }
 #endif
@@ -209,7 +212,7 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     if (udphdr && (iphdr || ipv6hdr)) {
         udphdr->dest = bpf_htons(81);
         // UDP, setting the checksum to 0 forces the receiving OS skip validation entirely.
-        udphdr->check = 0;
+        fast_udp_checksum_bypass(udphdr);
     }
 #endif
 #if defined(DADDR_TEST)
@@ -230,9 +233,7 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
             __u32 new_tcp_csum = (__u32)(~bpf_ntohs(tcphdr->check) & 0xFFFF) + csum_diff;
             tcphdr->check = bpf_htons(csum_fold_helper(new_tcp_csum));
         }
-        if (udphdr) {
-            udphdr->check = 0;
-        }
+        fast_udp_checksum_bypass(udphdr);
     }
 #endif
     //IPv6 has NO header checksum
