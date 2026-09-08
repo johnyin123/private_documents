@@ -19,13 +19,10 @@ extern "C" {
 
 #ifdef DEBUG
 /* cat /sys/kernel/debug/tracing/trace_pipe */
-#define bpf_debug bpf_printk
+#define bpf_debug           bpf_printk
 #else
-#define bpf_debug(fmt, ...){;}
+#define bpf_debug(fmt, ...) {;}
 #endif
-
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
 
 struct hdr_cursor {
     void *pos;
@@ -93,7 +90,7 @@ static __always_inline int parse_ip6hdr(struct hdr_cursor *nh, void *data_end, s
 }
 static __always_inline int parse_iphdr(struct hdr_cursor *nh, void *data_end, struct iphdr **iphdr) {
     struct iphdr *iph = nh->pos;
-    int hdrsize;
+    unsigned int hdrsize;
     if (iph + 1 > (struct iphdr *)data_end) return -1;
     hdrsize = iph->ihl * 4;
     if(hdrsize < sizeof(*iph)) return -1;
@@ -129,7 +126,7 @@ static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, s
 }
 /* parse_tcphdr: parse and return the length of the tcp header */
 static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr) {
-    int len;
+    unsigned int len;
     struct tcphdr *h = nh->pos;
     if (h + 1 > (struct tcphdr *)data_end) return -1;
     len = h->doff * 4;
