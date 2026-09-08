@@ -1,21 +1,30 @@
-INCFILE=make.inc
-ifeq ($(INCFILE), $(wildcard $(INCFILE)))
-include $(INCFILE)
+INCFILE     ?= make.inc
+-include $(INCFILE)
 # make.inc -->
 # EXE=my_uprobe
-# CFLAGS=-D_GNU_SOURCE -D__USE_XOPEN -I../dep/include
-# LDFLAGS=-L./ -lbpf -lelf -lz
-endif
+# CFLAGS=-D_GNU_SOURCE -D__USE_XOPEN
+# LDFLAGS=-lbpf -lelf -lz
+# LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
+# INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
+# LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 VMLINUX     := vmlinux.h
-# LIBBPF_OBJ  := libbpf.a
-ARCH        ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
+DEBUG_FLAG  += -Wall -Wextra
+C_STANDARD   = -std=c99
 EXE         ?= main_bpf
 CFLAGS      += -g -Wall
-CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH)
-LLVM_STRIP  := llvm-strip
+BPF_CC      := bpf-gcc -g -gbtf -O2 -Wall -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu
+BPF_STRIP   := bpf-strip
+# BPF_CC      := clang -g -O2 -Wall -target bpf -D__TARGET_ARCH_$(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/') $(shell clang -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
+# BPF_STRIP   := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 
+HOST_ARCH ?= $(shell uname -m)
+ifeq ($(HOST_ARCH),x86_64)
+	ARCH_FLAG = -D__x86_64__ -D__TARGET_ARCH_x86
+else ifeq ($(HOST_ARCH),aarch64)
+	ARCH_FLAG = -D__aarch64__ -D__TARGET_ARCH_arm64
+endif
 
 BPF_SRC=$(wildcard *.bpf.c)
 USR_SRC=$(filter-out $(wildcard *.bpf.c), $(wildcard *.c))
@@ -23,33 +32,27 @@ USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
 BPF_SKEL=$(BPF_SRC:.bpf.c=_skel.h)
 
-# Get Clang's default includes on this system. We'll explicitly add these dirs
-# to the includes list when compiling with `-target bpf` because otherwise some
-# architecture-specific dirs will be "missing" on some architectures/distros -
-# headers such as asm/types.h, asm/byteorder.h, asm/socket.h, asm/sockios.h,
-# sys/cdefs.h etc. might be missing.
-#
-# Use '-idirafter': Don't interfere with include mechanics except where the
-# build would have failed anyways.
-CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
-    | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
-
-ifeq ($(DEBUG),1)
-CFLAGS += -DDEBUG
-endif
-ifeq ($(V),1)
-Q =
-msg =
+ifdef DEBUG
+	BPF_CC_DEBUG_FLAG = -DDEBUG -Wall -Wextra
+	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
 else
-Q = @
-msg = @printf '  %-8s %s%s\n' "$(1)" "$(notdir $(2))" "$(if $(3), $(3))";
+	BPF_CC_DEBUG_FLAG = -Wall -Wextra
+	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
+endif
+
+ifeq ($(V),1)
+	Q =
+	msg =
+else
+	Q = @
+	msg = @printf '  %-8s %s%s\n' "$(1)" "$(notdir $(2))" "$(if $(3), $(3))";
 endif
 
 .PHONY : all
 all: $(EXE)
 $(EXE): $(USR_OBJ)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+	$(Q)$(CC) $(USR_OBJ) $(DEBUG_FLAG) $(LIB_PATH) -o $@ $(LIBFLAGS) $(LDFLAGS)
 
 .PHONY : clean
 clean:
@@ -58,15 +61,15 @@ clean:
 
 $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(call msg,BPF_BIN,$@)
-	$(Q)$(CLANG) -target bpf $(CLANG_BPF_SYS_INCLUDES) -o $@ -c $<
+	$(Q)$(BPF_CC) $(CFLAGS) $(BPF_CC_DEBUG_FLAG) $(INC_PATH) -o $@ $(ARCH_FLAG) -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
-	$(Q)$(LLVM_STRIP) -g $@
+	$(Q)$(BPF_STRIP) -g $@
 	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,,$*))
 	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,,$*) > $(subst .bpf,_skel,$*).h
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
 	$(call msg,USR_OBJ,$@)
-	$(Q)$(CC) $(CFLAGS) -o $@ -c $<
+	$(Q)$(CC) $(C_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 
 $(VMLINUX):
 	$(call msg,BPF,$@)
