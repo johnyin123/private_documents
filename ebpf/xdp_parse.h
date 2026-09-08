@@ -138,44 +138,36 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, s
     *tcphdr = h;
     return len;
 }
+static __always_inline void fast_udp_checksum_bypass(struct udphdr *udph) {
+    if (udph) { udph->check = 0; }
+}
 static __always_inline __u16 csum_fold_helper(__u32 csum) {
     csum = (csum & 0xffff) + (csum >> 16);
     return ~((csum & 0xffff) + (csum >> 16));
 }
-static __always_inline void ipv4_csum(void *data_start, int data_size, __u32 *csum) {
-    *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
-    *csum = csum_fold_helper(*csum);
+static __always_inline __u16 csum_replace16(__u16 check, __be16 from, __be16 to) {
+    __u32 sum = (~check & 0xffff);
+    sum += (~from & 0xffff);
+    sum += to;
+    sum = (sum & 0xffff) + (sum >> 16);
+    sum = (sum & 0xffff) + (sum >> 16);
+    return ~sum;
 }
-static __always_inline void fast_udp_checksum_bypass(struct udphdr *udph) {
-    if (udph) { udph->check = 0; }
+static __always_inline __u16 csum_replace32(__u16 check, __be32 from, __be32 to) {
+    __u32 sum;
+    __be16 from_hi = (__be16)((__u32)from >> 16);
+    __be16 from_lo = (__be16)((__u32)from & 0xffff);
+    __be16 to_hi = (__be16)((__u32)to >> 16);
+    __be16 to_lo = (__be16)((__u32)to & 0xffff);
+    sum = (~check & 0xffff);
+    sum += (~from_hi & 0xffff);
+    sum += to_hi;
+    sum += (~from_lo & 0xffff);
+    sum += to_lo;
+    sum = (sum & 0xffff) + (sum >> 16);
+    sum = (sum & 0xffff) + (sum >> 16);
+    return ~sum;
 }
-/*
-static __always_inline __u32 csum_add(__u32 csum, __u32 addend) {
-    __u32 res = csum + addend;
-    return res + (res < addend);
-}
-static __always_inline __u16 csum_replace4(__u32 csum, __u32 from, __u32 to) {
-    __u32 tmp = csum_add(~csum, ~from);
-    return csum_fold_helper(csum_add(tmp, to));
-}
-static __always_inline __u16 csum_replace16(__u32 csum, __u32 *from, __u32 *to) {
-    __u32 diff[] = { ~from[0], ~from[1], ~from[2], ~from[3], to[0], to[1], to[2], to[3], };
-    csum = bpf_csum_diff(0, 0, diff, sizeof(diff), ~csum);
-    return csum_fold_helper(csum);
-}
-
-__be32 addr = iph->saddr;
-iph->saddr = nat_addr;
-iph->check = csum_replace4((__u32)iph->check, addr, nat_addr);
-
-struct in6_addr *addr, struct in6_addr *nat_addr
-tcph->check = csum_replace16((__u32)tcph->check, addr->in6_u.u6_addr32, nat_addr->in6_u.u6_addr32);
-udph->check = csum_replace16((__u32)udph->check, addr->in6_u.u6_addr32, nat_addr->in6_u.u6_addr32);
-
-tcph->check = csum_replace4((__u32)tcph->check, addr, nat_addr);
-udph->check = csum_replace4((__u32)udph->check, addr, nat_addr);
-*/
-
 #ifdef __cplusplus
 }
 #endif
