@@ -115,14 +115,13 @@ static __always_inline int parse_icmphdr(struct hdr_cursor *nh, void *data_end, 
 }
 /* parse_udphdr: parse the udp header and return the length of the udp payload */
 static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr) {
-    int len;
     struct udphdr *h = nh->pos;
-    if (h + 1 > (struct udphdr *)data_end) return -1;
+    if ((void *)(h + 1) > data_end) return -1;
     nh->pos  = h + 1;
     *udphdr = h;
-    len = bpf_ntohs(h->len) - sizeof(struct udphdr);
-    if (len < 0) return -1;
-    return len;
+    unsigned int udp_len = bpf_ntohs(h->len);
+    if (udp_len < sizeof(*h)) return -1;
+    return udp_len - sizeof(*h);
 }
 /* parse_tcphdr: parse and return the length of the tcp header */
 static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr) {
@@ -137,6 +136,11 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, s
     nh->pos += len;
     *tcphdr = h;
     return len;
+}
+static __always_inline __u64 getmac(__u8 *eth_mac) {
+    __u64 mac = 0;
+    __builtin_memcpy(&mac, eth_mac, ETH_ALEN);
+    return __builtin_bswap64(mac) >> 16;
 }
 static __always_inline void fast_udp_checksum_bypass(struct udphdr *udph) {
     if (udph) { udph->check = 0; }
@@ -168,6 +172,55 @@ static __always_inline __u16 csum_replace32(__u16 check, __be32 from, __be32 to)
     sum = (sum & 0xffff) + (sum >> 16);
     return ~sum;
 }
+static __always_inline int fib_redirect_v4(struct xdp_md *ctx, struct ethhdr *eth, struct iphdr *iphdr) {
+    struct bpf_fib_lookup fib = { .family = AF_INET, .ipv4_src = iphdr->saddr, .ipv4_dst = iphdr->daddr, .ifindex = ctx->ingress_ifindex, };
+    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), 0);
+    bpf_debug("FIB %pI4[%012llx->%012llx] -> %pI4[%012llx->%012llx], bpf_fib_lookup = %d", &iphdr->saddr, getmac(eth->h_source), getmac(fib.smac), &iphdr->daddr, getmac(eth->h_dest), getmac(fib.dmac), rc);
+    if (rc != BPF_FIB_LKUP_RET_SUCCESS) { return XDP_PASS; }
+    __builtin_memcpy(eth->h_source, fib.smac, ETH_ALEN);
+    __builtin_memcpy(eth->h_dest, fib.dmac, ETH_ALEN);
+    return bpf_redirect(fib.ifindex, 0);
+}
+static __always_inline int fib_redirect_v6(struct xdp_md *ctx, struct ethhdr *eth, struct ipv6hdr *ip6h) {
+    struct bpf_fib_lookup fib = { .family = AF_INET6, .ifindex = ctx->ingress_ifindex, };
+    __builtin_memcpy(fib.ipv6_src, &ip6h->saddr, sizeof(fib.ipv6_src));
+    __builtin_memcpy(fib.ipv6_dst, &ip6h->daddr, sizeof(fib.ipv6_dst));
+    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), 0);
+    bpf_debug("FIB %pI6c[%012llx->%012llx] -> %pI6c[%012llx->%012llx], bpf_fib_lookup = %d", &ip6h->saddr, getmac(eth->h_source), getmac(fib.smac), &ip6h->daddr, getmac(eth->h_dest), getmac(fib.dmac), rc);
+    if (rc != BPF_FIB_LKUP_RET_SUCCESS) { return XDP_PASS; }
+    __builtin_memcpy(eth->h_source, fib.smac, ETH_ALEN);
+    __builtin_memcpy(eth->h_dest, fib.dmac, ETH_ALEN);
+    return bpf_redirect(fib.ifindex, 0);
+}
+static __always_inline int rewrite_sport_udp(struct udphdr *udp, __be16 new_port) {
+    __be16 old_port = udp->source;
+    if (old_port == new_port) { return 0; }
+    if (udp->check != 0) { udp->check = csum_replace16(udp->check, old_port, new_port); }
+    udp->source = new_port;
+    return 0;
+}
+static __always_inline int rewrite_dport_udp(struct udphdr *udp, __be16 new_port) {
+    __be16 old_port = udp->dest;
+    if (old_port == new_port) { return 0; }
+    if (udp->check != 0) { udp->check = csum_replace16(udp->check, old_port, new_port); }
+    udp->dest = new_port;
+    return 0;
+}
+static __always_inline int rewrite_sport_tcp(struct tcphdr *tcp, __be16 new_port) {
+    __be16 old_port = tcp->source;
+    if (old_port == new_port) { return 0; }
+    tcp->check = csum_replace16(tcp->check, old_port, new_port);
+    tcp->source = new_port;
+    return 0;
+}
+static __always_inline int rewrite_dport_tcp(struct tcphdr *tcp, __be16 new_port) {
+    __be16 old_port = tcp->dest;
+    if (old_port == new_port) { return 0; }
+    tcp->check = csum_replace16(tcp->check, old_port, new_port);
+    tcp->dest = new_port;
+    return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -182,26 +235,26 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
     struct ipv6hdr *ipv6hdr = NULL;
     struct udphdr *udphdr = NULL;
     struct tcphdr *tcphdr = NULL;
-    int ip_type = -1;
     // Ethernet
     int eth_type = parse_ethhdr(&nh, data_end, &eth);
     switch (bpf_ntohs(eth_type)) {
         case ETH_P_IP:
-            ip_type = parse_iphdr(&nh, data_end, &iphdr);
+            if (parse_iphdr(&nh, data_end, &iphdr) < 0) { return XDP_PASS; }
             break;
         case ETH_P_IPV6:
-            ip_type = parse_ip6hdr(&nh, data_end, &ipv6hdr);
+            if (parse_ip6hdr(&nh, data_end, &ipv6hdr) < 0) { return XDP_PASS; }
             break;
         case ETH_P_ARP:
         case ETH_P_8021Q:
         default:
             return XDP_PASS;
     }
-    switch (ip_type) {
+    bpf_debug("MAC [%012llx] -> [%012llx]", getmac(eth->h_source), getmac(eth->h_dest));
+    switch (iphdr->protocol) {
         case IPPROTO_TCP:
             if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
             if (iphdr) { bpf_debug("TCP: %pI4:%u -> %pI4:%u", &iphdr->saddr, bpf_ntohs(tcphdr->source), &iphdr->daddr, bpf_ntohs(tcphdr->dest)); }
-            if (ipv6hdr) { bpf_debug("TCP: %pI6:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
+            if (ipv6hdr) { bpf_debug("TCP: %pI6c:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
             break;
         case IPPROTO_UDP:
             if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
@@ -211,45 +264,18 @@ SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
         default:
             return XDP_PASS;
     }
-    // __u16 src_port = (tcphdr) ? tcphdr->source : (udphdr) ? udphdr->source : 0;
-    // __u16 dst_port = (tcphdr) ? tcphdr->dest : (udphdr) ? udphdr->dest : 0;
+    // __be16 sport = (iphdr->protocol == IPPROTO_TCP) ? tcphdr->source : (iphdr->protocol == IPPROTO_UDP) ? udphdr->source : 0;
+    // __be16 dport = (iphdr->protocol == IPPROTO_TCP) ? tcphdr->dest   : (iphdr->protocol == IPPROTO_UDP) ? udphdr->dest   : 0;
 #if defined(DPORT_TEST)
     if (tcphdr && (iphdr || ipv6hdr)) {
-        __u32 csum_diff = ~tcphdr->dest + bpf_htons(80);
-        tcphdr->dest = bpf_htons(80);
-        __u32 new_tcp_csum = bpf_ntohs(tcphdr->check) + csum_diff;
-        new_tcp_csum = (new_tcp_csum & 0xFFFF) + (new_tcp_csum >> 16);
-        tcphdr->check = bpf_htons(new_tcp_csum);
-        if (iphdr) {
-            iphdr->check = 0;
-            __u32 csum = 0; ipv4_csum(iphdr, iphdr->ihl * 4, &csum); iphdr->check = csum;
-        }
     }
     if (udphdr && (iphdr || ipv6hdr)) {
-        udphdr->dest = bpf_htons(81);
-        // UDP, setting the checksum to 0 forces the receiving OS skip validation entirely.
-        fast_udp_checksum_bypass(udphdr);
     }
 #endif
 #if defined(DADDR_TEST)
     if (iphdr) {
-        iphdr->daddr = bpf_htonl(0xC0A80164);
-        iphdr->check = 0;
-        __u32 csum = 0; ipv4_csum(iphdr, sizeof(struct iphdr), &csum); iphdr->check = csum;
     }
     if (ipv6hdr) {
-        struct in6_addr old_daddr = ipv6hdr->daddr;
-        ipv6hdr->daddr.s6_addr32[0] = bpf_htonl(0x20010db8);
-        ipv6hdr->daddr.s6_addr32[1] = 0;
-        ipv6hdr->daddr.s6_addr32[2] = 0;
-        ipv6hdr->daddr.s6_addr32[3] = bpf_htonl(0x00000001);
-        // IPv6 has NO header checksum field to update here!
-        if (tcphdr) {
-            __u32 csum_diff = bpf_csum_diff((__be32 *)&old_daddr, 16, (__be32 *)&ipv6hdr->daddr, 16, 0);
-            __u32 new_tcp_csum = (__u32)(~bpf_ntohs(tcphdr->check) & 0xFFFF) + csum_diff;
-            tcphdr->check = bpf_htons(csum_fold_helper(new_tcp_csum));
-        }
-        fast_udp_checksum_bypass(udphdr);
     }
 #endif
     //IPv6 has NO header checksum
