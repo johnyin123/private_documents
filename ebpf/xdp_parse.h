@@ -16,6 +16,7 @@ extern "C" {
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
+#include <stdbool.h>
 
 #ifdef DEBUG
 /* cat /sys/kernel/debug/tracing/trace_pipe */
@@ -262,64 +263,30 @@ static __always_inline int rewrite_ipv4_daddr_tcp(struct iphdr *iph, struct tcph
     iph->daddr = new_addr;
     return 0;
 }
+/* from calico */
+static __always_inline void ip_dec_ttl(struct iphdr *ip) {
+    ip->ttl--;
+    __u32 sum = ip->check;
+    sum += bpf_htons(0x0100);
+    ip->check = (__be16) (sum + (sum >> 16));
+}
+static __always_inline bool ipv4_pkg4local_tcp(void *ctx, __be32 saddr, __be32 daddr, __be16 sport, __be16 dport) {
+    struct bpf_sock_tuple tuple = { .ipv4 = { .saddr = saddr, .daddr = daddr, .sport = sport, .dport = dport } };
+    /* Look up if an active/listening socket exists */
+    struct bpf_sock *sk = bpf_sk_lookup_tcp(ctx, &tuple, sizeof(tuple.ipv4), BPF_F_CURRENT_NETNS, 0);
+    if (!sk) { return false; }
+    bpf_sk_release(sk);
+    return true;
+}
+static __always_inline bool ipv4_pkg4local_udp(void *ctx, __be32 saddr, __be32 daddr, __be16 sport, __be16 dport) {
+    struct bpf_sock_tuple tuple = { .ipv4 = { .saddr = saddr, .daddr = daddr, .sport = sport, .dport = dport } };
+    /* Look up if an active/bound UDP socket exists */
+    struct bpf_sock *sk = bpf_sk_lookup_udp(ctx, &tuple, sizeof(tuple.ipv4), BPF_F_CURRENT_NETNS, 0);
+    if (!sk) { return false; }
+    bpf_sk_release(sk);
+    return true;
+}
 #ifdef __cplusplus
 }
 #endif
 #endif
-/*
-SEC("xdp") int xdp_prog(struct xdp_md *ctx) {
-    void *data = (void *)(long)ctx->data;
-    void *data_end = (void *)(long)ctx->data_end;
-    struct hdr_cursor nh = { .pos = data };
-    struct ethhdr *eth;
-    struct iphdr *iphdr = NULL;
-    struct ipv6hdr *ipv6hdr = NULL;
-    struct udphdr *udphdr = NULL;
-    struct tcphdr *tcphdr = NULL;
-    // Ethernet
-    int eth_type = parse_ethhdr(&nh, data_end, &eth);
-    switch (bpf_ntohs(eth_type)) {
-        case ETH_P_IP:
-            if (parse_iphdr(&nh, data_end, &iphdr) < 0) { return XDP_PASS; }
-            break;
-        case ETH_P_IPV6:
-            if (parse_ip6hdr(&nh, data_end, &ipv6hdr) < 0) { return XDP_PASS; }
-            break;
-        case ETH_P_ARP:
-        case ETH_P_8021Q:
-        default:
-            return XDP_PASS;
-    }
-    bpf_debug("MAC [%012llx] -> [%012llx]", getmac(eth->h_source), getmac(eth->h_dest));
-    switch (iphdr->protocol) {
-        case IPPROTO_TCP:
-            if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
-            if (iphdr) { bpf_debug("TCP: %pI4:%u -> %pI4:%u", &iphdr->saddr, bpf_ntohs(tcphdr->source), &iphdr->daddr, bpf_ntohs(tcphdr->dest)); }
-            if (ipv6hdr) { bpf_debug("TCP: %pI6c:%u -> %pI6:%u", &ipv6hdr->saddr, bpf_ntohs(tcphdr->source), &ipv6hdr->daddr, bpf_ntohs(tcphdr->dest)); }
-            break;
-        case IPPROTO_UDP:
-            if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
-            break;
-        case IPPROTO_ICMP:
-        case IPPROTO_IGMP:
-        default:
-            return XDP_PASS;
-    }
-    // __be16 sport = (iphdr->protocol == IPPROTO_TCP) ? tcphdr->source : (iphdr->protocol == IPPROTO_UDP) ? udphdr->source : 0;
-    // __be16 dport = (iphdr->protocol == IPPROTO_TCP) ? tcphdr->dest   : (iphdr->protocol == IPPROTO_UDP) ? udphdr->dest   : 0;
-#if defined(DPORT_TEST)
-    if (tcphdr && (iphdr || ipv6hdr)) {
-    }
-    if (udphdr && (iphdr || ipv6hdr)) {
-    }
-#endif
-#if defined(DADDR_TEST)
-    if (iphdr) {
-    }
-    if (ipv6hdr) {
-    }
-#endif
-    //IPv6 has NO header checksum
-    return XDP_PASS;
-}
-*/

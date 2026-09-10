@@ -32,19 +32,20 @@ SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
     struct iphdr *iphdr = NULL;
     struct udphdr *udphdr = NULL;
     struct tcphdr *tcphdr = NULL;
-    if (parse_ethhdr(&nh, data_end, &eth) != bpf_ntohs(ETH_P_IP)) { return XDP_PASS; }
+    if (parse_ethhdr(&nh, data_end, &eth) != __bpf_constant_htons(ETH_P_IP)) { return XDP_PASS; }
     if (parse_iphdr(&nh, data_end, &iphdr) < 0) { return XDP_PASS; }
     if ((iphdr->protocol != IPPROTO_TCP) && (iphdr->protocol != IPPROTO_UDP) && (iphdr->protocol != IPPROTO_ICMP)) { return XDP_PASS; }
-    __be16 sport = 0;
-    __be16 dport = 0;
+    __be16 sport = 0, dport = 0;
     switch (iphdr->protocol) {
         case IPPROTO_TCP:
             if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
             sport = tcphdr->source; dport = tcphdr->dest;
+            if (ipv4_pkg4local_tcp(ctx, iphdr->saddr, iphdr->daddr, sport, dport)) { return XDP_PASS; }
             break;
         case IPPROTO_UDP:
             if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
             sport = udphdr->source; dport = udphdr->dest;
+            if (ipv4_pkg4local_udp(ctx, iphdr->saddr, iphdr->daddr, sport, dport)) { return XDP_PASS; }
             break;
         case IPPROTO_ICMP:
             return XDP_PASS;
