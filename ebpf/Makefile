@@ -12,9 +12,9 @@ DEBUG_FLAG  += -Wall -Wextra
 C_STANDARD   = -std=c99
 EXE         ?= main_bpf
 CFLAGS      += -g -Wall
-BPF_CC      := bpf-gcc -g -gbtf -O2 -Wall -I/usr/include -I/usr/include/$(shell uname -m)-linux-gnu
+BPF_CC      := bpf-gcc -g -O2 -Wall -gbtf $(shell gcc -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 BPF_STRIP   := bpf-strip
-# BPF_CC      := clang -g -O2 -Wall -target bpf -D__TARGET_ARCH_$(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/') $(shell clang -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
+# BPF_CC      := clang -g -O2 -Wall -target bpf $(shell clang -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 # BPF_STRIP   := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
