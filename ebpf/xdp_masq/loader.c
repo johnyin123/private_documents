@@ -20,12 +20,16 @@
 struct env {
     char ifname[IF_NAMESIZE];
     __be32 public_ip;
+    __be32 network;
+    __u32 mask;
     int persist;
     int verbose;
     volatile bool exiting;
 } env = {
     .ifname = { 0 },
     .public_ip = INADDR_NONE,
+    .network = 0,
+    .mask = 0,
     .persist = 0,
     .verbose = 3,
     .exiting = false,
@@ -35,7 +39,9 @@ enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTIC
 #define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 const char *opt_short="hVi:a:P";
+#define OPT_ACL    1001
 struct option opt_long[] = {
+    { "acl",     required_argument, NULL, OPT_ACL },
     { "persist", no_argument, NULL, 'P' },
     { "help",    no_argument, NULL, 'h' },
     { "verbose", no_argument, NULL, 'V' },
@@ -55,6 +61,9 @@ static void usage(const char *prog) {
         "Usage: %s\n"
         "    -i  * <ifname>    attach network device name\n"
         "    -a  * <ipaddr>    public ipaddr\n"
+        "    --acl  <cidr>     network with prefix for acl\n"
+        "                          no set no acl\n"
+        "                          exam:192.168.1.0/24\n"
         "    -P|--persist      persistent ebpf when exit\n"
         "    -h|--help help\n"
         "    -V|--verbose\n"
@@ -62,6 +71,19 @@ static void usage(const char *prog) {
         "  %s -i eth0\n"
         , prog, prog);
     exit(0);
+}
+static __u32 cidr2mask(__u32 prefix) {
+    if (prefix == 0) { return 0; }
+    if (prefix > 32) { return 0xffffffffU; }
+    return prefix == 32 ? 0xFFFFFFFFU : 0xFFFFFFFFU << (32 - prefix);
+}
+static bool parse_cidr(const char *cidr, __be32 *network, __u32 *mask) {
+    char *slash = strchr(cidr, '/');
+    if (!slash) { return false; }
+    *slash = '\0';
+    *mask = cidr2mask(strtol(slash + 1, NULL, 10));
+    *network = (ntohl(inet_addr(cidr)) & *mask);
+    return true;
 }
 static int parse_command_line(int argc, char **argv) {
     int opt, option_index;
@@ -72,6 +94,9 @@ static int parse_command_line(int argc, char **argv) {
                 break;
             case 'a':
                 env.public_ip = inet_addr(optarg);
+                break;
+            case OPT_ACL:
+                if (!parse_cidr(optarg, &env.network, &env.mask)) { usage(argv[0]); }
                 break;
             case 'P':
                 env.persist = 1;
@@ -92,8 +117,8 @@ static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
 }
-static void print_libbpf_ver() { 
-    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version()); 
+static void print_libbpf_ver() {
+    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version());
 }
 static int bump_memlock_rlimit() {
     struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
@@ -110,6 +135,7 @@ int main(int argc, char *argv[]) {
         log_error("required args");
         usage(argv[0]);
     }
+    log_debug("%s, public_ip = 0x%08x, network = 0x%08X, mask = 0x%08X", env.ifname, env.public_ip, env.network, env.mask);
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
     /* Set up libbpf errors and debug info callback */
@@ -129,6 +155,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     skel->bss->public_ip = env.public_ip;
+    skel->bss->network = env.network;
+    skel->bss->mask = env.mask;
     /* 2. 加载到内核 */
     int err = xdp_masq__load(skel);
     if (err) {

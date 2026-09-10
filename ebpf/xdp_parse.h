@@ -288,6 +288,9 @@ static __always_inline bool ipv4_in_subnet(__be32 src_ip, __be32 network, __u32 
     __u32 mask = prefix == 32 ? 0xFFFFFFFFU : 0xFFFFFFFFU << (32 - prefix);
     return (bpf_ntohl(src_ip) & mask) == (bpf_ntohl(network) & mask);
 }
+//__u32 src = bpf_ntohl(iphdr->saddr);
+//if ((src & 0xFFFFFF00U) == 0xC0A80100U) { 192.168.1.0/24
+//}
 #ifdef __cplusplus
 }
 #endif

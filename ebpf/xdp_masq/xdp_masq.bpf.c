@@ -24,6 +24,12 @@ struct {
 } nat_map SEC(".maps");
 
 volatile __be32 public_ip = 0;
+volatile __be32 network = 0;
+volatile __u32 mask = 0;
+
+static __always_inline bool ipv4_acl(__be32 ipaddr) {
+    return ((bpf_ntohl(ipaddr) & mask) == network);
+}
 SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
     void *data = (void *)(long)ctx->data;
     void *data_end = (void *)(long)ctx->data_end;
@@ -64,6 +70,7 @@ SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
             //rewrite_dport_udp(udphdr, orig_cli->masq_port);
         }
     } else {
+        if (!ipv4_acl(iphdr->saddr)) { return XDP_DROP; }
         struct nat_key key = { .saddr = iphdr->daddr, .sport = dport, .daddr = public_ip, .dport = sport, .protocol = iphdr->protocol, };
         struct nat_val *orig_cli = bpf_map_lookup_elem(&nat_map, &key);
         if (!orig_cli) {
