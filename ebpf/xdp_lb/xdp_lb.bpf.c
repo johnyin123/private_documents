@@ -39,27 +39,25 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
     struct iphdr *iphdr;
     struct udphdr *udphdr;
     struct tcphdr *tcphdr;
-    int eth_type, ip_type;
     __be16 src_port = 0, dst_port = 0;
-    eth_type = parse_ethhdr(&nh, data_end, &eth);
-    if (eth_type < 0) { return XDP_PASS; }
-    if (eth_type == bpf_htons(ETH_P_IP)) {
-        ip_type = parse_iphdr(&nh, data_end, &iphdr);
-    } else { return XDP_PASS; }
-    if (ip_type == IPPROTO_UDP) {
-        if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
-        src_port = udphdr->source;
-        dst_port = udphdr->dest;
-    } else if (ip_type == IPPROTO_TCP) {
-        if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
-        src_port = tcphdr->source;
-        dst_port = tcphdr->dest;
-    } else { return XDP_PASS; }
+    if (parse_ethhdr(&nh, data_end, &eth) != __bpf_constant_htons(ETH_P_IP)) { return XDP_PASS; }
+    if (parse_iphdr(&nh, data_end, &iphdr) < 0) { return XDP_PASS; }
+    if ((iphdr->protocol != IPPROTO_TCP) && (iphdr->protocol != IPPROTO_UDP)) { return XDP_PASS; }
+    switch (iphdr->protocol) {
+        case IPPROTO_UDP:
+            if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return XDP_PASS; }
+            src_port = udphdr->source; dst_port = udphdr->dest;
+            break;
+        case IPPROTO_TCP:
+            if (parse_tcphdr(&nh, data_end, &tcphdr) < 0) { return XDP_PASS; }
+            src_port = tcphdr->source; dst_port = tcphdr->dest;
+            break;
+    }
     // Retrieve system configuration parameters from user-space map
     struct key key = { .ip_addr = iphdr->daddr, .port = dst_port };
     //if ((tcphdr->rst) || (tcphdr->fin)) { bpf_map_delete_elem(&config_map, &key); return XDP_DROP; }
     struct backend_config *lb_cfg = bpf_map_lookup_elem(&config_map, &key);
-    if (!lb_cfg) return XDP_PASS;
+    if (!lb_cfg) { return XDP_PASS; }
     __u16 num_backends = lb_cfg->num;
     if (num_backends == 0 || num_backends > MAX_PEERS) { return XDP_PASS; }
     /*TODO: source hash persistent*/
@@ -77,7 +75,7 @@ SEC("xdp") int xdp_load_balancer(struct xdp_md *ctx) {
     __builtin_memcpy(eth->h_dest, lb_cfg->backends[idx].mac_addr, ETH_ALEN);
 #endif
     /*No IP or TCP checksum recalculation needed!*/
-    bpf_printk("LB-DR: VIP %pI4:%d Peer Index %d/%d\n", &key.ip_addr, bpf_ntohs(key.port), idx, num_backends);
+    bpf_debug("VIP %pI4:%d Peer Index %d/%d", &key.ip_addr, bpf_ntohs(key.port), idx, num_backends);
     /* 必须同时更新源MAC为LB自身的MAC，防止交换机MAC学习错误(when in eth0 out eth1) */
     __builtin_memcpy(eth->h_source, lb_cfg->vip.mac_addr, ETH_ALEN);
     return XDP_TX;
