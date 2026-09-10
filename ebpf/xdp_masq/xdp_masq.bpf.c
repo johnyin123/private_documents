@@ -82,12 +82,3 @@ SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
     }
     return fib_redirect_v4(ctx, eth, iphdr);
 }
-/*
-__u32 ip = 0xC0A80102; // 192.168.1.2
-__u32 prefix = 24;
-__u32 mask = (0xFFFFFFFF << (32 - prefix));
-__u32 network_address = ip & mask; // Result: 0xC0A80100 (192.168.1.0)
-if ((src_ip & mask) == network_address) {
-    return XDP_DROP; // Drop traffic coming from 192.168.1.0/24
-}
-*/

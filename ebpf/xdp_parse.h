@@ -282,6 +282,12 @@ static __always_inline bool ipv4_pkg4local_udp(void *ctx, __be32 saddr, __be32 d
     bpf_sk_release(sk);
     return true;
 }
+static __always_inline bool ipv4_in_subnet(__be32 src_ip, __be32 network, __u32 prefix) {
+    if (prefix == 0) { return true; }
+    if (prefix > 32) { return false; }
+    __u32 mask = prefix == 32 ? 0xFFFFFFFFU : 0xFFFFFFFFU << (32 - prefix);
+    return (bpf_ntohl(src_ip) & mask) == (bpf_ntohl(network) & mask);
+}
 #ifdef __cplusplus
 }
 #endif
