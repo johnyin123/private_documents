@@ -148,30 +148,34 @@ static __always_inline void fast_udp_checksum_bypass(struct udphdr *udph) {
 }
 static __always_inline __u16 csum_fold_helper(__u32 csum) {
     csum = (csum & 0xffff) + (csum >> 16);
-    return ~((csum & 0xffff) + (csum >> 16));
+    csum = (csum & 0xffff) + (csum >> 16);
+    return ~csum;
+}
+static __always_inline __u16 csum_replace8(__u16 check, __u8 from, __u8 to) {
+    __u32 csum = (~check & 0xffff);
+    csum += (~from & 0xff);
+    csum += to;
+    csum = (csum & 0xffff) + (csum >> 16);
+    csum = (csum & 0xffff) + (csum >> 16);
+    return ~csum;
 }
 static __always_inline __u16 csum_replace16(__u16 check, __be16 from, __be16 to) {
-    __u32 sum = (~check & 0xffff);
-    sum += (~from & 0xffff);
-    sum += to;
-    sum = (sum & 0xffff) + (sum >> 16);
-    sum = (sum & 0xffff) + (sum >> 16);
-    return ~sum;
+    __u32 csum = (~check & 0xffff);
+    csum += (~from & 0xffff);
+    csum += to;
+    csum = (csum & 0xffff) + (csum >> 16);
+    csum = (csum & 0xffff) + (csum >> 16);
+    return ~csum;
 }
 static __always_inline __u16 csum_replace32(__u16 check, __be32 from, __be32 to) {
-    __u32 sum;
-    __be16 from_hi = (__be16)((__u32)from >> 16);
-    __be16 from_lo = (__be16)((__u32)from & 0xffff);
-    __be16 to_hi = (__be16)((__u32)to >> 16);
-    __be16 to_lo = (__be16)((__u32)to & 0xffff);
-    sum = (~check & 0xffff);
-    sum += (~from_hi & 0xffff);
-    sum += to_hi;
-    sum += (~from_lo & 0xffff);
-    sum += to_lo;
-    sum = (sum & 0xffff) + (sum >> 16);
-    sum = (sum & 0xffff) + (sum >> 16);
-    return ~sum;
+    __u32 csum = (~check & 0xffff);
+    csum += (~((__u16)(from >> 16)) & 0xffff);
+    csum += ((__u16)(to >> 16) & 0xffff);
+    csum += (~((__u16)(from & 0xffff)) & 0xffff);
+    csum += ((__u16)(to & 0xffff) & 0xffff);
+    csum = (csum & 0xffff) + (csum >> 16);
+    csum = (csum & 0xffff) + (csum >> 16);
+    return ~csum;
 }
 static __always_inline int fib_redirect_v4(struct xdp_md *ctx, struct ethhdr *eth, struct iphdr *iphdr) {
     struct bpf_fib_lookup fib = { .family = AF_INET, .ipv4_src = iphdr->saddr, .ipv4_dst = iphdr->daddr, .ifindex = ctx->ingress_ifindex, };
@@ -263,12 +267,11 @@ static __always_inline int rewrite_ipv4_daddr_tcp(struct iphdr *iph, struct tcph
     iph->daddr = new_addr;
     return 0;
 }
-/* from calico */
-static __always_inline void ip_dec_ttl(struct iphdr *ip) {
-    ip->ttl--;
-    __u32 sum = ip->check;
-    sum += bpf_htons(0x0100);
-    ip->check = (__be16) (sum + (sum >> 16));
+static __always_inline void ip_dec_ttl(struct iphdr *iphdr) {
+    __u8 old_ttl = iphdr->ttl;
+    __u8 new_ttl = iphdr->ttl - 1;
+    iphdr->check = csum_replace8(iphdr->check, old_ttl, new_ttl);
+    iphdr->ttl = new_ttl;
 }
 static __always_inline bool ipv4_pkg4local_tcp(void *ctx, __be32 saddr, __be32 daddr, __be16 sport, __be16 dport) {
     struct bpf_sock_tuple tuple = { .ipv4 = { .saddr = saddr, .daddr = daddr, .sport = sport, .dport = dport } };
