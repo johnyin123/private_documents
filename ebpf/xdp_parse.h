@@ -174,7 +174,7 @@ static __always_inline __u16 csum_replace32(__u16 check, __be32 from, __be32 to)
 }
 static __always_inline int fib_redirect_v4(struct xdp_md *ctx, struct ethhdr *eth, struct iphdr *iphdr) {
     struct bpf_fib_lookup fib = { .family = AF_INET, .ipv4_src = iphdr->saddr, .ipv4_dst = iphdr->daddr, .ifindex = ctx->ingress_ifindex, };
-    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), 0);
+    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), BPF_FIB_LOOKUP_DIRECT);
     bpf_debug("FIB %pI4[%012llx->%012llx] -> %pI4[%012llx->%012llx], bpf_fib_lookup = %d", &iphdr->saddr, getmac(eth->h_source), getmac(fib.smac), &iphdr->daddr, getmac(eth->h_dest), getmac(fib.dmac), rc);
     if (rc != BPF_FIB_LKUP_RET_SUCCESS) { return XDP_PASS; }
     __builtin_memcpy(eth->h_source, fib.smac, ETH_ALEN);
@@ -185,7 +185,7 @@ static __always_inline int fib_redirect_v6(struct xdp_md *ctx, struct ethhdr *et
     struct bpf_fib_lookup fib = { .family = AF_INET6, .ifindex = ctx->ingress_ifindex, };
     __builtin_memcpy(fib.ipv6_src, &ip6h->saddr, sizeof(fib.ipv6_src));
     __builtin_memcpy(fib.ipv6_dst, &ip6h->daddr, sizeof(fib.ipv6_dst));
-    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), 0);
+    int rc = bpf_fib_lookup(ctx, &fib, sizeof(fib), BPF_FIB_LOOKUP_DIRECT);
     bpf_debug("FIB %pI6c[%012llx->%012llx] -> %pI6c[%012llx->%012llx], bpf_fib_lookup = %d", &ip6h->saddr, getmac(eth->h_source), getmac(fib.smac), &ip6h->daddr, getmac(eth->h_dest), getmac(fib.dmac), rc);
     if (rc != BPF_FIB_LKUP_RET_SUCCESS) { return XDP_PASS; }
     __builtin_memcpy(eth->h_source, fib.smac, ETH_ALEN);
@@ -195,6 +195,7 @@ static __always_inline int fib_redirect_v6(struct xdp_md *ctx, struct ethhdr *et
 static __always_inline int rewrite_sport_udp(struct udphdr *udp, __be16 new_port) {
     __be16 old_port = udp->source;
     if (old_port == new_port) { return 0; }
+    bpf_debug("REWRITE SPORT (U) %d -> %d", bpf_ntohs(udp->source), bpf_ntohs(new_port));
     if (udp->check != 0) { udp->check = csum_replace16(udp->check, old_port, new_port); }
     udp->source = new_port;
     return 0;
@@ -202,6 +203,7 @@ static __always_inline int rewrite_sport_udp(struct udphdr *udp, __be16 new_port
 static __always_inline int rewrite_dport_udp(struct udphdr *udp, __be16 new_port) {
     __be16 old_port = udp->dest;
     if (old_port == new_port) { return 0; }
+    bpf_debug("REWRITE DPORT (U) %d -> %d", bpf_ntohs(udp->dest), bpf_ntohs(new_port));
     if (udp->check != 0) { udp->check = csum_replace16(udp->check, old_port, new_port); }
     udp->dest = new_port;
     return 0;
@@ -209,6 +211,7 @@ static __always_inline int rewrite_dport_udp(struct udphdr *udp, __be16 new_port
 static __always_inline int rewrite_sport_tcp(struct tcphdr *tcp, __be16 new_port) {
     __be16 old_port = tcp->source;
     if (old_port == new_port) { return 0; }
+    bpf_debug("REWRITE SPORT (T) %d -> %d", bpf_ntohs(tcp->source), bpf_ntohs(new_port));
     tcp->check = csum_replace16(tcp->check, old_port, new_port);
     tcp->source = new_port;
     return 0;
@@ -216,11 +219,49 @@ static __always_inline int rewrite_sport_tcp(struct tcphdr *tcp, __be16 new_port
 static __always_inline int rewrite_dport_tcp(struct tcphdr *tcp, __be16 new_port) {
     __be16 old_port = tcp->dest;
     if (old_port == new_port) { return 0; }
+    bpf_debug("REWRITE DPORT (T) %d -> %d", bpf_ntohs(tcp->dest), bpf_ntohs(new_port));
     tcp->check = csum_replace16(tcp->check, old_port, new_port);
     tcp->dest = new_port;
     return 0;
 }
-
+static __always_inline int rewrite_ipv4_saddr_udp(struct iphdr *iph, struct udphdr *udp, __be32 new_addr) {
+    __be32 old_addr = iph->saddr;
+    if (old_addr == new_addr) { return 0; }
+    bpf_debug("REWRITE IPV4 SADDR (U) %pI4 -> %pI4", &iph->saddr, &new_addr);
+    /* IPv4 UDP checksum == 0 means checksum disabled. */
+    if (udp->check != 0) { udp->check = csum_replace32(udp->check, old_addr, new_addr); }
+    iph->check = csum_replace32(iph->check, old_addr, new_addr);
+    iph->saddr = new_addr;
+    return 0;
+}
+static __always_inline int rewrite_ipv4_daddr_udp(struct iphdr *iph, struct udphdr *udp, __be32 new_addr) {
+    __be32 old_addr = iph->daddr;
+    if (old_addr == new_addr) { return 0; }
+    bpf_debug("REWRITE IPV4 DADDR (U) %pI4 -> %pI4", &iph->daddr, &new_addr);
+    if (udp->check != 0) { udp->check = csum_replace32(udp->check, old_addr, new_addr); }
+    iph->check = csum_replace32(iph->check, old_addr, new_addr);
+    iph->daddr = new_addr;
+    return 0;
+}
+static __always_inline int rewrite_ipv4_saddr_tcp(struct iphdr *iph, struct tcphdr *tcp, __be32 new_addr) {
+    __be32 old_addr = iph->saddr;
+    if (old_addr == new_addr) { return 0; }
+    bpf_debug("REWRITE IPV4 SADDR (T) %pI4 -> %pI4", &iph->saddr, &new_addr);
+    /* TCP pseudo-header contains source IPv4 address */
+    tcp->check = csum_replace32(tcp->check, old_addr, new_addr);
+    iph->check = csum_replace32(iph->check, old_addr, new_addr);
+    iph->saddr = new_addr;
+    return 0;
+}
+static __always_inline int rewrite_ipv4_daddr_tcp(struct iphdr *iph, struct tcphdr *tcp, __be32 new_addr) {
+    __be32 old_addr = iph->daddr;
+    if (old_addr == new_addr) { return 0; }
+    bpf_debug("REWRITE IPV4 DADDR (T) %pI4 -> %pI4", &iph->daddr, &new_addr);
+    tcp->check = csum_replace32(tcp->check, old_addr, new_addr);
+    iph->check = csum_replace32(iph->check, old_addr, new_addr);
+    iph->daddr = new_addr;
+    return 0;
+}
 #ifdef __cplusplus
 }
 #endif

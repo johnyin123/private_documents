@@ -41,6 +41,15 @@ struct option opt_long[] = {
     { "verbose", no_argument, NULL, 'V' },
     { 0, 0, 0, 0 }
 };
+static void set_ipv4_forward() {
+    FILE *fp = fopen("/proc/sys/net/ipv4/ip_forward", "w");
+    if (fp == NULL) {
+        log_error("Failed to open ip_forward");
+    } else if (fprintf(fp, "1") < 0) {
+        log_error("Failed to write value");
+    }
+    fclose(fp);
+}
 static void usage(const char *prog) {
     fprintf(stderr,
         "Usage: %s\n"
@@ -107,6 +116,7 @@ int main(int argc, char *argv[]) {
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
     bump_memlock_rlimit();
+    set_ipv4_forward();
     int ifindex = if_nametoindex(env.ifname);
     if (ifindex == 0) {
         log_error("invalid interface %s: %s", env.ifname, strerror(errno));
