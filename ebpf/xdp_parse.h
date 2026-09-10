@@ -151,14 +151,6 @@ static __always_inline __u16 csum_fold_helper(__u32 csum) {
     csum = (csum & 0xffff) + (csum >> 16);
     return ~csum;
 }
-static __always_inline __u16 csum_replace8(__u16 check, __u8 from, __u8 to) {
-    __u32 csum = (~check & 0xffff);
-    csum += (~from & 0xff);
-    csum += to;
-    csum = (csum & 0xffff) + (csum >> 16);
-    csum = (csum & 0xffff) + (csum >> 16);
-    return ~csum;
-}
 static __always_inline __u16 csum_replace16(__u16 check, __be16 from, __be16 to) {
     __u32 csum = (~check & 0xffff);
     csum += (~from & 0xffff);
@@ -267,11 +259,12 @@ static __always_inline int rewrite_ipv4_daddr_tcp(struct iphdr *iph, struct tcph
     iph->daddr = new_addr;
     return 0;
 }
-static __always_inline void ip_dec_ttl(struct iphdr *iphdr) {
-    __u8 old_ttl = iphdr->ttl;
-    __u8 new_ttl = iphdr->ttl - 1;
-    iphdr->check = csum_replace8(iphdr->check, old_ttl, new_ttl);
-    iphdr->ttl = new_ttl;
+/* from calico */
+static __always_inline void ip_dec_ttl(struct iphdr *ip) {
+    ip->ttl--;
+    __u32 sum = ip->check;
+    sum += bpf_htons(0x0100);
+    ip->check = (__be16) (sum + (sum >> 16));
 }
 static __always_inline bool ipv4_pkg4local_tcp(void *ctx, __be32 saddr, __be32 daddr, __be16 sport, __be16 dport) {
     struct bpf_sock_tuple tuple = { .ipv4 = { .saddr = saddr, .daddr = daddr, .sport = sport, .dport = dport } };
