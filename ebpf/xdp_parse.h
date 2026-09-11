@@ -19,9 +19,9 @@ extern "C" {
 #include <stdbool.h>
 
 #ifdef DEBUG
-#define bpf_debug           bpf_printk
+#define bpf_debug(fmt, ...) bpf_printk("DEBUG: " fmt, ##__VA_ARGS__)
 #else
-#define bpf_debug(fmt, ...) {;}
+#define bpf_debug(fmt, ...) do { } while (0)
 #endif
 
 #ifndef UNUSED
