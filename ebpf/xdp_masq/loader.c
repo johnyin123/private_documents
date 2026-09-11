@@ -155,8 +155,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     skel->bss->public_ip = env.public_ip;
-    skel->bss->network = env.network;
-    skel->bss->mask = env.mask;
+    skel->rodata->network = env.network;
+    skel->rodata->mask = env.mask;
     /* 2. 加载到内核 */
     int err = xdp_masq__load(skel);
     if (err) {

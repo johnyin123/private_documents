@@ -26,8 +26,8 @@ struct {
 } nat_map SEC(".maps");
 
 volatile __be32 public_ip = 0;
-volatile __be32 network = 0;
-volatile __u32 mask = 0;
+const volatile __be32 network = 0;
+const volatile __u32 mask = 0;
 static __always_inline bool is_pub_ip(__be32 ip) {
     return ip == public_ip; //__u8 *v = bpf_map_lookup_elem(&public_ip_map, &ip);
 }
