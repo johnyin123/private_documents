@@ -25,6 +25,7 @@ struct {
     __type(value, struct nat_val);
 } nat_map SEC(".maps");
 
+volatile __u64 total_pkg = 0;
 volatile __be32 public_ip = 0;
 const volatile __be32 network = 0;
 const volatile __u32 mask = 0;
@@ -43,6 +44,7 @@ static __always_inline bool ipv4_acl(__be32 ipaddr) {
 SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
     void *data = (void *)(long)ctx->data;
     void *data_end = (void *)(long)ctx->data_end;
+    total_pkg += (int)(data_end - data);
     struct hdr_cursor nh = { .pos = data };
     struct ethhdr *eth;
     struct iphdr *iphdr = NULL;
