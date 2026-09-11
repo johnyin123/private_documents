@@ -19,10 +19,16 @@ extern "C" {
 #include <stdbool.h>
 
 #ifdef DEBUG
-/* cat /sys/kernel/debug/tracing/trace_pipe */
 #define bpf_debug           bpf_printk
 #else
 #define bpf_debug(fmt, ...) {;}
+#endif
+
+#ifndef UNUSED
+#define UNUSED(x)           ((void)(x))
+#endif
+#ifndef ARRAY_LEN
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #endif
 
 struct hdr_cursor {

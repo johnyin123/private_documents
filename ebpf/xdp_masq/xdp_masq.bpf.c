@@ -14,6 +14,8 @@ struct nat_key {
 struct nat_val {
     __be32 masq_ip;
     __be16 masq_port;
+    __be32 pub_ip;
+    __be16 pub_port;
 };
 
 struct {
@@ -26,7 +28,15 @@ struct {
 volatile __be32 public_ip = 0;
 volatile __be32 network = 0;
 volatile __u32 mask = 0;
-
+static __always_inline bool is_pub_ip(__be32 ip) {
+    return ip == public_ip; //__u8 *v = bpf_map_lookup_elem(&public_ip_map, &ip);
+}
+static __always_inline __be32 get_pub_ip(__be32 sip, __be32 dip, __be16 sport, __be16 dport, __u8 protocol) {
+    UNUSED(sip);UNUSED(dip);UNUSED(sport);UNUSED(dport);UNUSED(protocol);
+    //__u32 hash = (__u32)sip ^ (__u32)dip ^ (__u32)sport ^ (__u32)dport ^ (__u32)iphdr->protocol;
+    //return public_ip[hash % public_ip_count];
+    return public_ip;
+}
 static __always_inline bool ipv4_acl(__be32 ipaddr) {
     return ((bpf_ntohl(ipaddr) & mask) == network);
 }
@@ -56,35 +66,37 @@ SEC("xdp") int xdp_nat_engine(struct xdp_md *ctx) {
         case IPPROTO_ICMP:
             return XDP_PASS;
     }
-    if (iphdr->daddr == public_ip) {
+    if (is_pub_ip(iphdr->daddr)) {
         struct nat_key key = { .saddr = iphdr->saddr, .sport = sport, .daddr = iphdr->daddr, .dport = dport, .protocol = iphdr->protocol, };
         struct nat_val *orig_cli = bpf_map_lookup_elem(&nat_map, &key);
         if (!orig_cli) { return XDP_PASS; }
         bpf_debug("DNAT (%s) %pI4:%d => %pI4:%d -> %pI4:%u", S_PROTO(iphdr), &iphdr->saddr, bpf_ntohs(sport), &iphdr->daddr, bpf_ntohs(dport), &orig_cli->masq_ip, bpf_ntohs(orig_cli->masq_port));
         if (tcphdr) {
             rewrite_ipv4_daddr_tcp(iphdr, tcphdr, orig_cli->masq_ip);
-            //rewrite_dport_tcp(tcphdr, orig_cli->masq_port);
+            rewrite_dport_tcp(tcphdr, orig_cli->masq_port);
         }
         if (udphdr) {
             rewrite_ipv4_daddr_udp(iphdr, udphdr, orig_cli->masq_ip);
-            //rewrite_dport_udp(udphdr, orig_cli->masq_port);
+            rewrite_dport_udp(udphdr, orig_cli->masq_port);
         }
     } else {
         if (!ipv4_acl(iphdr->saddr)) { return XDP_DROP; }
-        struct nat_key key = { .saddr = iphdr->daddr, .sport = dport, .daddr = public_ip, .dport = sport, .protocol = iphdr->protocol, };
+        __be32 pub_ip = get_pub_ip(iphdr->saddr, iphdr->daddr, sport, dport, iphdr->protocol);
+        __be16 pub_port = sport; /*sport not modify*/
+        struct nat_key key = { .saddr = iphdr->daddr, .sport = dport, .daddr = pub_ip, .dport = sport, .protocol = iphdr->protocol, };
         struct nat_val *orig_cli = bpf_map_lookup_elem(&nat_map, &key);
         if (!orig_cli) {
-            struct nat_val val = { .masq_ip = iphdr->saddr, .masq_port = sport, };
+            struct nat_val val = { .masq_ip = iphdr->saddr, .masq_port = sport, .pub_ip = key.daddr, .pub_port = pub_port, };
             bpf_map_update_elem(&nat_map, &key, &val, BPF_ANY);
-            bpf_debug("SNAT (%s) %pI4:%u -> %pI4:%u => %pI4:%u", S_PROTO(iphdr), &iphdr->saddr, bpf_ntohs(sport), &public_ip, bpf_ntohs(sport), &iphdr->daddr, bpf_ntohs(dport));
+            bpf_debug("SNAT (%s) %pI4:%u -> %pI4:%u => %pI4:%u", S_PROTO(iphdr), &iphdr->saddr, bpf_ntohs(sport), &val.pub_ip, bpf_ntohs(val.pub_port), &iphdr->daddr, bpf_ntohs(dport));
         }
         if (tcphdr) {
-            rewrite_ipv4_saddr_tcp(iphdr, tcphdr, public_ip);
-            //rewrite_sport_tcp(tcphdr, masq_port);
+            rewrite_ipv4_saddr_tcp(iphdr, tcphdr, key.daddr);
+            rewrite_sport_tcp(tcphdr, pub_port);
         }
         if (udphdr) {
-            rewrite_ipv4_saddr_udp(iphdr, udphdr, public_ip);
-            //rewrite_sport_udp(udphdr, masq_port);
+            rewrite_ipv4_saddr_udp(iphdr, udphdr, key.daddr);
+            rewrite_sport_udp(udphdr, pub_port);
         }
     }
     return fib_redirect_v4(ctx, eth, iphdr);
