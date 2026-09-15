@@ -1,0 +1,187 @@
+#include <stdio.h>
+#include <getopt.h>
+#include <string.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/resource.h>
+#include "pod_dns_skel.h"
+#include "pod_dns.h"
+
+#define UNUSED(x)     ((void)(x))
+#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+
+struct env {
+    int verbose;
+    volatile bool exiting;
+} env = {
+    .verbose = 3,
+    .exiting = false,
+};
+enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
+#define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+#define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+#define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+const char *opt_short="hV";
+struct option opt_long[] = {
+    { "help",    no_argument, NULL, 'h' },
+    { "verbose", no_argument, NULL, 'V' },
+    { 0, 0, 0, 0 }
+};
+static void usage(const char *prog) {
+    fprintf(stderr,
+        "Usage: %s\n"
+        "    -h|--help help\n"
+        "    -V|--verbose\n"
+        , prog);
+    exit(0);
+}
+static int parse_command_line(int argc, char **argv) {
+    int opt, option_index;
+    while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
+        switch (opt) {
+            case 'h':
+                usage(argv[0]);
+                break;
+            case 'V':
+                env.verbose++;
+                break;
+            default:
+                usage(argv[0]);
+        }
+    }
+    return 0;
+}
+static void sig_int(int signo) {
+    UNUSED(signo);
+    env.exiting = true;
+}
+static void print_libbpf_ver() {
+    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version());
+}
+static int bump_memlock_rlimit() {
+    struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
+    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
+}
+static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
+    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
+        return 0;
+    return vfprintf(stderr, format, args);
+}
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+void ip_str_r(in_addr_t addr, char *buf, size_t size) {
+    struct in_addr ip = { .s_addr = addr };
+    if (inet_ntop(AF_INET, &ip, buf, size) == NULL) {
+        snprintf(buf, size, "<invalid>");
+    }
+}
+void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out_domain, size_t out_max) {
+    __u32 idx = 12; // Start parsing right after the 12-byte standard DNS Header
+    __u32 out_idx = 0;
+    if (payload_len <= 12) {
+        snprintf(out_domain, out_max, "<malformed packet>");
+        return;
+    }
+    while (idx < payload_len && out_idx < (out_max - 1)) {
+        __u8 label_len = payload[idx];
+        // \x00 indicates the end of the query layout string
+        if (label_len == 0) {
+            break;
+        }
+        // Handle compression pointer flags safely (0xc0)
+        if ((label_len & 0xC0) == 0xC0) {
+            // In pure requests compression pointers are rare, but handle safely by stopping
+            break;
+        }
+        idx++; // Advance past the length byte
+        // Read characters belonging to the current label segment
+        for (__u8 i = 0; i < label_len && idx < payload_len && out_idx < (out_max - 1); i++) {
+            out_domain[out_idx++] = payload[idx++];
+        }
+        // Append delimiter dots between domain zones
+        if (idx < payload_len && payload[idx] != 0 && out_idx < (out_max - 1)) {
+            out_domain[out_idx++] = '.';
+        }
+    }
+    out_domain[out_idx] = '\0'; // Seal string boundary safely
+    if (out_idx == 0) {
+        snprintf(out_domain, out_max, "<unknown>");
+    }
+}
+static int handle_dns_event(void *ctx, void *data, size_t data_sz) {
+    UNUSED(ctx);
+    char src[128] = {0};
+    char domain[1024] = {0};
+    if (data_sz < sizeof(struct dns_raw_event)) { return 0; }
+    struct dns_raw_event *e = data;
+    ip_str_r(e->saddr, src, sizeof(src));
+    parse_dns_domain(e->payload, e->payload_len, domain, sizeof(domain));
+    fprintf(stderr, "%s, %s,  %d\n", src, domain, e->payload_len);
+    return 0;
+}
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <linux/if_ether.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
+int main(int argc, char *argv[]) {
+    int sock_fd = -1;
+    struct ring_buffer *rb = NULL;
+    parse_command_line(argc, argv);
+    signal(SIGINT, sig_int);
+    signal(SIGTERM, sig_int);
+    /* Set up libbpf errors and debug info callback */
+    if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
+    else { libbpf_set_print(NULL); }
+    bump_memlock_rlimit();
+    // 0. Open unified cgroup hierarchy descriptor (Root system directory path)
+    int cgroup_fd = open("/sys/fs/cgroup", O_RDONLY);
+    if (cgroup_fd < 0) {
+        log_error("Failed to open mount boundary /sys/fs/cgroup, %s", strerror(errno));
+        return 1;
+    }
+    /* 1. 打开 skeleton */
+    struct pod_dns *skel = pod_dns__open();
+    if (!skel) {
+        log_error("Failed to open BPF skeleton");
+        return 1;
+    }
+    /* 2. 加载到内核 */
+    int err = pod_dns__load(skel);
+    if (err) {
+        log_error("Failed to load BPF skeleton: %d, %s", err, strerror(errno));
+        goto cleanup;
+    }
+    /* 3. Attach directly via native cgroup structural tracking anchors*/
+    skel->links.trace_dns = bpf_program__attach_cgroup(skel->progs.trace_dns, cgroup_fd);
+    if (!skel->links.trace_dns) {
+        err = -errno;
+        log_error("Failed to attach bpf: %d, %s", err, strerror(errno));
+        goto cleanup;
+    }
+    /* 4. ringbuffer*/
+    rb = ring_buffer__new(bpf_map__fd(skel->maps.dns_events), handle_dns_event, NULL, NULL);
+    if (!rb) {
+        log_error("Failed to create ring buffer");
+        goto cleanup;
+    }
+    /* 5. 保持运行，信号触发退出 */
+    fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
+    while (!env.exiting) {
+        int err = ring_buffer__poll(rb, 100 /* timeout ms */);
+        if (err < 0 && err != -EINTR) {
+            log_error("Error polling ring buffer: %d", err);
+            break;
+        }
+    }
+    log_info("Detaching bpf program...");
+cleanup:
+    if (rb) { ring_buffer__free(rb); }
+    if (sock_fd >= 0) close(sock_fd);
+    pod_dns__destroy(skel);
+    if (cgroup_fd >= 0) close(cgroup_fd);
+    return err < 0 ? 1 : 0;
+}
