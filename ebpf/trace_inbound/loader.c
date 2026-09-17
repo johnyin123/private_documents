@@ -1,22 +1,16 @@
-#include <stdio.h>
 #include <getopt.h>
-#include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/resource.h>
 
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <linux/if_link.h>
 
-#include <bpf/libbpf.h>
 #include "trace_conn_skel.h"
 #include "trace_conn.h"
+#include "loader.h"
 
-#define UNUSED(x)     ((void)(x))
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define PIN_PATH      "/sys/fs/bpf/trace_conn_link"
-
 struct env {
     char ifname[IF_NAMESIZE];
     int persist;
@@ -28,10 +22,7 @@ struct env {
     .verbose = 3,
     .exiting = false,
 };
-enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
-#define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+int *log_level = &env.verbose;
 const char *opt_short="hVi:P";
 struct option opt_long[] = {
     { "persist", no_argument, NULL, 'P' },
@@ -78,21 +69,6 @@ static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
 }
-static void print_libbpf_ver() { 
-    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version()); 
-}
-static int bump_memlock_rlimit() {
-    struct rlimit rlim_new = {
-        .rlim_cur = RLIM_INFINITY,
-        .rlim_max = RLIM_INFINITY,
-    };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
-    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
 /* Ringbuf 回调：打印新连接 */
 static int handle_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx); UNUSED(data_sz);
@@ -118,7 +94,8 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    bump_memlock_rlimit();
+    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
+return 1; }
     int ifindex = if_nametoindex(env.ifname);
     if (ifindex == 0) {
         log_error("invalid interface %s: %s", env.ifname, strerror(errno));

@@ -1,14 +1,10 @@
-#include <stdio.h>
 #include <getopt.h>
-#include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/resource.h>
+
 #include "pod_dns_skel.h"
 #include "pod_dns.h"
-
-#define UNUSED(x)     ((void)(x))
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#include "loader.h"
 
 struct env {
     int verbose;
@@ -17,10 +13,7 @@ struct env {
     .verbose = 3,
     .exiting = false,
 };
-enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
-#define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+int *log_level = &env.verbose;
 const char *opt_short="hV";
 struct option opt_long[] = {
     { "help",    no_argument, NULL, 'h' },
@@ -54,18 +47,6 @@ static int parse_command_line(int argc, char **argv) {
 static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
-}
-static void print_libbpf_ver() {
-    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version());
-}
-static int bump_memlock_rlimit() {
-    struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
-    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
-        return 0;
-    return vfprintf(stderr, format, args);
 }
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -136,7 +117,8 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    bump_memlock_rlimit();
+    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
+return 1; }
     // 0. Open unified cgroup hierarchy descriptor (Root system directory path)
     int cgroup_fd = open("/sys/fs/cgroup", O_RDONLY);
     if (cgroup_fd < 0) {

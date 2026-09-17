@@ -1,22 +1,16 @@
-#include <stdio.h>
 #include <getopt.h>
-#include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/resource.h>
 
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <linux/if_link.h>
 
-#include <bpf/libbpf.h>
 #include "xdp_masq_skel.h"
 #include "xdp_masq.h"
+#include "loader.h"
 
-#define UNUSED(x)     ((void)(x))
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #define PIN_PATH      "/sys/fs/bpf/xdp_masq_link"
-
 struct env {
     char ifname[IF_NAMESIZE];
     __be32 public_ip;
@@ -34,10 +28,7 @@ struct env {
     .verbose = 3,
     .exiting = false,
 };
-enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
-#define log_debug(fmt,args...)  { if(env.verbose>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_info(fmt,args...)   { if(env.verbose>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
-#define log_error(fmt,args...)  { if(env.verbose>=LOG_ERR)   fprintf(stderr, "ERROR %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
+int *log_level = &env.verbose;
 const char *opt_short="hVi:a:P";
 #define OPT_ACL    1001
 struct option opt_long[] = {
@@ -117,18 +108,6 @@ static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
 }
-static void print_libbpf_ver() {
-    log_debug("libbpf: %d.%d", libbpf_major_version(), libbpf_minor_version());
-}
-static int bump_memlock_rlimit() {
-    struct rlimit rlim_new = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY, };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args) {
-    if (level == LIBBPF_DEBUG && env.verbose<LOG_DEBUG)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
 int main(int argc, char *argv[]) {
     parse_command_line(argc, argv);
     if ((strlen(env.ifname) == 0) || (INADDR_NONE == env.public_ip)) {
@@ -141,7 +120,8 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    bump_memlock_rlimit();
+    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
+return 1; }
     set_ipv4_forward();
     int ifindex = if_nametoindex(env.ifname);
     if (ifindex == 0) {
