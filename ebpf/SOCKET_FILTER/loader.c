@@ -6,27 +6,14 @@
 #include <time.h>
 #include "mybpf.h"
 #include "mybpf_skel.h"
+#include "loader.h"
 
 struct env {
     bool verbose;
 } env = {
     .verbose = 0,
 };
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
-{
-    if (level == LIBBPF_DEBUG && !env.verbose)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
-
-static int bump_memlock_rlimit()
-{
-    struct rlimit rlim_new = {
-        .rlim_cur = RLIM_INFINITY,
-        .rlim_max = RLIM_INFINITY,
-    };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
+const int *log_level = &env.verbose;
 
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -111,12 +98,10 @@ static int open_raw_sock(const char *name)
 
 #include <signal.h>
 static volatile bool exiting = false;
-static void sig_handler(int sig)
-{
+static void sig_handler(int sig) {
     exiting = true;
 }
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct mybpf_skel *skel = NULL;
     struct ring_buffer *rb = NULL;
     int err, sock, prog_fd;
@@ -167,7 +152,6 @@ int main(int argc, char **argv)
         }
         sleep(1);
     }
-
 cleanup:
     ring_buffer__free(rb);
     mybpf_skel__destroy(skel);

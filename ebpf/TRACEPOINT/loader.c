@@ -6,63 +6,46 @@
 #include <time.h>
 #include "mybpf.h"
 #include "mybpf_skel.h"
+#include "loader.h"
 
 struct env {
     bool verbose;
 } env = {
     .verbose = 0,
 };
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
-{
-    if (level == LIBBPF_DEBUG && !env.verbose)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
-
-static int bump_memlock_rlimit()
-{
-    struct rlimit rlim_new = {
-        .rlim_cur = RLIM_INFINITY,
-        .rlim_max = RLIM_INFINITY,
-    };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
+const int *log_level = &env.verbose;
 
 /*丢失事件的处理程序*/
-static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
-{
-       fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
+static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt) {
+    fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
 }
 
 /*打印参数,替换'\0'为空格*/
-static void print_args(const struct event *e)
-{
-       int args_counter = 0;
-       for (int i = 0; i < e->args_size && args_counter < e->args_count; i++) {
-               char c = e->args[i];
-               if (c == '\0') {
-                       args_counter++;
-                       putchar(' ');
-               } else {
-                       putchar(c);
-               }
-       }
-       if (e->args_count > TOTAL_MAX_ARGS) {
-               fputs(" ...", stdout);
-       }
+static void print_args(const struct event *e) {
+    int args_counter = 0;
+    for (int i = 0; i < e->args_size && args_counter < e->args_count; i++) {
+        char c = e->args[i];
+        if (c == '\0') {
+            args_counter++;
+            putchar(' ');
+        } else {
+            putchar(c);
+        }
+    }
+    if (e->args_count > TOTAL_MAX_ARGS) {
+        fputs(" ...", stdout);
+    }
 }
 
 /*性能事件回调函数(向终端中打印进程名、PID、返回值以及参数)*/
-static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
-{
-       const struct event *e = data;
-       printf("%-16s %-6d %3d ", e->comm, e->pid, e->retval);
-       print_args(e);
-       putchar('\n');
+static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz) {
+    const struct event *e = data;
+    printf("%-16s %-6d %3d ", e->comm, e->pid, e->retval);
+    print_args(e);
+    putchar('\n');
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct mybpf_skel *skel;
     struct perf_buffer *pb = NULL;
     int err;
@@ -95,7 +78,7 @@ int main(int argc, char **argv)
     while ((err = perf_buffer__poll(pb, 100)) >= 0) ;
     printf("Error polling perf buffer: %d\n", err);
 
- cleanup:
+cleanup:
     perf_buffer__free(pb);
     mybpf_skel__destroy(skel);
     return err != 0;

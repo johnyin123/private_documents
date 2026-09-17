@@ -5,6 +5,7 @@
 #include <bpf/libbpf.h>
 #include "memory_skel.h"
 #include <signal.h>
+#include "loader.h"
 
 struct env {
     char bin[1024];
@@ -13,26 +14,10 @@ struct env {
     .bin = {},
     .verbose = 0,
 };
-
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
-{
-    if (level == LIBBPF_DEBUG && !env.verbose)
-        return 0;
-    return vfprintf(stderr, format, args);
-}
-
-int bump_memlock_rlimit()
-{
-    struct rlimit rlim_new = {
-        .rlim_cur = RLIM_INFINITY,
-        .rlim_max = RLIM_INFINITY,
-    };
-    return setrlimit(RLIMIT_MEMLOCK, &rlim_new);
-}
+const int *log_level = &env.verbose;
 
 static volatile bool exiting;
-static void int_exit(int sig)
-{
+static void int_exit(int sig) {
     fprintf(stderr, "EXIT!!\n");
     exiting = 1;
 }
@@ -51,8 +36,7 @@ struct option opt_long[] = {
  * env.demo = strtol(optarg, NULL, 10);
 */
 
-static void usage(char *prog)
-{
+static void usage(char *prog) {
     printf("Usage: %s\n", prog);
     printf("    -b|--bin <bin file>\n");
     printf("    -h|--help help\n");
@@ -60,8 +44,7 @@ static void usage(char *prog)
     exit(0);
 }
 
-static int parse_command_line(int argc, char **argv)
-{
+static int parse_command_line(int argc, char **argv) {
     int opt, option_index;
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
@@ -92,10 +75,9 @@ int main(int argc, char *argv[])
     int err, i;
     long func_offset = 0x1135;
     /* nm /root/testprog  | grep foo */
-    /* Set up libbpf errors and debug info callback */
-    libbpf_set_print(libbpf_print_fn);
-    /* Bump RLIMIT_MEMLOCK to allow BPF sub-system to do anything */
-    bump_memlock_rlimit();
+    if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
+    else { libbpf_set_print(NULL); }
+    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno)); return 1; }
     /* Load and verify BPF application */
     if ((skel = memory_skel__open_and_load()) == NULL) {
         fprintf(stderr, "Failed to open and load BPF skeleton\n");
