@@ -70,8 +70,7 @@ static int attach_tc(struct udp_dump *skel, int ifindex, enum bpf_tc_attach_poin
     }
     return 0;
 }
-static int detach_tc(int ifindex, enum bpf_tc_attach_point attach_point)
-{
+static int detach_tc(int ifindex, enum bpf_tc_attach_point attach_point) {
     struct bpf_tc_hook hook = { .sz = sizeof(hook), .ifindex = ifindex, .attach_point = attach_point, };
     struct bpf_tc_opts opts = { .sz = sizeof(opts), .priority = 1, .handle = 1, };
     int err = bpf_tc_detach(&hook, &opts);
@@ -133,8 +132,6 @@ void handle_lost(void *ctx, int cpu, __u64 lost_cnt) {
     UNUSED(ctx);
     fprintf(stderr, "lost %llu events on CPU #%d\n", lost_cnt, cpu);
 }
-#include <sys/stat.h>
-#include <fcntl.h>
 int main(int argc, char *argv[]) {
     struct perf_buffer *pb = NULL;
     parse_command_line(argc, argv);
@@ -158,16 +155,7 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 2.1 attach cgroup/sock */
-    int cgroup_fd = open("/sys/fs/cgroup", O_RDONLY);
-    if (cgroup_fd < 0) {
-        log_error("Failed to open cgroup directory, %s", strerror(errno));
-        goto cleanup;
-    }
-    skel->links.bpf_track_info = bpf_program__attach_cgroup(skel->progs.bpf_track_info, cgroup_fd);
-    if (!skel->links.bpf_track_info) {
-        log_error("Failed to attach cgroup/sock program");
-        goto cleanup;
-    }
+    if (!attach_cgroup(&(skel->links.bpf_track_info), skel->progs.bpf_track_info, "/sys/fs/cgroup")) { goto cleanup; }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }

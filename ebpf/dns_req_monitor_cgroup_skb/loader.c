@@ -104,10 +104,6 @@ static int handle_dns_event(void *ctx, void *data, size_t data_sz) {
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
-
-#include <sys/stat.h>
-#include <fcntl.h>
-
 int main(int argc, char *argv[]) {
     int sock_fd = -1;
     struct ring_buffer *rb = NULL;
@@ -119,12 +115,6 @@ int main(int argc, char *argv[]) {
     else { libbpf_set_print(NULL); }
     if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
 return 1; }
-    // 0. Open unified cgroup hierarchy descriptor (Root system directory path)
-    int cgroup_fd = open("/sys/fs/cgroup", O_RDONLY);
-    if (cgroup_fd < 0) {
-        log_error("Failed to open mount boundary /sys/fs/cgroup, %s", strerror(errno));
-        return 1;
-    }
     /* 1. 打开 skeleton */
     struct pod_dns *skel = pod_dns__open();
     if (!skel) {
@@ -138,12 +128,7 @@ return 1; }
         goto cleanup;
     }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
-    skel->links.trace_dns = bpf_program__attach_cgroup(skel->progs.trace_dns, cgroup_fd);
-    if (!skel->links.trace_dns) {
-        err = -errno;
-        log_error("Failed to attach bpf: %d, %s", err, strerror(errno));
-        goto cleanup;
-    }
+    if (!attach_cgroup(&skel->links.trace_dns, skel->progs.trace_dns, "/sys/fs/cgroup")) { goto cleanup; }
     /* 4. ringbuffer*/
     rb = ring_buffer__new(bpf_map__fd(skel->maps.dns_events), handle_dns_event, NULL, NULL);
     if (!rb) {

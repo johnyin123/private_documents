@@ -53,7 +53,22 @@ static inline bool add_interface(const char *ifname, unsigned int ifindex[], uns
     log_error("Max interface [%u] exceed", arr_len);
     return false;
 }
-
+#include <sys/stat.h>
+#include <fcntl.h>
+static inline bool attach_cgroup(struct bpf_link **link_target, struct bpf_program *prog, const char *cgroup_dir) {
+    if (!prog || !link_target) {
+        log_error("Invalid program or link reference passed to attach handler");
+        return false;
+    }
+    int cgroup_fd = open(cgroup_dir, O_RDONLY);
+    if (cgroup_fd >= 0) {
+        *link_target = bpf_program__attach_cgroup(prog, cgroup_fd);
+        close(cgroup_fd);
+        if (*link_target) { return true; }
+    }
+    log_error("Failed to open and attach cgroup directory, %s", strerror(errno));
+    return false;
+}
 #ifdef __cplusplus
 }
 #endif
