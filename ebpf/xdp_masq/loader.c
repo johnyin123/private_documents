@@ -2,17 +2,17 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include <net/if.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <linux/if_link.h>
 
 #include "xdp_masq_skel.h"
 #include "xdp_masq.h"
 #include "loader.h"
 
 #define PIN_PATH      "/sys/fs/bpf/xdp_masq_link"
+#define MAX_IFACES    1
 struct env {
-    char ifname[IF_NAMESIZE];
+    unsigned int ifindex[MAX_IFACES];
     __be32 public_ip;
     __be32 network;
     __u32 mask;
@@ -20,7 +20,7 @@ struct env {
     int verbose;
     volatile bool exiting;
 } env = {
-    .ifname = { 0 },
+    .ifindex = {0},
     .public_ip = INADDR_NONE,
     .network = 0,
     .mask = 0,
@@ -81,7 +81,7 @@ static int parse_command_line(int argc, char **argv) {
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
             case 'i':
-                snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
+                if(!add_interface(optarg, env.ifindex, ARRAY_LEN(env.ifindex))) { usage(argv[0]); }
                 break;
             case 'a':
                 env.public_ip = inet_addr(optarg);
@@ -110,11 +110,10 @@ static void sig_int(int signo) {
 }
 int main(int argc, char *argv[]) {
     parse_command_line(argc, argv);
-    if ((strlen(env.ifname) == 0) || (INADDR_NONE == env.public_ip)) {
+    if ((env.ifindex[0] == 0) || (INADDR_NONE == env.public_ip)) {
         log_error("required args");
         usage(argv[0]);
     }
-    log_debug("%s, public_ip = 0x%08x, network = 0x%08X, mask = 0x%08X", env.ifname, env.public_ip, env.network, env.mask);
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
     /* Set up libbpf errors and debug info callback */
@@ -123,11 +122,7 @@ int main(int argc, char *argv[]) {
     if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
 return 1; }
     set_ipv4_forward();
-    int ifindex = if_nametoindex(env.ifname);
-    if (ifindex == 0) {
-        log_error("invalid interface %s: %s", env.ifname, strerror(errno));
-        return 1;
-    }
+    unsigned int ifindex = env.ifindex[0];
     /* 1. 打开 skeleton */
     struct xdp_masq *skel = xdp_masq__open();
     if (!skel) {
@@ -164,7 +159,7 @@ return 1; }
             }
         }
     }
-    log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
+    log_info("XDP loaded on (ifindex=%d)", ifindex);
     /* 4. set  config_map */
     /* 5. 保持运行，信号触发退出 */
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");

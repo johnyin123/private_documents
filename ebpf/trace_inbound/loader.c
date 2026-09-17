@@ -2,22 +2,19 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <linux/if_link.h>
-
 #include "trace_conn_skel.h"
 #include "trace_conn.h"
 #include "loader.h"
 
 #define PIN_PATH      "/sys/fs/bpf/trace_conn_link"
+#define MAX_IFACES    1
 struct env {
-    char ifname[IF_NAMESIZE];
+    unsigned int ifindex[MAX_IFACES];
     int persist;
     int verbose;
     volatile bool exiting;
 } env = {
-    .ifname = { 0 },
+    .ifindex = {0},
     .persist = 0,
     .verbose = LOG_ERR,
     .exiting = false,
@@ -47,7 +44,7 @@ static int parse_command_line(int argc, char **argv) {
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
             case 'i':
-                snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
+                if(!add_interface(optarg, env.ifindex, ARRAY_LEN(env.ifindex))) { usage(argv[0]); }
                 break;
             case 'P':
                 env.persist = 1;
@@ -70,6 +67,8 @@ static void sig_int(int signo) {
     env.exiting = true;
 }
 /* Ringbuf 回调：打印新连接 */
+#include <netinet/in.h>
+#include <arpa/inet.h>
 static int handle_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx); UNUSED(data_sz);
     struct connection_key *e = data;
@@ -84,11 +83,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz) {
 int main(int argc, char *argv[]) {
     struct ring_buffer *rb = NULL;
     parse_command_line(argc, argv);
-    if (strlen(env.ifname) == 0) {
-        log_error("interface name is required.");
-        usage(argv[0]);
-        return 1;
-    }
+    if (env.ifindex[0] == 0) { usage(argv[0]); }
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
     /* Set up libbpf errors and debug info callback */
@@ -96,11 +91,7 @@ int main(int argc, char *argv[]) {
     else { libbpf_set_print(NULL); }
     if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
 return 1; }
-    int ifindex = if_nametoindex(env.ifname);
-    if (ifindex == 0) {
-        log_error("invalid interface %s: %s", env.ifname, strerror(errno));
-        return 1;
-    }
+    unsigned int ifindex = env.ifindex[0];
     /* 1. 打开 skeleton */
     struct trace_conn *skel = trace_conn__open();
     if (!skel) {
@@ -134,7 +125,7 @@ return 1; }
             }
         }
     }
-    log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
+    log_info("XDP loaded on (ifindex=%d)", ifindex);
     /* 4. 创建 ringbuf 轮询 */
     rb = ring_buffer__new(bpf_map__fd(skel->maps.events_ringbuf), handle_event, NULL, NULL);
     if (!rb) {

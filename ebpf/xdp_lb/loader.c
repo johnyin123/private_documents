@@ -1,24 +1,20 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <signal.h>
-
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <linux/if_link.h>
-
 #include "xdp_lb_skel.h"
 #include "xdp_lb.h"
 #include "loader.h"
 
 #define PIN_PATH      "/sys/fs/bpf/xdp_lb_link"
+#define MAX_IFACES    1
 struct env {
-    char ifname[IF_NAMESIZE];
+    unsigned int ifindex[MAX_IFACES];
     struct backend_config lb_cfg;
     int persist;
     int verbose;
     volatile bool exiting;
 } env = {
-    .ifname = { 0 },
+    .ifindex = {0},
     .lb_cfg = { .vip = { 0 }, .num = 0, },
     .persist = 0,
     .verbose = LOG_ERR,
@@ -47,6 +43,8 @@ static void usage(const char *prog) {
         , prog, prog);
     exit(0);
 }
+#include <arpa/inet.h>
+
 const char *ip_str(in_addr_t addr) {
     static __thread char buf[INET_ADDRSTRLEN];
     struct in_addr ip = { .s_addr = addr };
@@ -147,7 +145,7 @@ static int parse_command_line(int argc, char **argv) {
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
             case 'i':
-                snprintf(env.ifname, ARRAY_LEN(env.ifname), "%s", optarg);
+                if(!add_interface(optarg, env.ifindex, ARRAY_LEN(env.ifindex))) { usage(argv[0]); }
                 break;
             case 'v':
                 env.lb_cfg.vip.ip_addr = inet_addr(optarg);
@@ -195,10 +193,7 @@ static void sig_int(int signo) {
 }
 int main(int argc, char *argv[]) {
     parse_command_line(argc, argv);
-    if ((strlen(env.ifname) == 0) || (env.lb_cfg.vip.ip_addr == 0) || (env.lb_cfg.backends[0].ip_addr == 0) || (!env.lb_cfg.vip.port)) {
-        log_error("required args");
-        usage(argv[0]);
-    }
+    if ((env.ifindex[0] == 0) || (env.lb_cfg.vip.ip_addr == 0) || (env.lb_cfg.backends[0].ip_addr == 0) || (!env.lb_cfg.vip.port)) { usage(argv[0]); }
     signal(SIGINT, sig_int);
     signal(SIGTERM, sig_int);
     /* Set up libbpf errors and debug info callback */
@@ -206,11 +201,7 @@ int main(int argc, char *argv[]) {
     else { libbpf_set_print(NULL); }
     if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
 return 1; }
-    int ifindex = if_nametoindex(env.ifname);
-    if (ifindex == 0) {
-        log_error("invalid interface %s: %s", env.ifname, strerror(errno));
-        return 1;
-    }
+    int ifindex = env.ifindex[0];
     /* 1. 打开 skeleton */
     struct xdp_lb *skel = xdp_lb__open();
     if (!skel) {
@@ -246,7 +237,7 @@ return 1; }
         // // Standard POSIX unlink removes the pin file from bpffs
         // if (unlink(PIN_PATH) != 0) { log_error("Failed unlink %s", PIN_PATH); }
     }
-    log_info("XDP loaded on %s (ifindex=%d)", env.ifname, ifindex);
+    log_info("XDP loaded on (ifindex=%d)", ifindex);
     /* 4. set  config_map */
     struct key key = { .ip_addr = env.lb_cfg.vip.ip_addr, .port= env.lb_cfg.vip.port };
     err = bpf_map__update_elem(skel->maps.config_map, &key, sizeof(key), &env.lb_cfg, sizeof(env.lb_cfg), BPF_ANY);
