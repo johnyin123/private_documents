@@ -158,6 +158,7 @@ int main(int argc, char *argv[]) {
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
         if(attach_tc(skel, env.ifindex[i], BPF_TC_INGRESS)) { goto detach; }
+        if(attach_tc(skel, env.ifindex[i], BPF_TC_EGRESS)) { goto detach; }
         log_info("TC attached: ifindex=%u", env.ifindex[i]);
     }
     /* 4. perf_buffer*/
