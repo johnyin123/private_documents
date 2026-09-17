@@ -19,8 +19,7 @@ struct {
     __type(key, __u64);   // Socket Cookie
     __type(value, struct info);
 } cookie_pid_map SEC(".maps");
-//SEC("cgroup/sock_create") int bpf_track_info(struct bpf_sock *ctx) {
-SEC("cgroup/connect4") int bpf_track_info(struct bpf_sock_addr *ctx) {
+static __always_inline void save_socket_pid(void *ctx) {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     struct info info = {
         .pid = pid_tgid >> 32,
@@ -28,9 +27,24 @@ SEC("cgroup/connect4") int bpf_track_info(struct bpf_sock_addr *ctx) {
     };
     __u64 cookie = bpf_get_socket_cookie(ctx);
     bpf_map_update_elem(&cookie_pid_map, &cookie, &info, BPF_ANY);
+}
+//SEC("cgroup/sock_create") int track_sock_create(struct bpf_sock *ctx) {
+SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
+    save_socket_pid(ctx);
     return 1;
 }
-
+// SEC("cgroup/connect6") int track_connect6(struct bpf_sock_addr *ctx) {
+//     save_socket_pid(ctx);
+//     return 1;
+// }
+// SEC("cgroup/sendmsg4") int track_sendmsg4(struct bpf_sock_addr *ctx) {
+//     save_socket_pid(ctx);
+//     return 1;
+// }
+// SEC("cgroup/sendmsg6") int track_sendmsg6(struct bpf_sock_addr *ctx) {
+//     save_socket_pid(ctx);
+//     return 1;
+// }
 SEC("tc") int trace_dns(struct __sk_buff *skb) {
     void *data = (void *)(long)skb->data;
     void *data_end = (void *)(long)skb->data_end;

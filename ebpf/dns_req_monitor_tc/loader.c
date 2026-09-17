@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 2.1 attach cgroup/sock */
-    if (!attach_cgroup(&(skel->links.bpf_track_info), skel->progs.bpf_track_info, "/sys/fs/cgroup")) { goto cleanup; }
+    if (!attach_cgroup(&skel->links.track_connect4, skel->progs.track_connect4, "/sys/fs/cgroup")) { goto cleanup; }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
