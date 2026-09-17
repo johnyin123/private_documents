@@ -297,6 +297,15 @@ static __always_inline bool ipv4_in_subnet(__be32 src_ip, __be32 network, __u32 
 //__u32 src = bpf_ntohl(iphdr->saddr);
 //if ((src & 0xFFFFFF00U) == 0xC0A80100U) { 192.168.1.0/24
 //}
+#define IP_MF     0x2000 /* More Fragments flag */
+#define IP_OFFSET 0x1fff /* Fragment Offset mask */
+static __always_inline bool is_fragmented(struct iphdr *iph) {
+    // If the MF flag is set OR the offset is greater than 0, it's a fragment
+    if (iph->frag_off & bpf_htons(IP_MF | IP_OFFSET)) {
+        return true;
+    }
+    return false;
+}
 #ifdef __cplusplus
 }
 #endif
