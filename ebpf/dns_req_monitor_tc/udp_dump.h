@@ -12,6 +12,7 @@ extern "C" {
 #define MAX_PAYLOAD_LEN 256 // Big enough to grab the whole DNS question structure
 struct dns_raw_event {
     __u64 cgroup_id;
+    __u32 pid;
     __u32 ifindex;
     __u32 saddr;
     __u32 daddr;

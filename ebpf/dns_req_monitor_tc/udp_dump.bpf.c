@@ -9,6 +9,28 @@ struct {
 } events SEC(".maps");
 
 const volatile __be16 udp_port = 0x3500; /*network order, 53*/
+struct info {
+    __u64 cgroup_id;
+    __u32 pid;
+};
+struct {
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __uint(max_entries, 65536);
+    __type(key, __u64);   // Socket Cookie
+    __type(value, struct info);
+} cookie_pid_map SEC(".maps");
+//SEC("cgroup/sock_create") int bpf_track_info(struct bpf_sock *ctx) {
+SEC("cgroup/connect4") int bpf_track_info(struct bpf_sock_addr *ctx) {
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct info info = {
+        .pid = pid_tgid >> 32,
+        .cgroup_id = bpf_get_current_cgroup_id(),
+    };
+    __u64 cookie = bpf_get_socket_cookie(ctx);
+    bpf_map_update_elem(&cookie_pid_map, &cookie, &info, BPF_ANY);
+    return 1;
+}
+
 SEC("tc") int trace_dns(struct __sk_buff *skb) {
     void *data = (void *)(long)skb->data;
     void *data_end = (void *)(long)skb->data_end;
@@ -26,6 +48,12 @@ SEC("tc") int trace_dns(struct __sk_buff *skb) {
     __u32 udp_len = bpf_ntohs(udphdr->len);
     if (udp_len < sizeof(*udphdr)) { return TC_ACT_OK; }
     bpf_debug("DNS_REQ (U) %pI4:%d -> %pI4:%d", &iphdr->saddr, bpf_ntohs(udphdr->source), &iphdr->daddr, bpf_ntohs(udphdr->dest));
+    __u64 cookie = bpf_get_socket_cookie(skb);
+    // 3. Look up the matching PID from our tracked map
+    __u32 pid = 0;
+    __u64 cgroup_id = 0;
+    struct info *info_ptr = bpf_map_lookup_elem(&cookie_pid_map, &cookie);
+    if (info_ptr) { pid = info_ptr->pid; cgroup_id = info_ptr->cgroup_id; }
     /////////////////////////////////
     // 1. Calculate raw DNS payload length (UDP length minus 8 bytes header)
     __u32 dns_len = bpf_ntohs(udphdr->len) - sizeof(struct udphdr);
@@ -39,7 +67,8 @@ SEC("tc") int trace_dns(struct __sk_buff *skb) {
     if (dns_payload + len > data_end) { return TC_ACT_OK; }
     // 5. Populate your event's metadata blocks
     struct dns_raw_event event = {
-        //.cgroup_id = bpf_get_current_cgroup_id(),
+        .cgroup_id = cgroup_id,
+        .pid = pid,
         .ifindex = skb->ifindex,
         .saddr = iphdr->saddr,
         .daddr = iphdr->daddr,

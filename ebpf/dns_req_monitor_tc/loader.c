@@ -5,6 +5,7 @@
 #include "udp_dump.h"
 #include "loader.h"
 
+#define DIR_FLOW      BPF_TC_EGRESS /*BPF_TC_INGRESS*/
 #define MAX_IFACES    128
 struct env {
     unsigned int ifindex[MAX_IFACES];
@@ -116,22 +117,24 @@ void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out
 #include <arpa/inet.h>
 void handle_event(void *ctx, int cpu, void *data, __u32 data_sz) {
     UNUSED(ctx);
-    struct dns_raw_event *event = data;
-    if (data_sz < sizeof(*event)) {
+    struct dns_raw_event *e = data;
+    if (data_sz < sizeof(*e)) {
         fprintf(stderr, "short event: %u bytes\n", data_sz);
         return;
     }
     char src[INET_ADDRSTRLEN], dst[INET_ADDRSTRLEN];
     char domain[1024] = {0};
-    inet_ntop(AF_INET, &event->saddr, src, sizeof(src));
-    inet_ntop(AF_INET, &event->daddr, dst, sizeof(dst));
-    parse_dns_domain(event->payload, event->payload_len, domain, sizeof(domain));
-    fprintf(stderr, "[CPU %d] [%d] %s:%u -> %s:%u payload=%u QUERY=%s\n", cpu, event->ifindex, src, event->sport, dst, event->dport, event->payload_len, domain);
+    inet_ntop(AF_INET, &e->saddr, src, sizeof(src));
+    inet_ntop(AF_INET, &e->daddr, dst, sizeof(dst));
+    parse_dns_domain(e->payload, e->payload_len, domain, sizeof(domain));
+    fprintf(stderr, "[CPU %d] pid = %d cgroup = %lld [%d] %s:%u -> %s:%u payload=%u QUERY=%s\n", cpu, e->pid, e->cgroup_id, e->ifindex, src, e->sport, dst, e->dport, e->payload_len, domain);
 }
 void handle_lost(void *ctx, int cpu, __u64 lost_cnt) {
     UNUSED(ctx);
     fprintf(stderr, "lost %llu events on CPU #%d\n", lost_cnt, cpu);
 }
+#include <sys/stat.h>
+#include <fcntl.h>
 int main(int argc, char *argv[]) {
     struct perf_buffer *pb = NULL;
     parse_command_line(argc, argv);
@@ -154,11 +157,22 @@ int main(int argc, char *argv[]) {
         log_error("Failed to load BPF skeleton: %d, %s", err, strerror(errno));
         goto cleanup;
     }
+    /* 2.1 attach cgroup/sock */
+    int cgroup_fd = open("/sys/fs/cgroup", O_RDONLY);
+    if (cgroup_fd < 0) {
+        log_error("Failed to open cgroup directory, %s", strerror(errno));
+        goto cleanup;
+    }
+    skel->links.bpf_track_info = bpf_program__attach_cgroup(skel->progs.bpf_track_info, cgroup_fd);
+    if (!skel->links.bpf_track_info) {
+        log_error("Failed to attach cgroup/sock program");
+        goto cleanup;
+    }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
-        if(attach_tc(skel, env.ifindex[i], BPF_TC_INGRESS)) { goto detach; }
-        if(attach_tc(skel, env.ifindex[i], BPF_TC_EGRESS)) { goto detach; }
+        //if(attach_tc(skel, env.ifindex[i], BPF_TC_INGRESS)) { goto detach; }
+        if(attach_tc(skel, env.ifindex[i], DIR_FLOW)) { goto detach; }
         log_info("TC attached: ifindex=%u", env.ifindex[i]);
     }
     /* 4. perf_buffer*/
@@ -181,7 +195,8 @@ int main(int argc, char *argv[]) {
 detach:
     for (unsigned int i = 0; i < ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
-        int ret = detach_tc( env.ifindex[i], BPF_TC_INGRESS);
+        //int ret = detach_tc( env.ifindex[i], BPF_TC_INGRESS);
+        int ret = detach_tc(env.ifindex[i], DIR_FLOW);
         if (ret && !err) { err = ret; }
     }
 cleanup:

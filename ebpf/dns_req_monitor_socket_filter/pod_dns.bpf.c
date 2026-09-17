@@ -8,6 +8,13 @@ struct {
 
 const volatile __be16 udp_port = 0x3500; /*network order, 53*/
 
+SEC("cgroup/sock") int bpf_track_socket_creation(struct bpf_sock *sk) {
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    __u32 pid = pid_tgid >> 32;
+    __u64 cookie = bpf_get_socket_cookie(sk);
+    bpf_map_update_elem(&cookie_pid_map, &cookie, &pid, BPF_ANY);
+    return 1;
+}
 SEC("socket") int trace_dns(struct __sk_buff *skb) {
     struct iphdr ip;
     struct udphdr udp;
