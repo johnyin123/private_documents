@@ -38,6 +38,10 @@ RM          := rm -f
 DEBUG_FLAG  += -Wall -Wextra
 EXE         ?= indb
 
+ifneq (,$(wildcard ./config.h))
+	CFLAGS += -DHAVE_CONFIG_H
+endif
+
 ifdef DEBUG
 	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
 else

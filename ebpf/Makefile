@@ -18,7 +18,9 @@ BPF_STRIP   := bpf-strip
 # BPF_STRIP   := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
-
+ifneq (,$(wildcard ./config.h))
+	DEBUG_FLAG += -DHAVE_CONFIG_H
+endif
 HOST_ARCH ?= $(shell uname -m)
 ifeq ($(HOST_ARCH),x86_64)
 	ARCH_FLAG = -D__x86_64__ -D__TARGET_ARCH_x86
