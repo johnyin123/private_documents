@@ -10,10 +10,10 @@ struct env {
     int verbose;
     volatile bool exiting;
 } env = {
-    .verbose = 3,
+    .verbose = LOG_ERR,
     .exiting = false,
 };
-int *log_level = &env.verbose;
+const int *log_level = &env.verbose;
 const char *opt_short="hV";
 struct option opt_long[] = {
     { "help",    no_argument, NULL, 'h' },

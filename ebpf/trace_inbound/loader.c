@@ -19,10 +19,10 @@ struct env {
 } env = {
     .ifname = { 0 },
     .persist = 0,
-    .verbose = 3,
+    .verbose = LOG_ERR,
     .exiting = false,
 };
-int *log_level = &env.verbose;
+const int *log_level = &env.verbose;
 const char *opt_short="hVi:P";
 struct option opt_long[] = {
     { "persist", no_argument, NULL, 'P' },

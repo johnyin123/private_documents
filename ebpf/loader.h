@@ -21,7 +21,7 @@ extern "C" {
 #define ARRAY_LEN(a)         (sizeof(a)/sizeof((a)[0]))
 #endif
 
-extern int *log_level;
+extern const int *log_level;
 enum { LOG_EMERG=0, LOG_ALERT=1, LOG_CRIT=2, LOG_ERR=3, LOG_WARNING=4, LOG_NOTICE=5, LOG_INFO=6, LOG_DEBUG=7 };
 #define log_debug(fmt,args...)  { if(log_level && *log_level>=LOG_DEBUG) fprintf(stderr, "DEBUG %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
 #define log_info(fmt,args...)   { if(log_level && *log_level>=LOG_INFO)  fprintf(stderr, "INFO  %s:%d " fmt "\n", __FILE__, __LINE__, ##args); }
