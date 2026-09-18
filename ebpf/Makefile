@@ -19,7 +19,7 @@ BPF_STRIP   := bpf-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 ifneq (,$(wildcard ./config.h))
-	DEBUG_FLAG += -DHAVE_CONFIG_H
+	CFLAGS += -DHAVE_CONFIG_H
 endif
 HOST_ARCH ?= $(shell uname -m)
 ifeq ($(HOST_ARCH),x86_64)
