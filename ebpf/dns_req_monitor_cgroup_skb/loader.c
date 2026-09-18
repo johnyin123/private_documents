@@ -1,7 +1,6 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <signal.h>
-
 #include "pod_dns_skel.h"
 #include "pod_dns.h"
 #include "loader.h"
@@ -48,16 +47,7 @@ static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
 }
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-void ip_str_r(in_addr_t addr, char *buf, size_t size) {
-    struct in_addr ip = { .s_addr = addr };
-    if (inet_ntop(AF_INET, &ip, buf, size) == NULL) {
-        snprintf(buf, size, "<invalid>");
-    }
-}
-void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out_domain, size_t out_max) {
+static void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out_domain, size_t out_max) {
     __u32 idx = 12; // Start parsing right after the 12-byte standard DNS Header
     __u32 out_idx = 0;
     if (payload_len <= 12) {
@@ -92,18 +82,15 @@ void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out
 }
 static int handle_dns_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx);
-    char src[128] = {0};
-    char domain[1024] = {0};
+    char src[INET_ADDRSTRLEN], dst[INET_ADDRSTRLEN], domain[1024];
     if (data_sz < sizeof(struct dns_raw_event)) { return 0; }
     struct dns_raw_event *e = data;
     ip_str_r(e->saddr, src, sizeof(src));
+    ip_str_r(e->daddr, dst, sizeof(dst));
     parse_dns_domain(e->payload, e->payload_len, domain, sizeof(domain));
-    fprintf(stderr, "%s, %s,  %d\n", src, domain, e->payload_len);
+    fprintf(stderr, "%s, %s:%d=>%s:%d, cgid=%llu, pid=%d, QUERY=%s, len=%d\n", e->comm, src, e->sport, dst, e->dport, e->cgroup_id, e->pid, domain, e->payload_len);
     return 0;
 }
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <linux/if_ether.h>
 int main(int argc, char *argv[]) {
     struct ring_buffer *rb = NULL;
     parse_command_line(argc, argv);
@@ -112,8 +99,7 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    if (bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
-return 1; }
+    if (bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno)); return 1; }
     /* 1. 打开 skeleton */
     struct pod_dns *skel = pod_dns__open();
     if (!skel) {
@@ -127,6 +113,7 @@ return 1; }
         goto cleanup;
     }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
+    if (!(skel->links.track_connect4 = attach_cgroup(skel->progs.track_connect4, "/sys/fs/cgroup"))) { goto cleanup; }
     if (!(skel->links.trace_dns = attach_cgroup(skel->progs.trace_dns, "/sys/fs/cgroup"))) { goto cleanup; }
     /* 4. ringbuffer*/
     if (!(rb = ring_buffer__new(bpf_map__fd(skel->maps.dns_events), handle_dns_event, NULL, NULL))) {

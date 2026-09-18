@@ -10,10 +10,16 @@ extern "C" {
 #endif
 
 #define MAX_PAYLOAD_LEN 256 // Big enough to grab the whole DNS question structure
+#define COMM_SIZE       16
 struct dns_raw_event {
-    __u64 cgroup_id;   /*cgroup_skb full support cgroup id*/
+    __u64 cgroup_id;
+    __u32 pid;
     __u32 saddr;
-    __u32 payload_len;
+    __u32 daddr;
+    __u16 sport;
+    __u16 dport;
+    char comm[COMM_SIZE];
+    __u16 payload_len;
     __u8 payload[MAX_PAYLOAD_LEN];
 };
 #ifndef min
