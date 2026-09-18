@@ -55,31 +55,6 @@ static void sig_int(int signo) {
     UNUSED(signo);
     env.exiting = true;
 }
-static int attach_tc(struct udp_dump *skel, int ifindex, enum bpf_tc_attach_point attach_point) {
-    struct bpf_tc_hook hook = {.sz = sizeof(hook), .ifindex = ifindex, .attach_point = attach_point, };
-    int err = bpf_tc_hook_create(&hook);
-    if (err && err != -EEXIST) {
-        log_error("bpf_tc_hook_create(%d) failed: %s", ifindex, strerror(-err));
-        return err;
-    }
-    struct bpf_tc_opts opts = { .sz = sizeof(opts), .prog_fd = bpf_program__fd(skel->progs.trace_dns), .priority = 1, .handle = 1, };
-    err = bpf_tc_attach(&hook, &opts);
-    if (err) {
-        log_error("bpf_tc_attach(%d) failed: %s\n", ifindex, strerror(-err));
-        return err;
-    }
-    return 0;
-}
-static int detach_tc(int ifindex, enum bpf_tc_attach_point attach_point) {
-    struct bpf_tc_hook hook = { .sz = sizeof(hook), .ifindex = ifindex, .attach_point = attach_point, };
-    struct bpf_tc_opts opts = { .sz = sizeof(opts), .priority = 1, .handle = 1, };
-    int err = bpf_tc_detach(&hook, &opts);
-    if (err && err != -ENOENT) {
-        log_error("bpf_tc_detach(ifindex=%d) failed: %s", ifindex, strerror(-err));
-        return err;
-    }
-    return 0;
-}
 void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out_domain, size_t out_max) {
     __u32 idx = 12; // Start parsing right after the 12-byte standard DNS Header
     __u32 out_idx = 0;
@@ -141,7 +116,7 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno)); return 1; }
+    if (bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno)); return 1; }
     /* 1. 打开 skeleton */
     struct udp_dump *skel = udp_dump__open();
     if (!skel) {
@@ -155,38 +130,30 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 2.1 attach cgroup/sock */
-    if (!attach_cgroup(&skel->links.track_connect4, skel->progs.track_connect4, "/sys/fs/cgroup")) { goto cleanup; }
+    if (!(skel->links.track_connect4 = attach_cgroup(skel->progs.track_connect4, "/sys/fs/cgroup"))) { goto cleanup; }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
-        //if(attach_tc(skel, env.ifindex[i], BPF_TC_INGRESS)) { goto detach; }
-        if(attach_tc(skel, env.ifindex[i], DIR_FLOW)) { goto detach; }
+        if (!(skel->links.handle_ingress = attach_tc(skel->progs.handle_ingress, env.ifindex[i]))) { goto cleanup; }
+        if (!(skel->links.handle_egress = attach_tc(skel->progs.handle_egress, env.ifindex[i]))) { goto cleanup; }
         log_info("TC attached: ifindex=%u", env.ifindex[i]);
     }
     /* 4. perf_buffer*/
-    pb = perf_buffer__new(bpf_map__fd(skel->maps.events), 64, handle_event, handle_lost, NULL, NULL);
-    if (!pb) {
+    if (!(pb = perf_buffer__new(bpf_map__fd(skel->maps.events), 64, handle_event, handle_lost, NULL, NULL))) {
         err = -errno;
         log_error("perf_buffer__new failed: %s", strerror(errno));
-        goto detach;
+        goto cleanup;
     }
     /* 5. 保持运行，信号触发退出 */
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
     while (!env.exiting) {
-        int err = perf_buffer__poll(pb, 100);
+        err = perf_buffer__poll(pb, 100);
         if (err < 0 && err != -EINTR) {
             log_error("Error polling perf buffer: %d", err);
             break;
         }
     }
     log_info("Detaching bpf program...");
-detach:
-    for (unsigned int i = 0; i < ARRAY_LEN(env.ifindex); i++) {
-        if (env.ifindex[i] == 0) { break; }
-        //int ret = detach_tc( env.ifindex[i], BPF_TC_INGRESS);
-        int ret = detach_tc(env.ifindex[i], DIR_FLOW);
-        if (ret && !err) { err = ret; }
-    }
 cleanup:
     if (pb) { perf_buffer__free(pb); }
     udp_dump__destroy(skel);

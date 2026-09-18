@@ -45,7 +45,8 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
 //     save_socket_pid(ctx);
 //     return 1;
 // }
-SEC("tc") int trace_dns(struct __sk_buff *skb) {
+static __always_inline int trace_dns(struct __sk_buff *skb, __u8 direction) {
+    UNUSED(direction);
     void *data = (void *)(long)skb->data;
     void *data_end = (void *)(long)skb->data_end;
     struct hdr_cursor nh = { .pos = data };
@@ -55,7 +56,8 @@ SEC("tc") int trace_dns(struct __sk_buff *skb) {
     if (parse_ethhdr(&nh, data_end, &eth) != __bpf_constant_htons(ETH_P_IP)) { return TC_ACT_OK; }
     if (parse_iphdr(&nh, data_end, &iphdr) < 0) { return TC_ACT_OK; }
     /* Ignore non-first IPv4 fragments. The first fragment can contain the UDP header. */
-    if (bpf_ntohs(iphdr->frag_off) & 0x1fff) { return TC_ACT_OK; }
+    //if (bpf_ntohs(iphdr->frag_off) & 0x1fff) { return TC_ACT_OK; }
+    if (is_fragmented(iphdr)) { return TC_ACT_OK; }
     if (iphdr->protocol != IPPROTO_UDP) { return TC_ACT_OK; }
     if (parse_udphdr(&nh, data_end, &udphdr) < 0) { return TC_ACT_OK; }
     if (udphdr->dest != udp_port) { return TC_ACT_OK; }
@@ -95,4 +97,10 @@ SEC("tc") int trace_dns(struct __sk_buff *skb) {
     /////////////////////////////////
     bpf_perf_event_output(skb, &events, BPF_F_CURRENT_CPU, &event, sizeof(event));
     return TC_ACT_OK;
+}
+SEC("tc/ingress") int handle_ingress(struct __sk_buff *skb) {
+    return trace_dns(skb, 0);
+}
+SEC("tc/egress") int handle_egress(struct __sk_buff *skb) {
+    return trace_dns(skb, 1);
 }

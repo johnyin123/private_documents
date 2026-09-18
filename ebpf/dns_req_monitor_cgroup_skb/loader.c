@@ -105,7 +105,6 @@ static int handle_dns_event(void *ctx, void *data, size_t data_sz) {
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 int main(int argc, char *argv[]) {
-    int sock_fd = -1;
     struct ring_buffer *rb = NULL;
     parse_command_line(argc, argv);
     signal(SIGINT, sig_int);
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
     /* Set up libbpf errors and debug info callback */
     if (env.verbose>=LOG_DEBUG) { print_libbpf_ver(); libbpf_set_print(libbpf_print_fn); }
     else { libbpf_set_print(NULL); }
-    if(bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
+    if (bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno));
 return 1; }
     /* 1. 打开 skeleton */
     struct pod_dns *skel = pod_dns__open();
@@ -128,17 +127,16 @@ return 1; }
         goto cleanup;
     }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
-    if (!attach_cgroup(&skel->links.trace_dns, skel->progs.trace_dns, "/sys/fs/cgroup")) { goto cleanup; }
+    if (!(skel->links.trace_dns = attach_cgroup(skel->progs.trace_dns, "/sys/fs/cgroup"))) { goto cleanup; }
     /* 4. ringbuffer*/
-    rb = ring_buffer__new(bpf_map__fd(skel->maps.dns_events), handle_dns_event, NULL, NULL);
-    if (!rb) {
+    if (!(rb = ring_buffer__new(bpf_map__fd(skel->maps.dns_events), handle_dns_event, NULL, NULL))) {
         log_error("Failed to create ring buffer");
         goto cleanup;
     }
     /* 5. 保持运行，信号触发退出 */
     fprintf(stderr, "Press Ctrl+C to stop and detach...\n");
     while (!env.exiting) {
-        int err = ring_buffer__poll(rb, 100 /* timeout ms */);
+        err = ring_buffer__poll(rb, 100 /* timeout ms */);
         if (err < 0 && err != -EINTR) {
             log_error("Error polling ring buffer: %d", err);
             break;
@@ -147,8 +145,6 @@ return 1; }
     log_info("Detaching bpf program...");
 cleanup:
     if (rb) { ring_buffer__free(rb); }
-    if (sock_fd >= 0) close(sock_fd);
     pod_dns__destroy(skel);
-    if (cgroup_fd >= 0) close(cgroup_fd);
     return err < 0 ? 1 : 0;
 }

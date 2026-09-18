@@ -55,19 +55,25 @@ static inline bool add_interface(const char *ifname, unsigned int ifindex[], uns
 }
 #include <sys/stat.h>
 #include <fcntl.h>
-static inline bool attach_cgroup(struct bpf_link **link_target, struct bpf_program *prog, const char *cgroup_dir) {
-    if (!prog || !link_target) {
-        log_error("Invalid program or link reference passed to attach handler");
-        return false;
-    }
+static inline struct bpf_link *attach_cgroup(const struct bpf_program *prog, const char *cgroup_dir) {
     int cgroup_fd = open(cgroup_dir, O_RDONLY);
     if (cgroup_fd >= 0) {
-        *link_target = bpf_program__attach_cgroup(prog, cgroup_fd);
+        struct bpf_link *cg_link = bpf_program__attach_cgroup(prog, cgroup_fd);
         close(cgroup_fd);
-        if (*link_target) { return true; }
+        if (!cg_link) {
+            log_error("bpf_program__attach_cgroup(%s) failed: %s", cgroup_dir, strerror(errno));
+        }
+        return cg_link;
     }
-    log_error("Failed to open and attach cgroup directory, %s", strerror(errno));
-    return false;
+    log_error("Failed to open and attach cgroup(%s), %s", cgroup_dir, strerror(errno));
+    return NULL;
+}
+static inline struct bpf_link *attach_tc(const struct bpf_program *prog, int ifindex) {
+    struct bpf_link *tc_link = bpf_program__attach_tcx(prog, ifindex, NULL);
+    if (!tc_link) {
+        log_error("bpf_program__attach_tcx(%d) failed: %s", ifindex, strerror(errno));
+    }
+    return tc_link;
 }
 #ifdef __cplusplus
 }
