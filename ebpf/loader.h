@@ -75,6 +75,13 @@ static inline struct bpf_link *attach_tc(const struct bpf_program *prog, int ifi
     }
     return tc_link;
 }
+#include <arpa/inet.h>
+static inline void ip_str_r(in_addr_t addr, char *buf, size_t size) {
+    struct in_addr ip = { .s_addr = addr };
+    if (inet_ntop(AF_INET, &ip, buf, size) == NULL) {
+        snprintf(buf, size, "<invalid>");
+    }
+}
 #ifdef __cplusplus
 }
 #endif
