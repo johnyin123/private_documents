@@ -307,6 +307,9 @@ static __always_inline bool is_fragmented(struct iphdr *iph) {
     }
     return false;
 }
+static __always_inline __u32 gen_hash(__u32 saddr, __u32 daddr, __u16 sport, __u16 dport, __u8 protocol) {
+    return (saddr ^ daddr ^ ((__u32)sport << 16) ^ dport ^ protocol);
+}
 #ifdef __cplusplus
 }
 #endif
