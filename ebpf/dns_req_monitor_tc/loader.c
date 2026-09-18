@@ -5,7 +5,6 @@
 #include "udp_dump.h"
 #include "loader.h"
 
-#define DIR_FLOW      BPF_TC_EGRESS /*BPF_TC_INGRESS*/
 #define MAX_IFACES    128
 struct env {
     unsigned int ifindex[MAX_IFACES];
@@ -88,7 +87,6 @@ void parse_dns_domain(const unsigned char *payload, __u32 payload_len, char *out
         snprintf(out_domain, out_max, "<unknown>");
     }
 }
-#include <arpa/inet.h>
 void handle_event(void *ctx, int cpu, void *data, __u32 data_sz) {
     UNUSED(ctx);
     struct dns_raw_event *e = data;
@@ -96,10 +94,9 @@ void handle_event(void *ctx, int cpu, void *data, __u32 data_sz) {
         fprintf(stderr, "short event: %u bytes\n", data_sz);
         return;
     }
-    char src[INET_ADDRSTRLEN], dst[INET_ADDRSTRLEN];
-    char domain[1024] = {0};
-    inet_ntop(AF_INET, &e->saddr, src, sizeof(src));
-    inet_ntop(AF_INET, &e->daddr, dst, sizeof(dst));
+    char src[INET_ADDRSTRLEN], dst[INET_ADDRSTRLEN], domain[1024];
+    ip_str_r(e->saddr, dst, sizeof(dst));
+    ip_str_r(e->daddr, dst, sizeof(dst));
     parse_dns_domain(e->payload, e->payload_len, domain, sizeof(domain));
     fprintf(stderr, "[CPU %d] pid = %d cgroup = %lld [%d] %s:%u -> %s:%u payload=%u QUERY=%s\n", cpu, e->pid, e->cgroup_id, e->ifindex, src, e->sport, dst, e->dport, e->payload_len, domain);
 }
@@ -131,6 +128,7 @@ int main(int argc, char *argv[]) {
     }
     /* 2.1 attach cgroup/sock */
     if (!(skel->links.track_connect4 = attach_cgroup(skel->progs.track_connect4, "/sys/fs/cgroup"))) { goto cleanup; }
+    //if (!(skel->links.track_connect6 = attach_cgroup(skel->progs.track_connect6, "/sys/fs/cgroup"))) { goto cleanup; }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
     for (unsigned int i=0; i<ARRAY_LEN(env.ifindex); i++) {
         if (env.ifindex[i] == 0) { break; }
