@@ -23,7 +23,7 @@ struct {
 #ifndef AF_INET
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
-struct sock;
+
 #if 0
 SEC("kprobe/tcp_v4_connect") int BPF_KPROBE(tcp_v4_connect, struct sock *sk) {
     UNUSED(ctx);
