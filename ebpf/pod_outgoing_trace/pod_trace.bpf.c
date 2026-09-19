@@ -23,8 +23,10 @@ struct {
 #ifndef AF_INET
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
-#if 1
+struct sock;
+#if 0
 SEC("kprobe/tcp_v4_connect") int BPF_KPROBE(tcp_v4_connect, struct sock *sk) {
+    UNUSED(ctx);
 #else
 SEC("kprobe/tcp_v4_connect") int tcp_v4_connect(struct pt_regs *ctx) {
     struct sock *sk = (struct sock *) PT_REGS_PARM1(ctx);
@@ -37,6 +39,8 @@ SEC("kprobe/tcp_v4_connect") int tcp_v4_connect(struct pt_regs *ctx) {
     el.pid = bpf_get_current_pid_tgid() >> 32;
     bpf_get_current_comm(&el.comm, sizeof(el.comm));
     el.final_errno = 0; // Default placeholder, updated later on tracepoint exit
+    __u64 cookie = bpf_get_socket_cookie(sk);
+    bpf_debug("tcp_v4_connect cookie %llu", cookie);
     bpf_map_update_elem(&sock_store, &sk_key, &el, BPF_ANY);
     return 0;
 }

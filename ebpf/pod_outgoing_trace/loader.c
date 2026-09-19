@@ -105,23 +105,6 @@ static void resolve_cgroup_id_to_pod(__u64 target_id, char *out_path, const char
     }
     closedir(dir);
 }
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-const char *ip_str(in_addr_t addr) {
-    static __thread char buf[INET_ADDRSTRLEN];
-    struct in_addr ip = { .s_addr = addr };
-    if (inet_ntop(AF_INET, &ip, buf, sizeof(buf)) == NULL)
-        return "<invalid>";
-    return buf;
-}
-// 100% safe anywhere, anytime
-void ip_str_r(in_addr_t addr, char *buf, size_t size) {
-    struct in_addr ip = { .s_addr = addr };
-    if (inet_ntop(AF_INET, &ip, buf, size) == NULL) {
-        snprintf(buf, size, "<invalid>");
-    }
-}
 static int handle_event(void *ctx, void *data, size_t data_sz) {
     UNUSED(ctx); UNUSED(data_sz);
     const struct event *e = data;
