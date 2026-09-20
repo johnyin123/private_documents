@@ -56,7 +56,7 @@ static inline bool add_interface(const char *ifname, unsigned int ifindex[], uns
 #include <sys/stat.h>
 #include <fcntl.h>
 static inline struct bpf_link *attach_cgroup(const struct bpf_program *prog, const char *cgroup_dir) {
-    int cgroup_fd = open(cgroup_dir, O_RDONLY);
+    int cgroup_fd = open(cgroup_dir, O_RDONLY | O_DIRECTORY);
     if (cgroup_fd >= 0) {
         struct bpf_link *cg_link = bpf_program__attach_cgroup(prog, cgroup_fd);
         close(cgroup_fd);
