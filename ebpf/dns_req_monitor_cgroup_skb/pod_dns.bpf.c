@@ -46,7 +46,7 @@ SEC("cgroup_skb/egress") int trace_dns(struct __sk_buff *skb) {
     if (!cookie) { return 1; }
 
     struct dns_raw_event *e = bpf_ringbuf_reserve(&dns_events, sizeof(*e), 0);
-    if (!e) { return 0; }
+    if (!e) { return 1; }
     struct info *info_ptr = bpf_map_lookup_elem(&cookie_pid_map, &cookie);
     if (info_ptr) {
         __builtin_memcpy(e->comm, info_ptr->comm, sizeof(e->comm));
