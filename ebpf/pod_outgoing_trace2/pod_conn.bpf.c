@@ -7,6 +7,7 @@ struct {
 } event_rb SEC(".maps");
 
 struct info {
+    __u64 netns_cookie;
     char comm[COMM_SIZE];
 };
 struct {
@@ -20,7 +21,7 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
     if ((ctx->protocol != IPPROTO_UDP) && (ctx->protocol != IPPROTO_TCP)) { return 1; }
     __u64 cookie = bpf_get_socket_cookie(ctx);
     if(cookie) {
-        struct info e = { 0 };
+        struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
             bpf_map_update_elem(&cookie_info_map, &cookie, &e, BPF_ANY);
         }
@@ -71,8 +72,9 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     //*e = *info_ptr;
     if (info_ptr) {
         __builtin_memcpy(e->comm, info_ptr->comm, sizeof(e->comm)); 
+        e->netns_cookie = info_ptr->netns_cookie;
     }
-    else { __builtin_memset(e->comm, 0, sizeof(e->comm)); }
+    else { __builtin_memset(e->comm, 0, sizeof(e->comm)); e->netns_cookie = 0; }
     // 4. Final safety guard check against packet structural bounds before copying
     if (payload + len > data_end) { bpf_ringbuf_discard(e, 0); return 1; }
     // 5. Populate your event's metadata blocks

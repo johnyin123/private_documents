@@ -13,6 +13,7 @@ extern "C" {
 #define COMM_SIZE       16
 struct raw_event {
     __u64 cgroup_id;
+    __u64 netns_cookie;
     __u32 pid;
     __u8  protocol;
     char comm[COMM_SIZE];
