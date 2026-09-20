@@ -64,7 +64,7 @@ SEC("cgroup_skb/egress") int trace_dns(struct __sk_buff *skb) {
     // 5. Populate your event's metadata blocks
     e->cgroup_id = bpf_get_current_cgroup_id(); // Fully working in cgroup_skb!
     __u64 pid_tgid = bpf_get_current_pid_tgid();
-    e->pid = pid_tgid >> 32,
+    e->pid = pid_tgid >> 32;
     e->saddr = iphdr->saddr;
     e->daddr = iphdr->daddr;
     e->sport = bpf_ntohs(udp->source);
