@@ -1,28 +1,27 @@
 #include "vmlinux.h"
 #include <bpf/bpf_core_read.h>
-
-#define bpf_debug(fmt, ...) bpf_printk("DEBUG: " fmt, ##__VA_ARGS__)
-
-#ifndef UNUSED
-#define UNUSED(x)           ((void)(x))
-#endif
-#ifndef ARRAY_LEN
-#define ARRAY_LEN(a)        (sizeof(a)/sizeof((a)[0]))
-#endif
+#include <bpf/bpf_tracing.h>
+#include "share_info.h"
 
 #ifndef AF_INET
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
 
-#include <bpf/bpf_tracing.h>
+extern struct ssmap cookie_info_map;
+//SEC("fentry/inet_sock_set_state") int BPF_PROG(inet_sock_set_state, struct sock *sk, int oldstate, int newstate) {
 SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, int oldstate, int newstate) {
+    __u16 family = BPF_CORE_READ(sk, __sk_common.skc_family);
+    if (family != AF_INET) { return 0; }
+    __u8 protocol = BPF_CORE_READ(sk, sk_protocol);
+    if (protocol != IPPROTO_TCP) { return 0; }
     /* socket cookie，全生命周期稳定，可作全局唯一 socket ID */
     __u64 cookie = bpf_get_socket_cookie(sk);
-    __u32 err = BPF_CORE_READ(sk, sk_err);
-    if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) {
-        bpf_debug("err=%d cookie=%llu %d -> %d", err, cookie, oldstate, newstate);
-        /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
-    }
+    if (!cookie) { return 0; }
+    struct info *info_ptr = bpf_map_lookup_elem(&cookie_info_map, &cookie);
+    if (!info_ptr) { return 0; }
+    info_ptr->err = BPF_CORE_READ(sk, sk_err);
+    bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
+    /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
     return 0;
 }
 SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {

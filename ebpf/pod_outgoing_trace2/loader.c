@@ -96,8 +96,8 @@ static int handle_conn_event(void *ctx, void *data, size_t data_sz) {
                     e->comm, src, e->sport, dst, e->dport, e->cgroup_id, e->netns_cookie, e->pid, domain, e->payload_len);
             break;
         case IPPROTO_TCP:
-            fprintf(stderr, "T:%s, %s:%d=>%s:%d, cgid=%llu:%llu, pid=%d, len=%d\n",
-                    e->comm, src, e->sport, dst, e->dport, e->cgroup_id, e->netns_cookie, e->pid, e->payload_len);
+            fprintf(stderr, "T:%s(%d), %s:%d=>%s:%d, cgid=%llu:%llu, pid=%d, len=%d\n",
+                    e->comm, e->err, src, e->sport, dst, e->dport, e->cgroup_id, e->netns_cookie, e->pid, e->payload_len);
             break;
     }
     return 0;

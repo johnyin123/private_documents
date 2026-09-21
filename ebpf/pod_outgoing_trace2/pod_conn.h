@@ -9,13 +9,18 @@ extern "C" {
 #  include "config.h"
 #endif
 
+#ifndef MAX_PAYLOAD_LEN
 #define MAX_PAYLOAD_LEN 256 // Big enough to grab the whole DNS question structure
-#define COMM_SIZE       16
+#endif
+#ifndef COMM_SIZE
+#define COMM_SIZE           16
+#endif
 struct raw_event {
     __u64 cgroup_id;
     __u64 netns_cookie;
     __u32 pid;
     __u8  protocol;
+    int err;
     char comm[COMM_SIZE];
     __u32 saddr;
     __u32 daddr;

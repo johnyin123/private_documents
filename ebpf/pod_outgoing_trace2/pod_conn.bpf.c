@@ -1,27 +1,31 @@
 #include "pod_conn.h"
 #include "xdp_parse.h"
+#include "share_info.h"
+
 char LICENSE[] SEC("license") = "GPL";
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 1 << 16);
 } event_rb SEC(".maps");
+struct ssmap cookie_info_map SEC(".maps");
 
-struct info {
-    __u64 netns_cookie;
-    char comm[COMM_SIZE];
-};
-struct {
-    __uint(type, BPF_MAP_TYPE_LRU_HASH);
-    __uint(max_entries, 65536);
-    __type(key, __u64);   // Socket Cookie
-    __type(value, struct info);
-} cookie_info_map SEC(".maps");
+/*
+ * Unconnected UDP:
+ *     socket(AF_INET, SOCK_DGRAM, 0);
+ *     sendto(...);
+ * does not necessarily call connect4.
+ */
+SEC("cgroup/udp4_sendmsg") int track_udp4_sendmsg(struct bpf_sock_addr *ctx) {
+    bpf_debug("cgroup/udp4_sendmsg");
+    return 1;
+}
+/* TCP connect() and connected UDP */
 SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
     if (ctx->family != AF_INET) { return 1; }
     if ((ctx->protocol != IPPROTO_UDP) && (ctx->protocol != IPPROTO_TCP)) { return 1; }
     __u64 cookie = bpf_get_socket_cookie(ctx);
     if(cookie) {
-        struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), };
+        struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .timestamp_ns = bpf_ktime_get_ns(), };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
             bpf_map_update_elem(&cookie_info_map, &cookie, &e, BPF_ANY);
         }
@@ -73,6 +77,7 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     if (info_ptr) {
         __builtin_memcpy(e->comm, info_ptr->comm, sizeof(e->comm)); 
         e->netns_cookie = info_ptr->netns_cookie;
+        e->err = info_ptr->err;
     }
     else { __builtin_memset(e->comm, 0, sizeof(e->comm)); e->netns_cookie = 0; }
     // 4. Final safety guard check against packet structural bounds before copying
