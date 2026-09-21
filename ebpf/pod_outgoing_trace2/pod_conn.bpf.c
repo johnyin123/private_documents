@@ -9,17 +9,6 @@ struct {
 } event_rb SEC(".maps");
 struct ssmap cookie_info_map SEC(".maps");
 
-/*
- * Unconnected UDP:
- *     socket(AF_INET, SOCK_DGRAM, 0);
- *     sendto(...);
- * does not necessarily call connect4.
- */
-SEC("cgroup/udp4_sendmsg") int track_udp4_sendmsg(struct bpf_sock_addr *ctx) {
-    bpf_debug("cgroup/udp4_sendmsg");
-    return 1;
-}
-/* TCP connect() and connected UDP */
 SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
     if (ctx->family != AF_INET) { return 1; }
     if ((ctx->protocol != IPPROTO_UDP) && (ctx->protocol != IPPROTO_TCP)) { return 1; }
@@ -28,6 +17,9 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
         struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .timestamp_ns = bpf_ktime_get_ns(), };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
             bpf_map_update_elem(&cookie_info_map, &cookie, &e, BPF_ANY);
+        }
+        if (ctx->protocol != IPPROTO_TCP) {
+            bpf_debug("cookie = %llu, %s, connect", cookie, e.comm);
         }
     }
     return 1;
@@ -65,6 +57,9 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     if (!cookie) { return 1; }
     struct info *info_ptr = bpf_map_lookup_elem(&cookie_info_map, &cookie);
     if (!info_ptr) { return 1; } /*only dump already get Comm*/
+    if (iphdr->protocol == IPPROTO_TCP) {
+        bpf_debug("cookie = %llu, %s egress", cookie, info_ptr->comm);
+    }
     // 1. Calculate raw payload length
     __u32 len = min((__u32)payload_len, MAX_PAYLOAD_LEN);
     // 2. Clear zero-size and upper bound constraints sequentially for the verifier

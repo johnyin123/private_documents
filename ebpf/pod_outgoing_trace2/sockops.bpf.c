@@ -10,18 +10,27 @@
 extern struct ssmap cookie_info_map;
 //SEC("fentry/inet_sock_set_state") int BPF_PROG(inet_sock_set_state, struct sock *sk, int oldstate, int newstate) {
 SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, int oldstate, int newstate) {
+    UNUSED(ctx);
     __u16 family = BPF_CORE_READ(sk, __sk_common.skc_family);
     if (family != AF_INET) { return 0; }
     __u8 protocol = BPF_CORE_READ(sk, sk_protocol);
     if (protocol != IPPROTO_TCP) { return 0; }
-    /* socket cookie，全生命周期稳定，可作全局唯一 socket ID */
     __u64 cookie = bpf_get_socket_cookie(sk);
     if (!cookie) { return 0; }
     struct info *info_ptr = bpf_map_lookup_elem(&cookie_info_map, &cookie);
     if (!info_ptr) { return 0; }
-    info_ptr->err = BPF_CORE_READ(sk, sk_err);
-    bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
-    /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
+    if ((oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) || (newstate == BPF_TCP_ESTABLISHED)) {
+        if (newstate == BPF_TCP_CLOSE) {
+            info_ptr->err = BPF_CORE_READ(sk, sk_err);
+            bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
+            bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->err, info_ptr->comm);
+            /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
+        } /* info_ptr->err default is 0, no need update */
+        else {
+            bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->err, info_ptr->comm);
+        }
+
+    }
     return 0;
 }
 SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
