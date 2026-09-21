@@ -1,7 +1,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "pod_conn_skel.h"
+#include "bpf_skel.h"
 #include "pod_conn.h"
 #include "loader.h"
 
@@ -112,13 +112,13 @@ int main(int argc, char *argv[]) {
     else { libbpf_set_print(NULL); }
     if (bump_memlock_rlimit()) { log_error("Failed setrlimit: %d, %s", errno, strerror(errno)); return 1; }
     /* 1. 打开 skeleton */
-    struct pod_conn *skel = pod_conn__open();
+    struct bpf_skel *skel = bpf_skel__open();
     if (!skel) {
         log_error("Failed to open BPF skeleton");
         return 1;
     }
     /* 2. 加载到内核 */
-    int err = pod_conn__load(skel);
+    int err = bpf_skel__load(skel);
     if (err) {
         log_error("Failed to load BPF skeleton: %d, %s", err, strerror(errno));
         goto cleanup;
@@ -144,6 +144,6 @@ int main(int argc, char *argv[]) {
     log_info("Detaching bpf program...");
 cleanup:
     if (rb) { ring_buffer__free(rb); }
-    pod_conn__destroy(skel);
+    bpf_skel__destroy(skel);
     return err < 0 ? 1 : 0;
 }

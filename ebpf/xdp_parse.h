@@ -28,7 +28,7 @@ extern "C" {
 #define UNUSED(x)           ((void)(x))
 #endif
 #ifndef ARRAY_LEN
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
+#define ARRAY_LEN(a)        (sizeof(a)/sizeof((a)[0]))
 #endif
 
 struct hdr_cursor {

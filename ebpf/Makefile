@@ -7,6 +7,7 @@ INCFILE     ?= make.inc
 # LIBFLAGS+=-Wl,-rpath,./  # relative path .so load
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
+# BPF_SKEL=bpf_skel.h
 VMLINUX     := vmlinux.h
 DEBUG_FLAG  += -Wall -Wextra
 C_STANDARD   = -std=c99
@@ -18,6 +19,7 @@ BPF_STRIP   := bpf-strip
 # BPF_STRIP   := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
+
 ifneq (,$(wildcard ./config.h))
 	CFLAGS += -DHAVE_CONFIG_H
 endif
@@ -32,7 +34,11 @@ BPF_SRC=$(wildcard *.bpf.c)
 USR_SRC=$(filter-out $(wildcard *.bpf.c), $(wildcard *.c))
 USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
-BPF_SKEL=$(BPF_SRC:.bpf.c=_skel.h)
+BPF_CNT=$(words $(BPF_OBJ))
+# If BPF_CNT is 1, BPF_SKEL becomes BPF_OBJ. Otherwise, it defaults to BPF_SKEL
+ifeq ($(BPF_CNT),1)
+	BPF_SKEL?=$(BPF_OBJ:.bpf.o=_skel.h)
+endif
 
 ifdef DEBUG
 	BPF_CC_DEBUG_FLAG = -DDEBUG -Wall -Wextra
@@ -59,17 +65,20 @@ $(EXE): $(USR_OBJ)
 .PHONY : clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) $(VMLINUX) $(EXE)
+	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) $(BPF_SKEL:.h=.o) $(VMLINUX) $(EXE)
 
 $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(call msg,BPF_BIN,$@)
 	$(Q)$(BPF_CC) $(CFLAGS) $(BPF_CC_DEBUG_FLAG) $(INC_PATH) -o $@ $(ARCH_FLAG) -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
 	$(Q)$(BPF_STRIP) -g $@
-	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,,$*))
-	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,,$*) > $(subst .bpf,_skel,$*).h
 
-$(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
+$(BPF_SKEL): $(BPF_OBJ)
+	$(call msg,BPF_SKEL,$@)
+	$(Q)$(BPFTOOL) gen object $(BPF_SKEL:.h=.o) $(BPF_OBJ)
+	$(Q)$(BPFTOOL) gen skeleton $(BPF_SKEL:.h=.o) name $(BPF_SKEL:.h=) > $@
+
+$(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_SKEL)
 	$(call msg,USR_OBJ,$@)
 	$(Q)$(CC) $(C_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 

@@ -93,20 +93,3 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     bpf_ringbuf_submit(e, 0);
     return 1; // Return 1 to ensure the kernel forwards the packet to the wire
 }
-SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
-    if (skops->family != AF_INET) { return 1; }
-    // Force the TCP state callbacks to execute
-    if (skops->op == BPF_SOCK_OPS_TIMEOUT_INIT) {
-        bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG);
-        return 1;
-    }
-    if (skops->op == BPF_SOCK_OPS_STATE_CB) {
-        //__u32 old_state = skops->args[0];
-        __u32 new_state = skops->args[1];
-        if (new_state == BPF_TCP_ESTABLISHED) {
-            //__u64 cookie = bpf_get_socket_cookie(skops);
-            //bpf_debug("sockops FIRST OUTGOING cookie=%llu, op=%d", cookie, skops->op);
-        }
-    }
-    return 1;
-} 
