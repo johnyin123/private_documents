@@ -22,14 +22,10 @@ SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, 
     if ((oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) || (newstate == BPF_TCP_ESTABLISHED)) {
         if (newstate == BPF_TCP_CLOSE) {
             info_ptr->err = BPF_CORE_READ(sk, sk_err);
-            bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
-            bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->err, info_ptr->comm);
+            //bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
             /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
         } /* info_ptr->err default is 0, no need update */
-        else {
-            bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->err, info_ptr->comm);
-        }
-
+        bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->comm, info_ptr->err);
     }
     return 0;
 }

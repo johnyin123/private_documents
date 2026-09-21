@@ -17,9 +17,9 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
         struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .timestamp_ns = bpf_ktime_get_ns(), };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
             bpf_map_update_elem(&cookie_info_map, &cookie, &e, BPF_ANY);
-        }
-        if (ctx->protocol != IPPROTO_TCP) {
-            bpf_debug("cookie = %llu, %s, connect", cookie, e.comm);
+            if (ctx->protocol == IPPROTO_TCP) {
+                bpf_debug("cookie = %llu, %s, connect", cookie, e.comm);
+            }
         }
     }
     return 1;
