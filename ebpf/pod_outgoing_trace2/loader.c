@@ -124,6 +124,11 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
     /* 3. Attach directly via native cgroup structural tracking anchors*/
+    skel->links.sock_set_state = bpf_program__attach(skel->progs.sock_set_state);
+    if (!skel->links.sock_set_state) {
+        log_error("Failed to attach bpf: %s", strerror(errno));
+        goto cleanup;
+    }
     if (!(skel->links.trace_sockops = attach_cgroup(skel->progs.trace_sockops, "/sys/fs/cgroup"))) { goto cleanup; }
     if (!(skel->links.track_connect4 = attach_cgroup(skel->progs.track_connect4, "/sys/fs/cgroup"))) { goto cleanup; }
     if (!(skel->links.trace_conn = attach_cgroup(skel->progs.trace_conn, "/sys/fs/cgroup"))) { goto cleanup; }

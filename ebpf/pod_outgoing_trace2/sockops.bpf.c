@@ -1,11 +1,7 @@
 #include "vmlinux.h"
 #include <bpf/bpf_core_read.h>
 
-#ifdef DEBUG
 #define bpf_debug(fmt, ...) bpf_printk("DEBUG: " fmt, ##__VA_ARGS__)
-#else
-#define bpf_debug(fmt, ...) do { } while (0)
-#endif
 
 #ifndef UNUSED
 #define UNUSED(x)           ((void)(x))
@@ -18,6 +14,17 @@
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
 
+#include <bpf/bpf_tracing.h>
+SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, int oldstate, int newstate) {
+    /* socket cookie，全生命周期稳定，可作全局唯一 socket ID */
+    __u64 cookie = bpf_get_socket_cookie(sk);
+    __u32 err = BPF_CORE_READ(sk, sk_err);
+    if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) {
+        bpf_debug("err=%d cookie=%llu %d -> %d", err, cookie, oldstate, newstate);
+        /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
+    }
+    return 0;
+}
 SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
     if (skops->family != AF_INET) { return 1; }
     // Force the TCP state callbacks to execute
@@ -30,20 +37,6 @@ SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
         __u32 new_state = skops->args[1];
         //__u64 cookie = bpf_get_socket_cookie(skops);
         if (old_state == BPF_TCP_SYN_SENT && new_state == BPF_TCP_CLOSE) {
-            // 1. Get the bpf_sock pointer from the context
-            struct bpf_sock *sk = skops->sk;
-            if (!sk) return 1;
-            // 2. Cast it to the true internal kernel 'struct sock' via CO-RE
-            struct sock *kernel_sk = (struct sock *)sk;
-            // 3. Read the internal error code (sk_err)
-            int error_code = 0;
-            bpf_core_read(&error_code, sizeof(error_code), &kernel_sk->sk_err);
-            if (error_code > 0) {
-                // error_code matches Linux errnos:
-                // 111 -> ECONNREFUSED (Connection refused)
-                // 110 -> ETIMEDOUT (Connection timed out)
-                bpf_debug("Connection failed. Internal sk_err: %d\n", error_code);
-            }
         }
         else if (old_state == BPF_TCP_SYN_RECV && new_state == BPF_TCP_CLOSE) {
             /* passive connect failed */
