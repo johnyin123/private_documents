@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("67258547[2025-12-03T09:52:00+08:00]:build-openwrt.sh")
+VERSION+=("b0d4fe5e[2026-09-21T09:03:12+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -197,11 +197,12 @@ EOF
 
 add_uci_default_automount_media() {
     local rootfs="${1}"
+    local lan_ipaddr="${2:-192.168.31.1}"
     if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
         mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     fi
-    cat << EOF > "${rootfs}/etc/uci-defaults/00-network"
-uci set network.lan.ipaddr=192.168.31.1
+    cat << EOF > ${rootfs}/etc/uci-defaults/00-network
+uci set network.lan.ipaddr=${lan_ipaddr}
 uci set network.lan.netmask=255.255.255.0
 EOF
     cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
@@ -465,7 +466,7 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-ext4 kmod-fs-exfat)    #vfat ext4 support
         PACKAGES+=(kmod-tun socat)                            #other tools
-        add_uci_default_automount_media "${DIRNAME}/mydir"
+        add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.168.254"
         ;;
     miwifi-mini) # Mini
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
@@ -498,8 +499,7 @@ case "$id" in
 esac
 PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
 # mydir/etc/ssh/sshd_config
-# #change 192.168.1.1 => 192.168.31.1
-# mydir/bin/config_generate
+# #change 192.168.1.1 => 192.168.31.1  via /etc/uci-defaults/00-network
 # add_demo "${DIRNAME}/mydir/root/demo"
 add_shell_ps1 "${DIRNAME}/mydir"
 
