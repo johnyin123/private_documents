@@ -18,6 +18,10 @@ extern "C" {
 #include <bpf/bpf_endian.h>
 #include <stdbool.h>
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #ifdef DEBUG
 #define bpf_debug(fmt, ...) bpf_printk("DEBUG: " fmt, ##__VA_ARGS__)
 #else
