@@ -82,6 +82,19 @@ static inline void ip_str_r(in_addr_t addr, char *buf, size_t size) {
         snprintf(buf, size, "<invalid>");
     }
 }
+#include <ctype.h>
+static inline void hexdump(FILE *fp, const void *ptr, size_t len) {
+    const unsigned char *buf = ptr;
+    for(size_t i = 0; i < len; i += 16, fprintf(fp, "\n")) {
+        fprintf(fp, "%08zx: ", i);
+        for(size_t j = 0; j < 16; j++)
+            i+j < len ? fprintf(fp, "%02x ", buf[i+j]) : fprintf(fp, "   ");
+        fprintf(fp, " |");
+        for(int j = 0; j < 16 && i+j < len; j++)
+            fprintf(fp, "%c", isprint(buf[i+j]) ? buf[i+j] : '.');
+        fprintf(fp, "|");
+    }
+}
 #ifdef __cplusplus
 }
 #endif
