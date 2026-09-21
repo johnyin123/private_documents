@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("737c95a7[2025-12-03T08:44:13+08:00]:build-openwrt.sh")
+VERSION+=("67258547[2025-12-03T09:52:00+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -343,6 +343,25 @@ config wifi-iface 'default_radio0'
         # option ssid 'openwrt'
         # option encryption 'psk2'
         # option key '88888888'
+#######################IPV6 slaac
+# 1. Enable IPv6 assignment on the LAN interface (defines the prefix length)
+uci set network.lan.ip6assign='64'
+# 2. Set the IPv6 router advertisement (RA) service to server mode
+uci set dhcp.lan.ra='server'
+# 3. Set the IPv6 DHCPv6 service to server mode (optional, but standard)
+uci set dhcp.lan.dhcpv6='server'
+# 4. Enable SLAAC by setting RA flags (Autonomous address configuration)
+uci set dhcp.lan.ra_slaac='1'
+# 5. Configure RA flags to tell clients to use SLAAC
+# 'managed' configures whether clients use DHCPv6 for IPs (0 = No, use SLAAC)
+# 'other_config' configures whether clients get DNS/NTP via DHCPv6 (1 = Yes)
+uci set dhcp.lan.ra_flags='managed-config'
+# 6. Commit the changes to system storage
+uci commit dhcp
+uci commit network
+# 7. Restart the services to apply configuration
+/etc/init.init.d/network restart
+/etc/init.d/odhcpd restart
 EOF
 }
 
@@ -430,7 +449,7 @@ EOFDFT
 
 add_sysctl() {
     cat <<EOF
-net.ipv6.conf.all.disable_ipv6 = 1
+# net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
