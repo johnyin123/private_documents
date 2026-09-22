@@ -13,6 +13,7 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
     if(cookie) {
         struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .dualtime_ns = bpf_ktime_get_ns(), };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
+            bpf_debug("cookie = %llu, %s connect", cookie, e.comm);
             bpf_map_update_elem(&cookie_dump, &cookie, &e, BPF_ANY);
         }
     }
@@ -24,6 +25,8 @@ static __always_inline bool tcp_established(struct __sk_buff *skb) {
     // Optional: Obtain full socket context (helps verify it isn't a request/timewait sock)
     sk = bpf_sk_fullsock(sk);
     if (!sk) { return false; }
+    __u64 cookie = bpf_get_socket_cookie(skb);
+    bpf_debug("cookie = %llu, tcp state %d", cookie, sk->state);
     return sk->protocol == IPPROTO_TCP && sk->state == BPF_TCP_ESTABLISHED;
 }
 SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
@@ -47,41 +50,28 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     switch (iphdr->protocol) {
         case IPPROTO_UDP:
             if (parse_udphdr(&nh, data_end, &udp) < 0) { return 1; }
-            __u32 udp_hlen = sizeof(struct udphdr); /*always 8*/
-            absolute_payload_offset = ip_hlen + udp_hlen;
-            if (ip_total_len > absolute_payload_offset) {
-                payload_len = ip_total_len - absolute_payload_offset;
-            } else { payload_len = 0; }
-            // payload_len = (void *)data_end - nh.pos;
-            // absolute_payload_offset = (void *)data_end - nh.pos;
+            absolute_payload_offset = ip_hlen + sizeof(struct udphdr);
             sport = udp->source; dport = udp->dest;
             break;
         case IPPROTO_TCP:
-            int tcp_hlen = parse_tcphdr(&nh, data_end, &tcp);
-            if (tcp_hlen < 0) { return 1; }
+            if ((payload_len = parse_tcphdr(&nh, data_end, &tcp)) < 0) { return 1; }
             if (!tcp_established(skb)) { return 1; }
             // --- THE FIX: Derive payload length from the IP layer header ---
-            if (ip_total_len > (ip_hlen + tcp_hlen)) {
-                payload_len = ip_total_len - (ip_hlen + tcp_hlen);
-            } else { payload_len = 0; } //Pure ACK
-
-            // Calculate absolute byte offset where payload starts relative to skb base
-            absolute_payload_offset = ip_hlen + tcp_hlen;
+            absolute_payload_offset = ip_hlen + payload_len;
             sport = tcp->source; dport = tcp->dest;
             break;
     }
+    if (ip_total_len > absolute_payload_offset) {
+        payload_len = ip_total_len - absolute_payload_offset;
+    } else { payload_len = 0; } /* tcp pure ack */
     __u64 cookie = bpf_get_socket_cookie(skb);
     /* packet is a kernel-generated synthetic flow with no real owner socket */
     if (!cookie) { return 1; }
+    if (iphdr->protocol==IPPROTO_TCP) {
+        bpf_debug("cookie = %llu, payload_len=%d ", cookie, payload_len);
+    }
     struct info *info_ptr = bpf_map_lookup_elem(&cookie_dump, &cookie);
     if (!info_ptr) { return 1; } /*only dump already get Comm*/
-
-    // 1. Calculate raw payload length
-    __u32 len = (__u32)payload_len;
-    // 2. Clear zero-size and upper bound constraints sequentially for the verifier
-    if (len == 0) { return 1; }
-    if (len > MAX_PAYLOAD_LEN) { len = MAX_PAYLOAD_LEN; }
-
     struct raw_event *e = bpf_ringbuf_reserve(&event_rb, sizeof(*e), 0);
     if (!e) { return 1; }
     //*e = *info_ptr;
@@ -89,6 +79,12 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     e->netns_cookie = info_ptr->netns_cookie;
     e->err = info_ptr->err;
     bpf_map_delete_elem(&cookie_dump, &cookie);
+
+    // 1. Calculate raw payload length
+    __u32 len = (__u32)payload_len;
+    // 2. Clear zero-size and upper bound constraints sequentially for the verifier
+    if (len == 0) { bpf_ringbuf_discard(e, 0); return 1; }
+    if (len > MAX_PAYLOAD_LEN) { len = MAX_PAYLOAD_LEN; }
     // 4. Populate your event's metadata blocks
     //e->cgroup_id = bpf_get_current_cgroup_id(); // Fully working in cgroup_skb!
     e->cgroup_id = bpf_skb_cgroup_id(skb);
