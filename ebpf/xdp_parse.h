@@ -44,7 +44,7 @@ struct vlan_hdr {
 };
 
 #ifndef VLAN_MAX_DEPTH
-#define VLAN_MAX_DEPTH 2
+#define VLAN_MAX_DEPTH       2
 #endif
 
 #define VLAN_VID_MASK        0x0fff /* VLAN Identifier */
@@ -59,7 +59,7 @@ static __always_inline int proto_is_vlan(__u16 h_proto) {
  * Ethernet header. Thus, caller can look at eth->h_proto to see if this was a
  * VLAN tagged packet.
  */
-static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh, void *data_end, struct ethhdr **ethhdr, struct collect_vlans *vlans) {
+static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh, const void *data_end, struct ethhdr **ethhdr, struct collect_vlans *vlans) {
     struct ethhdr *eth = nh->pos;
     int hdrsize = sizeof(*eth);
     struct vlan_hdr *vlh;
@@ -88,18 +88,18 @@ static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh, void *data_e
     nh->pos = vlh;
     return h_proto; /* network-byte-order */
 }
-static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end, struct ethhdr **ethhdr) {
+static __always_inline int parse_ethhdr(struct hdr_cursor *nh, const void *data_end, struct ethhdr **ethhdr) {
     /* Expect compiler removes the code that collects VLAN ids */
     return parse_ethhdr_vlan(nh, data_end, ethhdr, NULL);
 }
-static __always_inline int parse_ip6hdr(struct hdr_cursor *nh, void *data_end, struct ipv6hdr **ip6hdr) {
+static __always_inline int parse_ip6hdr(struct hdr_cursor *nh, const void *data_end, struct ipv6hdr **ip6hdr) {
     struct ipv6hdr *ip6h = nh->pos;
     if (ip6h + 1 > (struct ipv6hdr *)data_end) return -1;
     nh->pos = ip6h + 1;
     *ip6hdr = ip6h;
     return ip6h->nexthdr;
 }
-static __always_inline int parse_iphdr(struct hdr_cursor *nh, void *data_end, struct iphdr **iphdr) {
+static __always_inline int parse_iphdr(struct hdr_cursor *nh, const void *data_end, struct iphdr **iphdr) {
     struct iphdr *iph = nh->pos;
     unsigned int hdrsize;
     if (iph + 1 > (struct iphdr *)data_end) return -1;
@@ -110,36 +110,35 @@ static __always_inline int parse_iphdr(struct hdr_cursor *nh, void *data_end, st
     *iphdr = iph;
     return iph->protocol;
 }
-static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh, void *data_end, struct icmp6hdr **icmp6hdr) {
+static __always_inline int parse_icmp6hdr(struct hdr_cursor *nh, const void *data_end, struct icmp6hdr **icmp6hdr) {
     struct icmp6hdr *icmp6h = nh->pos;
     if (icmp6h + 1 > (struct icmp6hdr *)data_end) return -1;
-    nh->pos   = icmp6h + 1;
+    nh->pos = icmp6h + 1;
     *icmp6hdr = icmp6h;
     return icmp6h->icmp6_type;
 }
-static __always_inline int parse_icmphdr(struct hdr_cursor *nh, void *data_end, struct icmphdr **icmphdr) {
+static __always_inline int parse_icmphdr(struct hdr_cursor *nh, const void *data_end, struct icmphdr **icmphdr) {
     struct icmphdr *icmph = nh->pos;
     if (icmph + 1 > (struct icmphdr *)data_end) return -1;
-    nh->pos  = icmph + 1;
+    nh->pos = icmph + 1;
     *icmphdr = icmph;
     return icmph->type;
 }
 /* parse_udphdr: parse the udp header and return the length of the udp payload */
-static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr) {
+static __always_inline int parse_udphdr(struct hdr_cursor *nh, const void *data_end, struct udphdr **udphdr) {
     struct udphdr *h = nh->pos;
     if ((void *)(h + 1) > data_end) return -1;
-    nh->pos  = h + 1;
+    nh->pos = h + 1;
     *udphdr = h;
     unsigned int udp_len = bpf_ntohs(h->len);
     if (udp_len < sizeof(*h)) return -1;
     return udp_len - sizeof(*h);
 }
 /* parse_tcphdr: parse and return the length of the tcp header */
-static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr) {
-    unsigned int len;
+static __always_inline int parse_tcphdr(struct hdr_cursor *nh, const void *data_end, struct tcphdr **tcphdr) {
     struct tcphdr *h = nh->pos;
     if (h + 1 > (struct tcphdr *)data_end) return -1;
-    len = h->doff * 4;
+    unsigned int len = h->doff * 4;
     /* Sanity check packet field is valid */
     if(len < sizeof(*h)) return -1;
     /* Variable-length TCP header, need to use byte-based arithmetic */

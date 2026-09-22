@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include "bpf_skel.h"
-#include "pod_conn.h"
+#include "type_def.h"
 #include "loader.h"
 
 struct env {
@@ -100,6 +100,7 @@ static int handle_conn_event(void *ctx, void *data, size_t data_sz) {
                     e->comm, e->err, src, e->sport, dst, e->dport, e->cgroup_id, e->netns_cookie, e->pid, e->payload_len);
             break;
     }
+    hexdump(stderr, e->payload, e->payload_len);
     return 0;
 }
 int main(int argc, char *argv[]) {

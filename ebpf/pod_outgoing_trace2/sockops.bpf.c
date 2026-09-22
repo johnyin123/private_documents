@@ -1,13 +1,14 @@
 #include "vmlinux.h"
-#include <bpf/bpf_core_read.h>
-#include <bpf/bpf_tracing.h>
-#include "share_info.h"
+#include "type_def.bpf.h"
+char LICENSE[] SEC("license") = "GPL";
 
 #ifndef AF_INET
 #define AF_INET      2   /* Internet IP Protocol */
 #endif
 
-extern struct ssmap cookie_info_map;
+extern struct event_ring event_rb;
+extern struct ssmap cookie_dump;
+extern struct ssmap cookie_tcp;
 //SEC("fentry/inet_sock_set_state") int BPF_PROG(inet_sock_set_state, struct sock *sk, int oldstate, int newstate) {
 SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, int oldstate, int newstate) {
     UNUSED(ctx);
@@ -17,16 +18,17 @@ SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, 
     if (protocol != IPPROTO_TCP) { return 0; }
     __u64 cookie = bpf_get_socket_cookie(sk);
     if (!cookie) { return 0; }
-    struct info *info_ptr = bpf_map_lookup_elem(&cookie_info_map, &cookie);
+    struct info *info_ptr = bpf_map_lookup_elem(&cookie_tcp, &cookie);
     if (!info_ptr) { return 0; }
-    if ((oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) || (newstate == BPF_TCP_ESTABLISHED)) {
-        if (newstate == BPF_TCP_CLOSE) {
-            info_ptr->err = BPF_CORE_READ(sk, sk_err);
-            //bpf_map_update_elem(&cookie_info_map, &cookie, info_ptr, BPF_ANY);
-            /* err: 111=ECONNREFUSED, 110=ETIMEDOUT... */
-        } /* info_ptr->err default is 0, no need update */
+    if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_ESTABLISHED) {
+        bpf_map_update_elem(&cookie_dump, &cookie, info_ptr, BPF_ANY);
         bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->comm, info_ptr->err);
+        /*outbound connections*/
+    } else if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) {
+        int err = BPF_CORE_READ(sk, sk_err); /* err: 111=ECONNREFUSED .. */
+        bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->comm, err);
     }
+    bpf_map_delete_elem(&cookie_tcp, &cookie);
     return 0;
 }
 SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
@@ -47,7 +49,7 @@ SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {
         }
         else if (old_state == BPF_TCP_SYN_RECV && new_state == BPF_TCP_LAST_ACK) {
             // Inbound Connection Failure - Phase 2 (Server Mode)
-            // The handshake completed on the network, but the connection was reset/closed 
+            // The handshake completed on the network, but the connection was reset/closed
             // before your application could call accept().
         }
     }

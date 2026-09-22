@@ -20,12 +20,14 @@ extern "C" {
 #ifndef ARRAY_LEN
 #define ARRAY_LEN(a)        (sizeof(a)/sizeof((a)[0]))
 #endif
+#include "type_def.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_core_read.h>
+#include <bpf/bpf_tracing.h>
+#include <bpf/bpf_endian.h>
 
-#ifndef COMM_SIZE
-#define COMM_SIZE           16
-#endif
 struct info {
-    __u64 timestamp_ns;
+    __u64 dualtime_ns;
     __u64 netns_cookie;
     int err;
     char comm[COMM_SIZE];
@@ -35,6 +37,10 @@ struct ssmap {
     __uint(max_entries, 65536);
     __type(key, __u64);   // Socket Cookie
     __type(value, struct info);
+};
+struct event_ring {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 16);
 };
 
 #ifdef __cplusplus
