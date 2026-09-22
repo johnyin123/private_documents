@@ -20,15 +20,28 @@ SEC("tp_btf/inet_sock_set_state") int BPF_PROG(sock_set_state, struct sock *sk, 
     if (!cookie) { return 0; }
     struct info *info_ptr = bpf_map_lookup_elem(&cookie_tcp, &cookie);
     if (!info_ptr) { return 0; }
-    if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_ESTABLISHED) {
-        bpf_map_update_elem(&cookie_dump, &cookie, info_ptr, BPF_ANY);
-        bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->comm, info_ptr->err);
-        /*outbound connections*/
-    } else if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) {
-        int err = BPF_CORE_READ(sk, sk_err); /* err: 111=ECONNREFUSED .. */
-        bpf_debug("cookie = %llu, %s err = %d", cookie, info_ptr->comm, err);
+    if (oldstate == BPF_TCP_SYN_SENT && newstate == BPF_TCP_CLOSE) {
+        struct raw_event *e = bpf_ringbuf_reserve(&event_rb, sizeof(*e), 0);
+        if (!e) { return 1; }
+        e->err = BPF_CORE_READ(sk, sk_err); /* err: 111=ECONNREFUSED .. */
+        __builtin_memcpy(e->comm, info_ptr->comm, sizeof(e->comm));
+        e->netns_cookie = info_ptr->netns_cookie;
+        e->cgroup_id = info_ptr->cgroup_id;
+        e->pid = info_ptr->pid;
+        bpf_debug("cookie = %llu, %s err = %d", cookie, e->comm, e->err);
+
+        bpf_map_delete_elem(&cookie_dump, &cookie);
+        bpf_map_delete_elem(&cookie_tcp, &cookie);
+        e->protocol = IPPROTO_TCP;
+
+        e->saddr = sk->__sk_common.skc_rcv_saddr;
+        e->daddr = sk->__sk_common.skc_daddr;
+        e->sport = sk->__sk_common.skc_num;
+        e->dport = bpf_ntohs(sk->__sk_common.skc_dport); 
+
+        e->payload_len = 0;
+        bpf_ringbuf_submit(e, 0);
     }
-    bpf_map_delete_elem(&cookie_tcp, &cookie);
     return 0;
 }
 SEC("sockops") int trace_sockops(struct bpf_sock_ops *skops) {

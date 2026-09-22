@@ -29,6 +29,8 @@ extern "C" {
 struct info {
     __u64 dualtime_ns;
     __u64 netns_cookie;
+    __u64 cgroup_id;
+    __u32 pid;
     int err;
     char comm[COMM_SIZE];
 };

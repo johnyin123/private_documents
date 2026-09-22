@@ -11,10 +11,12 @@ SEC("cgroup/connect4") int track_connect4(struct bpf_sock_addr *ctx) {
     if ((ctx->protocol != IPPROTO_UDP) && (ctx->protocol != IPPROTO_TCP)) { return 1; }
     __u64 cookie = bpf_get_socket_cookie(ctx);
     if(cookie) {
-        struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .dualtime_ns = bpf_ktime_get_ns(), };
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+        struct info e = { .netns_cookie = bpf_get_netns_cookie(ctx), .err = 0, .dualtime_ns = bpf_ktime_get_ns(), .cgroup_id = bpf_get_current_cgroup_id(), .pid = pid_tgid >> 32, };
         if (0 == bpf_get_current_comm(&e.comm, sizeof(e.comm))) {
             bpf_debug("cookie = %llu, %s connect", cookie, e.comm);
             bpf_map_update_elem(&cookie_dump, &cookie, &e, BPF_ANY);
+            bpf_map_update_elem(&cookie_tcp, &cookie, &e, BPF_ANY);
         }
     }
     return 1;
@@ -78,7 +80,10 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     __builtin_memcpy(e->comm, info_ptr->comm, sizeof(e->comm));
     e->netns_cookie = info_ptr->netns_cookie;
     e->err = info_ptr->err;
+    e->cgroup_id = info_ptr->cgroup_id;
+    e->pid = info_ptr->pid;
     bpf_map_delete_elem(&cookie_dump, &cookie);
+    bpf_map_delete_elem(&cookie_tcp, &cookie);
 
     // 1. Calculate raw payload length
     __u32 len = (__u32)payload_len;
@@ -86,10 +91,7 @@ SEC("cgroup_skb/egress") int trace_conn(struct __sk_buff *skb) {
     if (len == 0) { bpf_ringbuf_discard(e, 0); return 1; }
     if (len > MAX_PAYLOAD_LEN) { len = MAX_PAYLOAD_LEN; }
     // 4. Populate your event's metadata blocks
-    //e->cgroup_id = bpf_get_current_cgroup_id(); // Fully working in cgroup_skb!
-    e->cgroup_id = bpf_skb_cgroup_id(skb);
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-    e->pid = pid_tgid >> 32;
+    // e->cgroup_id = bpf_skb_cgroup_id(skb);
     e->protocol = iphdr->protocol;
     e->saddr = iphdr->saddr;
     e->daddr = iphdr->daddr;
