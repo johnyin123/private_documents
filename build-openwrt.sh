@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b0d4fe5e[2026-09-21T09:03:12+08:00]:build-openwrt.sh")
+VERSION+=("32fe85cd[2026-09-21T09:48:42+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -317,6 +317,32 @@ uci set network.wan.username='xx'
 uci set network.wan.password='****'
 uci commit
 ifup wan
+
+uci set network.wan.proto='static'
+uci set network.wan.ipaddr='192.168.100.2'
+uci set network.wan.netmask='255.255.255.0'
+uci set network.wan.gateway='192.168.100.1'
+uci set network.wan.dns='8.8.8.8 8.8.4.4'
+uci commit network
+
+uci set network.wan6='interface'
+uci set network.wan6.device='@wan'             # Binds to the wan interface device
+uci set network.wan6.proto='dhcpv6'
+uci set network.wan6.reqaddress='try'
+uci set network.wan6.reqprefix='auto'
+uci commit network
+ifup wan6
+# Enable IPv6 assignment on LAN (e.g., using a /60 or /64 split)
+uci set network.lan.ip6assign='64'
+uci commit network
+# Configure Router Advertisements (RA) and SLAAC on LAN
+uci set dhcp.lan.ra='server'
+uci set dhcp.lan.dhcpv6='server'
+uci set dhcp.lan.ra_slaac='1'
+uci commit dhcp
+/etc/init.d/network restart
+/etc/init.d/odhcpd restart
+
 
 export devidx=0
 uci set wireless.default_radio${devidx}=wifi-iface
