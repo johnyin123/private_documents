@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("74eab40a[2026-09-23T14:23:33+08:00]:build-openwrt.sh")
+VERSION+=("a7483da9[2026-09-23T14:24:20+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -186,12 +186,8 @@ dialog() {
 add_openssh_key() {
     ### Add SSH public key
     local dir="${1}"
-    if [ ! -d "${dir}/root/.ssh" ]; then
-        mkdir -p -m0700 "${dir}/root/.ssh"
-    fi
-    cat <<EOF >"${dir}/root/.ssh/authorized_keys"
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
-EOF
+    mkdir -p -m0700 "${dir}/root/.ssh"
+    ssh_key > "${dir}/root/.ssh/authorized_keys"
     chmod 0600 "${dir}/root/.ssh/authorized_keys"
 }
 
@@ -232,15 +228,18 @@ exit 0
 EOF
 }
 
+ssh_key() {
+    cat <<EOF
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+}
 add_dropbear_cfg() {
     local rootfs="${1}"
     mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
 uci set dropbear.@dropbear[0].Port='60022'
 EOF
-    cat <<EOF >"${rootfs}/etc/dropbear/authorized_keys"
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
-EOF
+    ssh_key > "${rootfs}/etc/dropbear/authorized_keys"
     chmod 0600 "${rootfs}/etc/dropbear/authorized_keys"
 }
 
