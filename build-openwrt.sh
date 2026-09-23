@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a7483da9[2026-09-23T14:24:20+08:00]:build-openwrt.sh")
+VERSION+=("9abd3afe[2026-09-23T14:28:56+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -244,12 +244,7 @@ EOF
 }
 
 add_shell_ps1() {
-    ### Add PS1
-    local rootfs="${1}"
-    if [ ! -d "${rootfs}/etc/profile.d" ]; then
-        mkdir -p -m0755 "${rootfs}/etc/profile.d"
-    fi
-    cat <<EOF >"${rootfs}/etc/profile.d/johnyin.sh"
+    cat <<EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
@@ -582,8 +577,6 @@ case "$id" in
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
-        mkdir -p "${DIRNAME}/mydir/root" && add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
-        mkdir -p "${DIRNAME}/mydir/etc/sysctl.d" && add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
         ;;
     xiaomi_mir4a-100m) # R4AC
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
@@ -602,7 +595,14 @@ PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
 # #change 192.168.1.1 => 192.168.31.1  via /etc/uci-defaults/00-network
 add_demo "${DIRNAME}/mydir/root/demo"
 add_demo2 "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
-add_shell_ps1 "${DIRNAME}/mydir"
+mkdir -pv -m0755 \
+    "${DIRNAME}/mydir/root" \
+    "${DIRNAME}/mydir/etc/profile.d" \
+    "${DIRNAME}/mydir/etc/sysctl.d"
+
+add_shell_ps1 "${DIRNAME}/mydir/etc/profile.d//johnyin.sh"
+add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
+add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 
 rm ./out/* -f
 
