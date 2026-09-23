@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0dc050ab[2026-09-23T09:08:14+08:00]:build-openwrt.sh")
+VERSION+=("fd569ee5[2026-09-23T09:41:52+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -232,6 +232,18 @@ exit 0
 EOF
 }
 
+add_dropbear_cfg() {
+    local rootfs="${1}"
+    mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
+    cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
+uci set dropbear.@dropbear[0].Port='60022'
+EOF
+    cat <<EOF >"${rootfs}/etc/dropbear/authorized_keys"
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+    chmod 0600 "${rootfs}/etc/dropbear/authorized_keys"
+}
+
 add_shell_ps1() {
     ### Add PS1
     local rootfs="${1}"
@@ -243,7 +255,71 @@ export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m
 set -o vi
 EOF
 }
+add_demo2() {
+    local file="${1}"
+    mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
+#######################IPV6 slaac
+# 1. Enable IPv6 assignment on the LAN interface (defines the prefix length)
+uci set network.lan.ip6assign='64'
+# 2. Set the IPv6 router advertisement (RA) service to server mode
+uci set dhcp.lan.ra='server'
+# 3. Set the IPv6 DHCPv6 service to server mode (optional, but standard)
+uci set dhcp.lan.dhcpv6='server'
+# 4. Enable SLAAC by setting RA flags (Autonomous address configuration)
+uci set dhcp.lan.ra_slaac='1'
+# 5. Configure RA flags to tell clients to use SLAAC
+# 'managed' configures whether clients use DHCPv6 for IPs (0 = No, use SLAAC)
+# 'other_config' configures whether clients get DNS/NTP via DHCPv6 (1 = Yes)
+uci set dhcp.lan.ra_flags='managed-config'
+# 6. Commit the changes to system storage
+uci commit dhcp
+uci commit network
+# 7. Restart the services to apply configuration
+/etc/init.init.d/network restart
+/etc/init.d/odhcpd restart
 
+#1. Remove all define
+while uci delete wireless.@wifi-iface[0] 2>/dev/null; do :; done
+uci del wireless.radio0.disabled
+uci commit wireless
+#2. Create the STA (Client) connection
+wifi_name=stadev
+uci set wireless.${wifi_name}=wifi-iface
+uci set wireless.${wifi_name}.device='radio0'
+uci set wireless.${wifi_name}.mode='sta'
+uci set wireless.${wifi_name}.network='wan wan6'
+uci set wireless.${wifi_name}.ssid='outgoing_ssid'
+uci set wireless.${wifi_name}.identity='user'
+uci set wireless.${wifi_name}.password='pass'
+uci set wireless.${wifi_name}.encryption='wpa2'
+uci set wireless.${wifi_name}.eap_type='peap'
+uci set wireless.${wifi_name}.auth_inner='MSCHAPV2'
+uci set wireless.${wifi_name}.phase1='peaplabel=auto tls_disable_tlsv1_0=0 tls_disable_tlsv1_1=0 tls_disable_tlsv1_2=0'
+uci commit wireless
+#3. Create the AP
+wifi_name=apdev
+uci set wireless.${wifi_name}=wifi-iface
+uci set wireless.${wifi_name}.device='radio0'
+uci set wireless.${wifi_name}.mode='ap'
+uci set wireless.${wifi_name}.network='lan'
+uci set wireless.${wifi_name}.ssid='myssid'
+uci set wireless.${wifi_name}.encryption='psk2'
+uci set wireless.${wifi_name}.key='mypasswd'
+uci commit wireless
+#4. set wan/wan6 dhcp
+uci set network.wan=interface
+uci set network.wan.proto='dhcp'
+uci set network.wan.device='wan'
+uci commit network
+#5. set wan/wan6 dhcp
+uci set network.wan6=interface
+uci set network.wan6.proto='dhcpv6'
+uci set network.wan6.device='@wan'
+uci set network.wan6.reqaddress='try'
+uci set network.wan6.reqprefix='auto'
+uci commit network
+EOF
+}
 add_demo() {
     local file="${1}"
     mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
@@ -386,25 +462,6 @@ config wifi-iface 'default_radio0'
         # option ssid 'openwrt'
         # option encryption 'psk2'
         # option key '88888888'
-#######################IPV6 slaac
-# 1. Enable IPv6 assignment on the LAN interface (defines the prefix length)
-uci set network.lan.ip6assign='64'
-# 2. Set the IPv6 router advertisement (RA) service to server mode
-uci set dhcp.lan.ra='server'
-# 3. Set the IPv6 DHCPv6 service to server mode (optional, but standard)
-uci set dhcp.lan.dhcpv6='server'
-# 4. Enable SLAAC by setting RA flags (Autonomous address configuration)
-uci set dhcp.lan.ra_slaac='1'
-# 5. Configure RA flags to tell clients to use SLAAC
-# 'managed' configures whether clients use DHCPv6 for IPs (0 = No, use SLAAC)
-# 'other_config' configures whether clients get DNS/NTP via DHCPv6 (1 = Yes)
-uci set dhcp.lan.ra_flags='managed-config'
-# 6. Commit the changes to system storage
-uci commit dhcp
-uci commit network
-# 7. Restart the services to apply configuration
-/etc/init.init.d/network restart
-/etc/init.d/odhcpd restart
 EOF
 }
 
@@ -504,11 +561,12 @@ id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
-        PACKAGES_REMOVE+=(-swconfig -opkg)
+        PACKAGES_REMOVE+=(-swconfig -opkg -wpad-mini -hostapd-mini)
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
-        PACKAGES+=(kmod-fs-ext4 kmod-fs-exfat)    #vfat ext4 support
-        PACKAGES+=(kmod-tun socat)                            #other tools
+        PACKAGES+=(kmod-fs-exfat)    #vfat ext4 support
+        PACKAGES+=(wpad)                            #other tools
         add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.168.254"
+        add_dropbear_cfg "${DIRNAME}/mydir"
         ;;
     miwifi-mini) # Mini
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
@@ -542,7 +600,8 @@ esac
 PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
 # mydir/etc/ssh/sshd_config
 # #change 192.168.1.1 => 192.168.31.1  via /etc/uci-defaults/00-network
-# add_demo "${DIRNAME}/mydir/root/demo"
+add_demo "${DIRNAME}/mydir/root/demo"
+add_demo2 "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_shell_ps1 "${DIRNAME}/mydir"
 
 rm ./out/* -f
