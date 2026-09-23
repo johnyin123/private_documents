@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("32fe85cd[2026-09-21T09:48:42+08:00]:build-openwrt.sh")
+VERSION+=("0dc050ab[2026-09-23T09:08:14+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -343,6 +343,22 @@ uci commit dhcp
 /etc/init.d/network restart
 /etc/init.d/odhcpd restart
 
+# 1. Ensure WAN zone covers both wan and wan6 network interfaces
+uci set firewall.@zone[1].name='wan'
+uci set firewall.@zone[1].network='wan wan6'
+uci set firewall.@zone[1].masq='1'
+uci set firewall.@zone[1].mtu_fix='1'
+# 2. Enable IPv6 masquerading (NAT66) on the WAN zone if needed
+uci set firewall.@zone[1].masq6='1'
+
+# 3. Enable forwarding from LAN to WAN zone (if it doesn't already exist)
+uci add firewall forwarding
+uci set firewall.@forwarding[-1].src='lan'
+uci set firewall.@forwarding[-1].dest='wan'
+
+# 4. Commit and restart firewall
+uci commit firewall
+service firewall restart
 
 export devidx=0
 uci set wireless.default_radio${devidx}=wifi-iface
