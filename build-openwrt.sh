@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9abd3afe[2026-09-23T14:28:56+08:00]:build-openwrt.sh")
+VERSION+=("01efb187[2026-09-23T14:36:46+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -551,7 +551,7 @@ net.ipv4.tcp_tw_reuse = 0
 EOF
 }
 
-choices=("tl-wr703n-v1" "WR703N" "miwifi-mini" "MiWIFI MINI" "xiaomi_mir4a-100m" "MiRouter 4A 100M")
+choices=("tl-wr703n-v1" "WR703N" "xiaomi_miwifi-mini" "MiWIFI MINI" "xiaomi_mir4a-100m" "MiRouter 4A 100M")
 id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
@@ -563,19 +563,19 @@ case "$id" in
         add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.168.254"
         add_dropbear_cfg "${DIRNAME}/mydir"
         ;;
-    miwifi-mini) # Mini
+    xiaomi_miwifi-mini) # Mini
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
         PACKAGES+=(kmod-wireguard wireguard-tools)         #wireguard
         PACKAGES+=(block-mount kmod-usb3 kmod-usb-storage-uas  kmod-usb-storage) #usb storage
         PACKAGES+=(kmod-fs-ext4 kmod-fs-vfat e2fsprogs)    #vfat ext4 support
-        PACKAGES+=(aria2 rsync)                            #other tools
         PACKAGES+=(kmod-fs-jfs kmod-fs-xfs)                #xfs jfs support
         PACKAGES+=(nfs-kernel-server nfs-kernel-server-utils) #NFS
         PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
-        PACKAGES+=(eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth relayd)
-        PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
+        PACKAGES+=(eject lsof procps-ng-ps socat sshfs dnsmasq-full nfs-utils kmod-veth relayd)
+        PACKAGES+=(wpad-basic-mbedtls)
+        PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_default_automount_media "${DIRNAME}/mydir"
+        add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     xiaomi_mir4a-100m) # R4AC
