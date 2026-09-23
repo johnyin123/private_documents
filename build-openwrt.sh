@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("01efb187[2026-09-23T14:36:46+08:00]:build-openwrt.sh")
+VERSION+=("2c3c33e9[2026-09-23T16:53:59+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -252,23 +252,27 @@ EOF
 add_demo2() {
     local file="${1}"
     mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
+uci del system.ntp.server
+uci add_list system.ntp.server='0.debian.pool.ntp.org'
+uci add_list system.ntp.server='1.debian.pool.ntp.org'
+uci set system.ntp.enabled='1'
 #######################IPV6 slaac
 # 1. Enable IPv6 assignment on the LAN interface (defines the prefix length)
-uci set network.lan.ip6assign='64'
 # 2. Set the IPv6 router advertisement (RA) service to server mode
-uci set dhcp.lan.ra='server'
 # 3. Set the IPv6 DHCPv6 service to server mode (optional, but standard)
-uci set dhcp.lan.dhcpv6='server'
 # 4. Enable SLAAC by setting RA flags (Autonomous address configuration)
-uci set dhcp.lan.ra_slaac='1'
 # 5. Configure RA flags to tell clients to use SLAAC
 # 'managed' configures whether clients use DHCPv6 for IPs (0 = No, use SLAAC)
 # 'other_config' configures whether clients get DNS/NTP via DHCPv6 (1 = Yes)
-uci set dhcp.lan.ra_flags='managed-config'
-# 6. Commit the changes to system storage
+uci batch <<EO_CMD
+    set network.lan.ip6assign='64'
+    set dhcp.lan.ra='server'
+    set dhcp.lan.dhcpv6='server'
+    set dhcp.lan.ra_slaac='1'
+    set dhcp.lan.ra_flags='managed-config'
+EO_CMD
 uci commit dhcp
 uci commit network
-# 7. Restart the services to apply configuration
 /etc/init.d/network restart
 /etc/init.d/odhcpd restart
 
