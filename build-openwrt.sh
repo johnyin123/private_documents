@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0c47500[2026-09-23T14:09:52+08:00]:build-openwrt.sh")
+VERSION+=("74eab40a[2026-09-23T14:23:33+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -280,7 +280,8 @@ uci commit network
 
 #1. Remove all define
 while uci delete wireless.@wifi-iface[0] 2>/dev/null; do :; done
-uci del wireless.radio0.disabled
+# uci del wireless.radio0.disabled
+uci set wireless.radio0.disabled='0'
 uci commit wireless
 #2. Create the STA (Client) connection
 wifi_name=stadev
