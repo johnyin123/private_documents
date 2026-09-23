@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fd569ee5[2026-09-23T09:41:52+08:00]:build-openwrt.sh")
+VERSION+=("d0c47500[2026-09-23T14:09:52+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -275,7 +275,7 @@ uci set dhcp.lan.ra_flags='managed-config'
 uci commit dhcp
 uci commit network
 # 7. Restart the services to apply configuration
-/etc/init.init.d/network restart
+/etc/init.d/network restart
 /etc/init.d/odhcpd restart
 
 #1. Remove all define
