@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2c3c33e9[2026-09-23T16:53:59+08:00]:build-openwrt.sh")
+VERSION+=("fdb4c62d[2026-09-24T07:45:13+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -182,7 +182,11 @@ dialog() {
         "${items[@]}" 3>&1 1>&2 2>&3 || true)
     echo -n "${item}"
 }
-
+ssh_key() {
+    cat <<EOF
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+}
 add_openssh_key() {
     ### Add SSH public key
     local dir="${1}"
@@ -190,17 +194,18 @@ add_openssh_key() {
     ssh_key > "${dir}/root/.ssh/authorized_keys"
     chmod 0600 "${dir}/root/.ssh/authorized_keys"
 }
-
-add_uci_default_automount_media() {
+add_uci_lan_ipaddr() {
     local rootfs="${1}"
     local lan_ipaddr="${2:-192.168.31.1}"
-    if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
-        mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
-    fi
+    mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     cat << EOF > ${rootfs}/etc/uci-defaults/00-network
 uci set network.lan.ipaddr=${lan_ipaddr}
 uci set network.lan.netmask=255.255.255.0
 EOF
+}
+add_uci_default_automount_media() {
+    local rootfs="${1}"
+    mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
 uci set fstab.@global[0].auto_mount=1
 uci add fstab mount
@@ -227,12 +232,6 @@ EOPWD
 exit 0
 EOF
 }
-
-ssh_key() {
-    cat <<EOF
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
-EOF
-}
 add_dropbear_cfg() {
     local rootfs="${1}"
     mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
@@ -250,8 +249,7 @@ set -o vi
 EOF
 }
 add_demo2() {
-    local file="${1}"
-    mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
+    cat <<'EOF'
 uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
 uci add_list system.ntp.server='1.debian.pool.ntp.org'
@@ -300,6 +298,7 @@ wifi_name=apdev
 uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='ap'
+uci set wireless.${wifi_name}.hidden=1
 uci set wireless.${wifi_name}.network='lan'
 uci set wireless.${wifi_name}.ssid='myssid'
 uci set wireless.${wifi_name}.encryption='psk2'
@@ -320,8 +319,7 @@ uci commit network
 EOF
 }
 add_demo() {
-    local file="${1}"
-    mkdir -p $(dirname "${file}") && cat <<'EOF' > "${file}"
+    cat <<'EOF'
 firmware reset: firstboot
 
 sed -i 's_downloads.openwrt.org_mirrors.tuna.tsinghua.edu.cn/openwrt_' /etc/opkg/distfeeds.conf
@@ -564,7 +562,8 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat)    #vfat ext4 support
         PACKAGES+=(wpad)                            #other tools
-        add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.168.254"
+        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
+        add_uci_default_automount_media "${DIRNAME}/mydir"
         add_dropbear_cfg "${DIRNAME}/mydir"
         ;;
     xiaomi_miwifi-mini) # Mini
@@ -579,7 +578,8 @@ case "$id" in
         PACKAGES+=(wpad-basic-mbedtls)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_default_automount_media "${DIRNAME}/mydir" "192.168.31.1"
+        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
+        add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     xiaomi_mir4a-100m) # R4AC
@@ -590,6 +590,7 @@ case "$id" in
         PACKAGES+=(jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
+        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     *)  echo "Unexpected option $id"; exit 1;;
@@ -597,16 +598,16 @@ esac
 PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
 # mydir/etc/ssh/sshd_config
 # #change 192.168.1.1 => 192.168.31.1  via /etc/uci-defaults/00-network
-add_demo "${DIRNAME}/mydir/root/demo"
-add_demo2 "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 mkdir -pv -m0755 \
     "${DIRNAME}/mydir/root" \
     "${DIRNAME}/mydir/etc/profile.d" \
     "${DIRNAME}/mydir/etc/sysctl.d"
 
-add_shell_ps1 "${DIRNAME}/mydir/etc/profile.d//johnyin.sh"
+add_shell_ps1 > "${DIRNAME}/mydir/etc/profile.d/johnyin.sh"
 add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
 add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
+add_demo > "${DIRNAME}/mydir/root/demo"
+add_demo2 > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 
 rm ./out/* -f
 
