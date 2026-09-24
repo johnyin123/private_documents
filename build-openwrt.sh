@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fdb4c62d[2026-09-24T07:45:13+08:00]:build-openwrt.sh")
+VERSION+=("b80d9078[2026-09-24T09:48:19+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -558,7 +558,7 @@ id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
-        PACKAGES_REMOVE+=(-swconfig -opkg -wpad-mini -hostapd-mini)
+        PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat)    #vfat ext4 support
         PACKAGES+=(wpad)                            #other tools
