@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b80d9078[2026-09-24T09:48:19+08:00]:build-openwrt.sh")
+VERSION+=("d0450773[2026-09-24T12:33:03+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -246,6 +246,35 @@ add_shell_ps1() {
     cat <<EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
+EOF
+}
+add_demo_vlan() {
+    cat <<'EOF'
+uci batch <<EO_CMD
+    set network.switch0=switch
+    set network.switch0.name='switch0'
+    set network.switch0.reset='1'
+    set network.switch0.enable_vlan='1'
+EO_CMD
+# vlan 1
+# # No 't' on 1. Untagged packets become VLAN 1. 1t not
+# # swconfig dev switch0 show | grep -i cpu
+uci batch <<EO_CMD
+    add network switch_vlan
+    set network.@switch_vlan[-1].device='switch0'
+    set network.@switch_vlan[-1].vlan='1'
+    set network.@switch_vlan[-1].ports='0t 1'
+EO_CMD
+# vlan 2
+uci batch <<EO_CMD
+    add network switch_vlan
+    set network.@switch_vlan[-1].device='switch0'
+    set network.@switch_vlan[-1].vlan='2'
+    set network.@switch_vlan[-1].ports='0t 2t'
+EO_CMD
+# 703n no switch chip, can not untagged to defaut tag(1), so add eth0 and tag1 togeter
+uci set network.lan.ifname='eth0 eth0.1'
+uci commit network
 EOF
 }
 add_demo2() {
@@ -608,7 +637,7 @@ add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
 add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo > "${DIRNAME}/mydir/root/demo"
 add_demo2 > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
-
+add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 rm ./out/* -f
 
 echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
