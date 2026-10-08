@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0450773[2026-09-24T12:33:03+08:00]:build-openwrt.sh")
+VERSION+=("348388e7[2026-09-24T13:45:20+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -21,7 +21,7 @@ EOF
 # ├── dropbear/
 # │   └── authorized_keys
 # └── uci-defaults/
-#kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
+#kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig "
 
 : <<'EOF'
 # mount jffs2 image!
@@ -572,7 +572,43 @@ EOF
 uci commit
 EOFDFT
 }
-
+add_demo_wifi_repeater() {
+    cat <<'EOF'
+# # Wi-Fi Extender/Repeater with Bridged AP
+cat << EO_NETWORK
+config interface 'lan'
+    option device 'br-lan'
+    option proto 'static'
+    option ipaddr '192.168.1.2'
+    option netmask '255.255.255.0'
+    option gateway '192.168.1.1'
+    option dns '192.168.1.1'
+# optional, for ipv6 connectivity on AP
+config interface 'lan6'
+    option proto 'dhcpv6'
+    option device '@lan'
+    option reqaddress 'try'
+    option reqprefix 'no'
+EO_NETWORK
+cat <<EO_WIFI
+config wifi-iface 'default_radio0'
+    option device 'radio0'
+    option network 'lan'
+    option mode 'ap'
+    option ssid 'ssid'
+    option encryption 'psk2'
+    option key 'passphrase'
+EO_WIFI
+# Disable DHCP and RA services
+uci batch <<EO_CMD
+    set dhcp.lan.dhcpv4='disabled'
+    set dhcp.lan.dhcpv6='disabled'
+    set dhcp.lan.ra='disabled'
+    set dhcp.lan.ignore='1'
+EO_CMD
+uci commit dhcp
+EOF
+}
 add_sysctl() {
     cat <<EOF
 # net.ipv6.conf.all.disable_ipv6 = 1
@@ -638,6 +674,8 @@ add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo > "${DIRNAME}/mydir/root/demo"
 add_demo2 > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
+add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
+
 rm ./out/* -f
 
 echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
@@ -663,16 +701,16 @@ scp firmware.bin root@192.168.168.254:/tmp/
 sysupgrade -v /tmp/firmware.bin
 EOF
 #  Remove useless files from firmware
-#  
+#
 #  1. Create file 'files_remove' with full filenames:
-#  
+#
 #  /lib/modules/3.10.49/ts_bm.ko
 #  /lib/modules/3.10.49/nf_nat_ftp.ko
 #  /lib/modules/3.10.49/nf_nat_irc.ko
 #  /lib/modules/3.10.49/nf_nat_tftp.ko
-#  
+#
 #  2. Patch Makefile
-#  
+#
 #  ifneq ($(USER_FILES),)
 #  $(MAKE) copy_files
 #  endif
@@ -688,9 +726,9 @@ EOF
 #  +
 #  $(MAKE) package_postinst
 #  $(MAKE) build_image
-#  
+#
 #  3. Rebuild firmware
-#  
+#
 #  # make image \
 #  	PROFILE=TLWR841 \
 #  	PACKAGES="-firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -ppp -ppp-mod-pppoe" \
