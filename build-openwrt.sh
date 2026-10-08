@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("348388e7[2026-09-24T13:45:20+08:00]:build-openwrt.sh")
+VERSION+=("6dc64e4c[2026-10-08T14:24:59+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -609,6 +609,15 @@ EO_CMD
 uci commit dhcp
 EOF
 }
+add_demo_lan_dhcp_static() {
+    cat <<'EOF'
+# # Create a secondary logical interface (lan_dhcp) attached to the main LAN
+uci set network.lan_dhcp='interface'
+uci set network.lan_dhcp.device='@lan'
+uci set network.lan_dhcp.proto='dhcp'
+uci commit network
+EOF
+}
 add_sysctl() {
     cat <<EOF
 # net.ipv6.conf.all.disable_ipv6 = 1
@@ -675,6 +684,7 @@ add_demo > "${DIRNAME}/mydir/root/demo"
 add_demo2 > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
+add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
 
 rm ./out/* -f
 
