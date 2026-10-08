@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6dc64e4c[2026-10-08T14:24:59+08:00]:build-openwrt.sh")
+VERSION+=("13d4f6ce[2026-10-08T15:35:50+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -611,10 +611,18 @@ EOF
 }
 add_demo_lan_dhcp_static() {
     cat <<'EOF'
-# # Create a secondary logical interface (lan_dhcp) attached to the main LAN
-uci set network.lan_dhcp='interface'
-uci set network.lan_dhcp.device='@lan'
-uci set network.lan_dhcp.proto='dhcp'
+# # Create a secondary logical interface (wan) attached to the main LAN
+uci set network.wan='interface'
+uci set network.wan.device='@lan'
+uci set network.wan.proto='dhcp'
+uci set network.wan.defaultroute='1'
+uci set network.wan.metric='10'
+# ipv6
+uci set network.wan6=interface
+uci set network.wan6.proto='dhcpv6'
+uci set network.wan6.device='@lan'
+uci set network.wan6.reqaddress='try'
+uci set network.wan6.reqprefix='auto'
 uci commit network
 EOF
 }
