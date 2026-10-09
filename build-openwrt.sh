@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("65820a7b[2026-10-09T09:58:35+08:00]:build-openwrt.sh")
+VERSION+=("01a93197[2026-10-09T12:58:25+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -345,6 +345,16 @@ uci set network.wan6.device='@wan'
 uci set network.wan6.reqaddress='try'
 uci set network.wan6.reqprefix='auto'
 uci commit network
+
+# # Enable 802.11r Fast Transition,(FT for fast roaming)
+# uci set wireless.${wifi_name}.ieee80211r='1'
+# uci set wireless.${wifi_name}.mobility_domain='abab'
+# uci set wireless.${wifi_name}.ft_over_ds='0'
+# uci set wireless.${wifi_name}.reassociation_deadline='20000'
+# uci set wireless.${wifi_name}.ft_psk_generate_local='1'
+# #• Action: same UCI commands on every single router.
+# # • Multi-AP Settings: Ensure that the ssid, encryption, key (password), and mobility_domain (e.g., abab) are exactly identical across all devices.
+# # • Wi-Fi Channels: For the best performance, make sure the routers are on different non-overlapping wireless channels (e.g., Router 1 on Channel 1, Router 2 on Channel 6, Router 3 on Channel 11 for 2.4GHz) so they don't fight for airspace.
 EOF
 }
 add_demo() {

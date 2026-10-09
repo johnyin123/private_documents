@@ -1,0 +1,19 @@
+uci show wireless | grep ssid
+X=....
+
+# uci set wireless.${wifi_name}.ieee80211r='1'
+# Enable 802.11r Fast Transition
+uci set wireless.@wifi-iface[X].ieee80211r='1'
+# Set a 4-character hex Mobility Domain (MUST be identical on all APs for this SSID)
+uci set wireless.@wifi-iface[X].mobility_domain='abab'
+# Use Over-the-Air transition method (highly recommended for Apple/modern devices)
+uci set wireless.@wifi-iface[X].ft_over_ds='0'
+# Adjust the reassociation deadline to prevent aggressive drops (in milliseconds)
+uci set wireless.@wifi-iface[X].reassociation_deadline='20000'
+uci set wireless.@wifi-iface[X].ft_psk_generate_local='1'
+uci commit wireless
+wifi reload
+
+• Action: You must run the exact same UCI commands on every single router.
+• Multi-AP Settings: Ensure that the ssid, encryption, key (password), and mobility_domain (e.g., abab) are exactly identical across all devices.
+• Wi-Fi Channels: For the best performance, make sure the routers are on different non-overlapping wireless channels (e.g., Router 1 on Channel 1, Router 2 on Channel 6, Router 3 on Channel 11 for 2.4GHz) so they don't fight for airspace.
