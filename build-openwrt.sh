@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0f85b19f[2026-10-09T08:52:49+08:00]:build-openwrt.sh")
+VERSION+=("6ac5d94d[2026-10-09T09:38:09+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -491,7 +491,7 @@ config wifi-iface 'default_radio0'
 EOF
 }
 
-add_home_ap_default() {
+add_demo_home_ap_default() {
     cat <<'EOFDFT'
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
@@ -606,6 +606,14 @@ uci batch <<EO_CMD
     set dhcp.lan.ra='disabled'
     set dhcp.lan.ignore='1'
 EO_CMD
+# # for relayd
+# cat << EO_NETWORK
+# config interface 'repeater_bridge'
+#     option proto 'relayd'
+#     list network 'lan'
+#     list network 'wwan'
+#     option ipaddr '192.168.1.254' # Choose an unused IP on your main router's subnet
+# EO_NETWORK
 uci commit dhcp
 EOF
 }
@@ -705,8 +713,8 @@ mkdir -pv -m0755 \
 
 add_shell_ps1 > "${DIRNAME}/mydir/etc/profile.d/johnyin.sh"
 add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
-add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo > "${DIRNAME}/mydir/root/demo"
+add_demo_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
