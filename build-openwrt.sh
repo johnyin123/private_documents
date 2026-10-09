@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("13d4f6ce[2026-10-08T15:35:50+08:00]:build-openwrt.sh")
+VERSION+=("645c2e24[2026-10-08T16:57:07+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -617,13 +617,29 @@ uci set network.wan.device='@lan'
 uci set network.wan.proto='dhcp'
 uci set network.wan.defaultroute='1'
 uci set network.wan.metric='10'
+uci set network.wan.ifname='br-lan'
 # ipv6
 uci set network.wan6=interface
 uci set network.wan6.proto='dhcpv6'
 uci set network.wan6.device='@lan'
 uci set network.wan6.reqaddress='try'
 uci set network.wan6.reqprefix='auto'
+uci set network.wan6.ifname='br-lan'
 uci commit network
+# add new AP
+uci set wireless.radio0.disabled='0'
+# del default ap
+uci del wireless.default_radio0
+wifi_name=apdev
+uci set wireless.${wifi_name}=wifi-iface
+uci set wireless.${wifi_name}.device='radio0'
+uci set wireless.${wifi_name}.mode='ap'
+uci set wireless.${wifi_name}.hidden=1
+uci set wireless.${wifi_name}.network='lan'
+uci set wireless.${wifi_name}.ssid='myssid'
+uci set wireless.${wifi_name}.encryption='psk2'
+uci set wireless.${wifi_name}.key='mypasswd'
+uci commit wireless
 EOF
 }
 add_sysctl() {
