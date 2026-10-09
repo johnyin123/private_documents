@@ -1,0 +1,71 @@
+OpenWrt Bridged AP over a wireless uplink using WDS (Wireless Distribution System)—often typoed as WSD—you can link both the 2.4GHz and 5GHz bands in a true layer-2 mesh.
+This enables maximum speed, keeps all devices on the same subnet, and provides seamless roaming across your entire home.
+
+Step 1: Configure the WDS Client Uplinks
+
+Run these commands to tell your OpenWrt router to connect to your main router's hidden WDS backend.
+bash
+# 1. Clear any conflicting existing client configs
+uci -q delete wireless.wifinet0
+uci -q delete wireless.wifinet1
+
+# 2. Configure 2.4GHz WDS Client (radio0)
+uci set wireless.wds_client_2g=wifi-iface
+uci set wireless.wds_client_2g.device='radio0'
+uci set wireless.wds_client_2g.network='lan'
+uci set wireless.wds_client_2g.mode='sta'
+uci set wireless.wds_client_2g.wds='1'
+uci set wireless.wds_client_2g.ssid='YOUR_MAIN_WIFI_NAME'
+uci set wireless.wds_client_2g.encryption='psk2'
+uci set wireless.wds_client_2g.key='YOUR_MAIN_WIFI_PASSWORD'
+
+# 3. Configure 5GHz WDS Client (radio1)
+uci set wireless.wds_client_5g=wifi-iface
+uci set wireless.wds_client_5g.device='radio1'
+uci set wireless.wds_client_5g.network='lan'
+uci set wireless.wds_client_5g.mode='sta'
+uci set wireless.wds_client_5g.wds='1'
+uci set wireless.wds_client_5g.ssid='YOUR_MAIN_WIFI_NAME'
+uci set wireless.wds_client_5g.encryption='psk2'
+uci set wireless.wds_client_5g.key='YOUR_MAIN_WIFI_PASSWORD'
+Use code with caution.
+
+Step 2: Configure the Local Bridged AP Broadcasts
+
+This tells the same wireless radios to simultaneously broadcast the Wi-Fi signal to your phones, laptops, and smart home devices using the same credentials.
+bash
+# 1. Local AP Broadcast on 2.4GHz (radio0)
+uci set wireless.local_ap_2g=wifi-iface
+uci set wireless.local_ap_2g.device='radio0'
+uci set wireless.local_ap_2g.network='lan'
+uci set wireless.local_ap_2g.mode='ap'
+uci set wireless.local_ap_2g.ssid='YOUR_MAIN_WIFI_NAME'
+uci set wireless.local_ap_2g.encryption='psk2'
+uci set wireless.local_ap_2g.key='YOUR_MAIN_WIFI_PASSWORD'
+
+# 2. Local AP Broadcast on 5GHz (radio1)
+uci set wireless.local_ap_5g=wifi-iface
+uci set wireless.local_ap_5g.device='radio1'
+uci set wireless.local_ap_5g.network='lan'
+uci set wireless.local_ap_5g.mode='ap'
+uci set wireless.local_ap_5g.ssid='YOUR_MAIN_WIFI_NAME'
+uci set wireless.local_ap_5g.encryption='psk2'
+uci set wireless.local_ap_5g.key='YOUR_MAIN_WIFI_PASSWORD'
+Use code with caution.
+
+Step 3: Align the LAN Interface and Save
+
+Ensure the router does not try to hand out its own IP addresses or fight your main router.
+bash
+# Disable DHCP entirely
+uci set dhcp.lan.ignore='1'
+
+# Save all settings and apply
+uci commit wireless
+uci commit dhcp
+wifi reload
+Use code with caution.
+
+⚠️ Crucial Golden Rule for WDS
+
+For WDS to work, your main upstream router must also support and have WDS enabled on its own wireless settings.
