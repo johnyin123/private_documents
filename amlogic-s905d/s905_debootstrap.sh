@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63244635[2026-05-29T08:49:00+08:00]:s905_debootstrap.sh")
+VERSION+=("6d4651a1[2026-07-06T10:53:03+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -530,6 +530,12 @@ cat > /run/dnsmasq.conf <<EOF
 # # /usr/bin/systemd-run --unit dnsmasq-ap5g -p Restart=always dnsmasq --no-daemon --conf-file=/etc/dnsmasq/dnsmasq.conf
 # # /usr/bin/systemctl stop dnsmasq-ap5g.service
 ####dhcp
+# # Enable IPv6 Router Advertisements
+# enable-ra
+# # Stateful/Stateless DHCPv6 range using interface constructor
+# dhcp-range=::,slaac,constructor:${INTERFACE},ra-stateless
+# # dhcp-range=::100,::1ff,constructor:${INTERFACE},64,12h
+
 # # Bind to only one interface, Repeat the line for more than one interface.
 interface=${INTERFACE}
 # except-interface=lo
