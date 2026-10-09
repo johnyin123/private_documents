@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("645c2e24[2026-10-08T16:57:07+08:00]:build-openwrt.sh")
+VERSION+=("0f85b19f[2026-10-09T08:52:49+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -277,7 +277,7 @@ uci set network.lan.ifname='eth0 eth0.1'
 uci commit network
 EOF
 }
-add_demo2() {
+add_demo_wifi_sta_ap_slaac() {
     cat <<'EOF'
 uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
@@ -629,7 +629,9 @@ uci commit network
 # add new AP
 uci set wireless.radio0.disabled='0'
 # del default ap
-uci del wireless.default_radio0
+# uci del wireless.default_radio0
+while uci delete wireless.@wifi-iface[0] 2>/dev/null; do :; done
+
 wifi_name=apdev
 uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
@@ -659,7 +661,7 @@ case "$id" in
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat)    #vfat ext4 support
-        PACKAGES+=(wpad)                            #other tools
+        PACKAGES+=(wpad relayd)                            #other tools
         add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_dropbear_cfg "${DIRNAME}/mydir"
@@ -705,7 +707,7 @@ add_shell_ps1 > "${DIRNAME}/mydir/etc/profile.d/johnyin.sh"
 add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
 add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo > "${DIRNAME}/mydir/root/demo"
-add_demo2 > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
+add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
