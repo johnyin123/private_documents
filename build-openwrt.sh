@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6ac5d94d[2026-10-09T09:38:09+08:00]:build-openwrt.sh")
+VERSION+=("65820a7b[2026-10-09T09:58:35+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -668,11 +668,30 @@ case "$id" in
     tl-wr703n-v1) # 703N
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
-        PACKAGES+=(kmod-fs-exfat)    #vfat ext4 support
+        PACKAGES+=(kmod-fs-exfat kmod-nls-base kmod-nls-cp437 kmod-nls-utf8)    #vfat ext4 support
         PACKAGES+=(wpad relayd)                            #other tools
         add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_dropbear_cfg "${DIRNAME}/mydir"
+        cat << EOF >> ${DIRNAME}/mydir/etc/uci-defaults/00-network
+uci set network.lan.ip6assign='64'
+uci set network.wan='interface'
+uci set network.wan.device='@lan'
+uci set network.wan.proto='dhcp'
+uci set network.wan.defaultroute='1'
+uci set network.wan.metric='10'
+uci set network.wan.ifname='br-lan'
+uci set network.wan6=interface
+uci set network.wan6.proto='dhcpv6'
+uci set network.wan6.device='@lan'
+uci set network.wan6.reqaddress='try'
+uci set network.wan6.reqprefix='auto'
+uci set network.wan6.ifname='br-lan'
+uci del system.ntp.server
+uci add_list system.ntp.server='0.debian.pool.ntp.org'
+uci add_list system.ntp.server='1.debian.pool.ntp.org'
+uci set system.ntp.enabled='1'
+EOF
         ;;
     xiaomi_miwifi-mini) # Mini
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
