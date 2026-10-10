@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("44b7aa53[2026-10-10T12:31:53+08:00]:build-openwrt.sh")
+VERSION+=("fc32638c[2026-10-10T16:04:18+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -237,6 +237,7 @@ add_dropbear_cfg() {
     mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
 uci set dropbear.@dropbear[0].Port='60022'
+uci set dropbear.@dropbear[0].Interface='lan'
 # uci set dropbear.@dropbear[0].RootPasswordAuth='off'
 EOF
     ssh_key > "${rootfs}/etc/dropbear/authorized_keys"
