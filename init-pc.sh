@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("75c5a63c[2026-07-29T13:31:49+08:00]:init-pc.sh")
+VERSION+=("5fae9677[2026-08-05T08:27:03+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -132,6 +132,8 @@ allow-hotplug wlan0
 # iface wlan0 inet dhcp
 #     wpa_iface wlan0
 #     wpa_conf /etc/work.conf
+
+iface wlan0 inet6 auto
 EOF
 
 cat << 'EOF_WIFI' > /etc/work.conf
