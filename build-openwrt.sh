@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea3bf8c4[2026-10-10T07:30:53+08:00]:build-openwrt.sh")
+VERSION+=("aec1596a[2026-10-10T12:10:45+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -237,6 +237,7 @@ add_dropbear_cfg() {
     mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
 uci set dropbear.@dropbear[0].Port='60022'
+# uci set dropbear.@dropbear[0].RootPasswordAuth='off'
 EOF
     ssh_key > "${rootfs}/etc/dropbear/authorized_keys"
     chmod 0600 "${rootfs}/etc/dropbear/authorized_keys"
@@ -702,6 +703,7 @@ uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
 uci add_list system.ntp.server='1.debian.pool.ntp.org'
 uci set system.ntp.enabled='1'
+uci set system.@system[-1].hostname='wr703n'
 EOF
         ;;
     xiaomi_miwifi-mini) # Mini
