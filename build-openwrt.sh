@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c728ac08[2026-10-11T10:48:43+08:00]:build-openwrt.sh")
+VERSION+=("e396c9fe[2026-10-11T19:19:57+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -726,6 +726,16 @@ EOF
         add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
+        cat << EOF >> ${DIRNAME}/mydir/etc/uci-defaults/00-network
+uci del system.ntp.server
+uci add_list system.ntp.server='0.debian.pool.ntp.org'
+uci add_list system.ntp.server='1.debian.pool.ntp.org'
+uci set system.ntp.enabled='1'
+uci set system.@system[-1].hostname='mimini'
+uci set dhcp.@dnsmasq[0].cachesize='5000'
+uci set dhcp.lan.ra_slaac='1'
+uci set dhcp.lan.ra_flags='managed-config'
+EOF
         ;;
     xiaomi_mir4a-100m) # R4AC
         PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
