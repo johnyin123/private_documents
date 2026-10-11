@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bf5265ae[2026-10-10T16:44:29+08:00]:build-openwrt.sh")
+VERSION+=("c728ac08[2026-10-11T10:48:43+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -781,36 +781,3 @@ firstboot && reboot now # reset factory
 scp firmware.bin root@192.168.168.254:/tmp/
 sysupgrade -v /tmp/firmware.bin
 EOF
-#  Remove useless files from firmware
-#
-#  1. Create file 'files_remove' with full filenames:
-#
-#  /lib/modules/3.10.49/ts_bm.ko
-#  /lib/modules/3.10.49/nf_nat_ftp.ko
-#  /lib/modules/3.10.49/nf_nat_irc.ko
-#  /lib/modules/3.10.49/nf_nat_tftp.ko
-#
-#  2. Patch Makefile
-#
-#  ifneq ($(USER_FILES),)
-#  $(MAKE) copy_files
-#  endif
-#  +
-#  +ifneq ($(FILES_REMOVE),)
-#  +	@echo
-#  +	@echo Remove useless files
-#  +
-#  +	while read filename; do				\
-#  +	    rm -rfv "$(TARGET_DIR)$$filename";	\
-#  +	done < $(FILES_REMOVE);
-#  +endif
-#  +
-#  $(MAKE) package_postinst
-#  $(MAKE) build_image
-#
-#  3. Rebuild firmware
-#
-#  # make image \
-#  	PROFILE=TLWR841 \
-#  	PACKAGES="-firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -ppp -ppp-mod-pppoe" \
-#  	FILES_REMOVE="files_remove"
