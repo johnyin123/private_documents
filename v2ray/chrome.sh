@@ -14,4 +14,5 @@ export no_proxy="localhost,127.0.0.1,192.168.0.0/16,.dom.org"
 sudo --preserve-env ip netns exec ns-v2ray su johnyin -c "google-chrome"
 cat <<EOF
 sudo --preserve-env ip netns exec ns-v2ray su johnyin
+sudo --preserve-env sh -c 'cd /home/johnyin/disk/mygit/github_private/ && ip netns exec ns-v2ray su johnyin'
 EOF
