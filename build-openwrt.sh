@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc32638c[2026-10-10T16:04:18+08:00]:build-openwrt.sh")
+VERSION+=("bf5265ae[2026-10-10T16:44:29+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -686,6 +686,7 @@ case "$id" in
         add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_dropbear_cfg "${DIRNAME}/mydir"
+        add_uci_default_password "${DIRNAME}/mydir" "password"
         cat << EOF >> ${DIRNAME}/mydir/etc/uci-defaults/00-network
 uci set network.lan.ip6assign='64'
 uci set network.wan='interface'
@@ -722,7 +723,7 @@ EOF
         PACKAGES+=(wpad-basic-mbedtls)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
+        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
@@ -734,7 +735,7 @@ EOF
         PACKAGES+=(jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
+        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     *)  echo "Unexpected option $id"; exit 1;;
