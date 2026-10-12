@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b8d4cecb[2026-10-12T08:41:11+08:00]:build-openwrt.sh")
+VERSION+=("860e77eb[2026-10-12T10:28:56+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -673,7 +673,10 @@ uci set system.ntp.enabled='1'
 uci set system.@system[-1].hostname='wr703n'
 uci set dhcp.@dnsmasq[0].cachesize='5000'
 uci set dhcp.lan.ra_slaac='1'
-uci set dhcp.lan.ra_flags='managed-config'
+#uci set dhcp.lan.ra_flags='managed-config'
+uci del dhcp.lan.ra_flags
+uci add_list dhcp.lan.ra_flags='managed-config'
+uci add_list dhcp.lan.ra_flags='other-config'
 EOF
         ;;
     xiaomi_miwifi-mini) # Mini
