@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("31773a17[2026-10-12T07:07:29+08:00]:build-openwrt.sh")
+VERSION+=("b8d4cecb[2026-10-12T08:41:11+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -646,6 +646,8 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat kmod-nls-base kmod-nls-cp437 kmod-nls-utf8)    #vfat ext4 support
         PACKAGES+=(wpad relayd)                            #other tools
+        PACKAGES+=(wwan)
+        # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
         add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_dropbear_cfg "${DIRNAME}/mydir"
@@ -746,6 +748,8 @@ DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
 cat <<EOF
 ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
+# for dropbear without sftp srv
+scp -O root@192.168.1.1:/etc/config/* .
 # wr703n
     # ip a a 192.168.1.2/24 dev eth0
     nc -ul 6666 #push reset, then poweron keep push 10sec
