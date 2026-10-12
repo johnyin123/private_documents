@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e396c9fe[2026-10-11T19:19:57+08:00]:build-openwrt.sh")
+VERSION+=("31773a17[2026-10-12T07:07:29+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -370,8 +370,8 @@ add luci web:
 
 /etc/config/dhcp
 config dnsmasq
-	option listen_address '192.168.31.1'
-	option listen_address '127.0.0.1'
+    option listen_address '192.168.31.1'
+    option listen_address '127.0.0.1'
 
 # 域名劫持
 uci add dhcp domain
@@ -446,16 +446,6 @@ uci set network.wan6.reqaddress='try'
 uci set network.wan6.reqprefix='auto'
 uci commit network
 ifup wan6
-# Enable IPv6 assignment on LAN (e.g., using a /60 or /64 split)
-uci set network.lan.ip6assign='64'
-uci commit network
-# Configure Router Advertisements (RA) and SLAAC on LAN
-uci set dhcp.lan.ra='server'
-uci set dhcp.lan.dhcpv6='server'
-uci set dhcp.lan.ra_slaac='1'
-uci commit dhcp
-/etc/init.d/network restart
-/etc/init.d/odhcpd restart
 
 # 1. Ensure WAN zone covers both wan and wan6 network interfaces
 uci set firewall.@zone[1].name='wan'
@@ -473,33 +463,6 @@ uci set firewall.@forwarding[-1].dest='wan'
 # 4. Commit and restart firewall
 uci commit firewall
 service firewall restart
-
-export devidx=0
-uci set wireless.default_radio${devidx}=wifi-iface
-uci set wireless.default_radio${devidx}.device=radio${devidx}
-uci set wireless.default_radio${devidx}.network=lan
-uci set wireless.default_radio${devidx}.mode=ap
-uci set wireless.default_radio${devidx}.ssid=LEDE
-uci set wireless.default_radio${devidx}.encryption=psk2+tkip+aes
-uci set wireless.default_radio${devidx}.key=88888888
-uci batch <<EO_CMD
-set wireless.default_radio${devidx}.hidden=1
-EO_CMD
-uci commit wireless
-
-# # /etc/config/wireless
-config wifi-iface 'default_radio0'
-        option device 'radio0'
-        option network 'lan'
-        option mode 'ap'
-        option hidden 1
-        option ssid 'openwrt'
-        option encryption 'psk2+tkip+aes'
-        option key '88888888'
-        # option mode 'sta'
-        # option ssid 'openwrt'
-        # option encryption 'psk2'
-        # option key '88888888'
 EOF
 }
 
