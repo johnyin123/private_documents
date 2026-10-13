@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a7d1ac78[2026-10-13T08:02:05+08:00]:build-openwrt.sh")
+VERSION+=("e575374a[2026-10-13T09:58:58+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -218,6 +218,7 @@ add_uci_default_dropbear() {
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
 uci set dropbear.@dropbear[0].Port='60022'
 uci set dropbear.@dropbear[0].Interface='lan'
+uci set dropbear.@dropbear[0].IdleTimeout='600'
 # uci set dropbear.@dropbear[0].RootPasswordAuth='off'
 EOF
     ssh_key > "${rootfs}/etc/dropbear/authorized_keys"
@@ -607,6 +608,35 @@ uci set wireless.${wifi_name}.key='****'
 uci commit wireless
 EOF
 }
+add_demo_vlan_8021q() {
+    cat <<'EOF'
+br_name=guest
+# # 17.01 uses dot-notation directly for 802.1q
+uci set network.${br_name}=interface
+uci set network.${br_name}.type='bridge' # use bridge or NOT
+uci set network.${br_name}.proto='static'
+uci set network.${br_name}.ifname='eth0.10'
+uci set network.${br_name}.ipaddr='192.168.10.1'
+uci set network.${br_name}.netmask='255.255.255.0'
+# # add ap
+uci set wireless.default_radio0.disabled='1'
+uci set wireless.${br_name}_wifi=wifi-iface
+uci set wireless.${br_name}_wifi.device='radio0'
+uci set wireless.${br_name}_wifi.mode='ap'
+uci set wireless.${br_name}_wifi.ssid="${br_name}_ap"
+uci set wireless.${br_name}_wifi.encryption='psk2'
+uci set wireless.${br_name}_wifi.key='****'
+uci set wireless.${br_name}_wifi.network="${br_name}"
+# # add dhcp
+uci set dhcp.${br_name}=dhcp
+uci set dhcp.${br_name}.interface="${br_name}"
+uci set dhcp.${br_name}.start='100'
+uci set dhcp.${br_name}.limit='150'
+uci set dhcp.${br_name}.leasetime='12h'
+# add dns srv
+uci add_list dhcp.${br_name}.dhcp_option='6,1.1.1.1,8.8.8.8'
+EOF
+}
 add_sysctl() {
     cat <<EOF
 # net.ipv6.conf.all.disable_ipv6 = 1
@@ -626,7 +656,7 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat kmod-nls-base kmod-nls-cp437 kmod-nls-utf8)    #vfat ext4 support
         PACKAGES+=(wpad relayd)                            #other tools
-        PACKAGES+=(wwan)
+        PACKAGES+=(wwan kmod-8021q) #vlan support
         # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
@@ -727,7 +757,7 @@ add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
-
+add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q"
 rm ./out/* -f
 
 echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
