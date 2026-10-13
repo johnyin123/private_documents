@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c2f5167e[2026-10-12T16:27:12+08:00]:build-openwrt.sh")
+VERSION+=("a7d1ac78[2026-10-13T08:02:05+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -743,6 +743,13 @@ FILES_REMOVE="${DIRNAME}/files_remove" \
 DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
 cat <<'EOF'
+for radio in 'radio0' 'radio1'
+do
+    # Radio doesn't exist.
+    uci -q get wireless."$radio" || continue
+    ssid="$(uci -q get wireless.default_${radio}.ssid)"
+    uci set wireless.default_${radio}.ssid="`uci -q get system.@system[0].hostname`"
+done
 # for dropbear without sftp srv
 scp -O root@192.168.1.1:/etc/config/* .
 # wr703n
