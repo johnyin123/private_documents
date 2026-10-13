@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
-    BASH_XTRACEFD="5"
-    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-    set -o xtrace
-fi
-VERSION+=("860e77eb[2026-10-12T10:28:56+08:00]:build-openwrt.sh")
+VERSION+=("c2f5167e[2026-10-12T16:27:12+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
-    sed -i 's_downloads.openwrt.org_mirrors.tuna.tsinghua.edu.cn/openwrt_' repositories.conf
+    sed -i 's|downloads.openwrt.org|mirrors.aliyun.com/openwrt|g' repositories
+    # 17.01.7
+    sed -i 's|archive.openwrt.org|mirrors.aliyun.com/openwrt|g' repositories.conf
 EOF
 # etc/
 # ├── banner
@@ -194,7 +191,7 @@ add_openssh_key() {
     ssh_key > "${dir}/root/.ssh/authorized_keys"
     chmod 0600 "${dir}/root/.ssh/authorized_keys"
 }
-add_uci_lan_ipaddr() {
+add_uci_default_lanip() {
     local rootfs="${1}"
     local lan_ipaddr="${2:-192.168.31.1}"
     mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
@@ -203,27 +200,10 @@ uci set network.lan.ipaddr=${lan_ipaddr}
 uci set network.lan.netmask=255.255.255.0
 EOF
 }
-add_uci_default_automount_media() {
-    local rootfs="${1}"
-    mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
-    cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
-uci set fstab.@global[0].auto_mount=1
-uci add fstab mount
-uci set fstab.@mount[0].target=/media
-uci set fstab.@mount[0].label=media
-uci set fstab.@mount[0].options=ro
-uci set fstab.@mount[0].enabled=1
-uci commit fstab
-exit 0
-EOF
-}
-
 add_uci_default_password() {
     local rootfs="${1}"
     local pass="${2:-password}"
-    if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
-        mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
-    fi
+    mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     cat << EOF > "${rootfs}/etc/uci-defaults/99-passwd"
 passwd << EOPWD
 ${pass}
@@ -232,7 +212,7 @@ EOPWD
 exit 0
 EOF
 }
-add_dropbear_cfg() {
+add_uci_default_dropbear() {
     local rootfs="${1}"
     mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
@@ -298,7 +278,7 @@ uci batch <<EO_CMD
     set dhcp.lan.ra='server'
     set dhcp.lan.dhcpv6='server'
     set dhcp.lan.ra_slaac='1'
-    set dhcp.lan.ra_flags='managed-config'
+    add_list dhcp.lan.ra_flags='managed-config'
 EO_CMD
 uci commit dhcp
 uci commit network
@@ -318,7 +298,7 @@ uci set wireless.${wifi_name}.mode='sta'
 uci set wireless.${wifi_name}.network='wan wan6'
 uci set wireless.${wifi_name}.ssid='outgoing_ssid'
 uci set wireless.${wifi_name}.identity='user'
-uci set wireless.${wifi_name}.password='pass'
+uci set wireless.${wifi_name}.password='****'
 uci set wireless.${wifi_name}.encryption='wpa2'
 uci set wireless.${wifi_name}.eap_type='peap'
 uci set wireless.${wifi_name}.auth_inner='MSCHAPV2'
@@ -333,7 +313,7 @@ uci set wireless.${wifi_name}.hidden=1
 uci set wireless.${wifi_name}.network='lan'
 uci set wireless.${wifi_name}.ssid='myssid'
 uci set wireless.${wifi_name}.encryption='psk2'
-uci set wireless.${wifi_name}.key='mypasswd'
+uci set wireless.${wifi_name}.key='****'
 uci commit wireless
 #4. set wan/wan6 dhcp
 uci set network.wan=interface
@@ -474,12 +454,12 @@ uci commit
 uci -q batch <<-EOF
 set network.wg0=interface
 set network.wg0.proto='wireguard'
-set network.wg0.private_key='xxxx'
+set network.wg0.private_key='****'
 add_list network.wg0.addresses='10.0.2.7/24'
 set network.wg0.mtu='1420'
 
 set network.wgserver=wireguard_wg0
-set network.wgserver.public_key='xxxx'
+set network.wgserver.public_key='****'
 set network.wgserver.endpoint_host='1.1.1.174'
 set network.wgserver.endpoint_port='50000'
 set network.wgserver.route_allowed_ips='1'
@@ -508,14 +488,14 @@ set wireless.toup.network='wwan'
 set wireless.toup.mode='sta'
 set wireless.toup.ssid='s905d03'
 set wireless.toup.encryption='psk'
-set wireless.toup.key='Admin.pass@123'
+set wireless.toup.key='****'
 
 set wireless.mywifi5g=wifi-iface
 set wireless.mywifi5g.device='radio0'
 set wireless.mywifi5g.network='lan'
 set wireless.mywifi5g.mode='ap'
 set wireless.mywifi5g.encryption='psk2'
-set wireless.mywifi5g.key='Admin.pass@123'
+set wireless.mywifi5g.key='****'
 set wireless.mywifi5g.ssid='johnap5g'
 
 set wireless.mywifi2g=wifi-iface
@@ -523,7 +503,7 @@ set wireless.mywifi2g.device='radio1'
 set wireless.mywifi2g.network='lan'
 set wireless.mywifi2g.mode='ap'
 set wireless.mywifi2g.encryption='psk2'
-set wireless.mywifi2g.key='Admin.pass@123'
+set wireless.mywifi2g.key='****'
 set wireless.mywifi2g.ssid='johnap2g'
 
 EOF
@@ -572,7 +552,7 @@ config wifi-iface 'default_radio0'
     option mode 'ap'
     option ssid 'ssid'
     option encryption 'psk2'
-    option key 'passphrase'
+    option key '****'
 EO_WIFI
 # Disable DHCP and RA services
 uci batch <<EO_CMD
@@ -623,7 +603,7 @@ uci set wireless.${wifi_name}.hidden=1
 uci set wireless.${wifi_name}.network='lan'
 uci set wireless.${wifi_name}.ssid='myssid'
 uci set wireless.${wifi_name}.encryption='psk2'
-uci set wireless.${wifi_name}.key='mypasswd'
+uci set wireless.${wifi_name}.key='****'
 uci commit wireless
 EOF
 }
@@ -648,11 +628,10 @@ case "$id" in
         PACKAGES+=(wpad relayd)                            #other tools
         PACKAGES+=(wwan)
         # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
-        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.168.254"
-        add_uci_default_automount_media "${DIRNAME}/mydir"
-        add_dropbear_cfg "${DIRNAME}/mydir"
+        add_uci_default_dropbear "${DIRNAME}/mydir"
+        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_password "${DIRNAME}/mydir" "password"
-        cat << EOF >> ${DIRNAME}/mydir/etc/uci-defaults/00-network
+        cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci set network.lan.ip6assign='64'
 uci set network.wan='interface'
 uci set network.wan.device='@lan'
@@ -690,11 +669,11 @@ EOF
         PACKAGES+=(eject lsof procps-ng-ps socat sshfs dnsmasq-full nfs-utils kmod-veth relayd)
         PACKAGES+=(wpad-basic-mbedtls)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
-        add_openssh_key "${DIRNAME}/mydir"
-        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.31.1"
-        add_uci_default_automount_media "${DIRNAME}/mydir"
+        # add_openssh_key "${DIRNAME}/mydir"
+        add_uci_default_dropbear "${DIRNAME}/mydir"
+        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
-        cat << EOF >> ${DIRNAME}/mydir/etc/uci-defaults/00-network
+        cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
 uci add_list system.ntp.server='1.debian.pool.ntp.org'
@@ -702,7 +681,9 @@ uci set system.ntp.enabled='1'
 uci set system.@system[-1].hostname='mimini'
 uci set dhcp.@dnsmasq[0].cachesize='5000'
 uci set dhcp.lan.ra_slaac='1'
-uci set dhcp.lan.ra_flags='managed-config'
+uci del dhcp.lan.ra_flags
+uci add_list dhcp.lan.ra_flags='managed-config'
+uci add_list dhcp.lan.ra_flags='other-config'
 EOF
         ;;
     xiaomi_mir4a-100m) # R4AC
@@ -713,8 +694,20 @@ EOF
         PACKAGES+=(jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_lan_ipaddr "${DIRNAME}/mydir" "192.168.31.1"
+        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
+        cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
+uci del system.ntp.server
+uci add_list system.ntp.server='0.debian.pool.ntp.org'
+uci add_list system.ntp.server='1.debian.pool.ntp.org'
+uci set system.ntp.enabled='1'
+uci set system.@system[-1].hostname='mir4a'
+uci set dhcp.@dnsmasq[0].cachesize='5000'
+uci set dhcp.lan.ra_slaac='1'
+uci del dhcp.lan.ra_flags
+uci add_list dhcp.lan.ra_flags='managed-config'
+uci add_list dhcp.lan.ra_flags='other-config'
+EOF
         ;;
     *)  echo "Unexpected option $id"; exit 1;;
 esac
@@ -749,8 +742,7 @@ FILES="${DIRNAME}/mydir" \
 FILES_REMOVE="${DIRNAME}/files_remove" \
 DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
-cat <<EOF
-ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
+cat <<'EOF'
 # for dropbear without sftp srv
 scp -O root@192.168.1.1:/etc/config/* .
 # wr703n
@@ -760,4 +752,12 @@ scp -O root@192.168.1.1:/etc/config/* .
 firstboot && reboot now # reset factory
 scp firmware.bin root@192.168.168.254:/tmp/
 sysupgrade -v /tmp/firmware.bin
+
+OpenWrt Failsafe Mode:
+    1. Power off the router.
+    2. Power it on while watching the status LED.
+    3. As soon as the light starts blinking, press and hold any button (or the reset button) repeatedly for a short 2–4 second window to trigger Failsafe Mode.
+    4. Set your computer's Ethernet adapter to a static IP (e.g., 192.168.1.2, subnet 255.255.255.0) and connect via LAN cable.
+    5. Telnet or SSH into 192.168.1.1.
+    ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
 EOF
