@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8be0cc24[2026-10-13T12:48:03+08:00]:build-openwrt.sh")
+VERSION+=("ea534de4[2026-10-13T12:55:53+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -611,11 +611,12 @@ EOF
 add_demo_vlan_8021q() {
     cat <<'EOF'
 br_name=guest
+DNS_SERVER='8.8.8.8,8.8.4.4'
 # # 17.01 uses dot-notation directly for 802.1q
 uci set network.${br_name}=interface
 uci set network.${br_name}.type='bridge' # use bridge or NOT
 uci set network.${br_name}.proto='static'
-uci set network.${br_name}.ifname='eth0.10'
+uci set network.${br_name}.ifname='eth0.10' #vlan 10, no ifname use nat mode
 uci set network.${br_name}.ipaddr='192.168.10.1'
 uci set network.${br_name}.netmask='255.255.255.0'
 # # add ap
@@ -634,7 +635,7 @@ uci set dhcp.${br_name}.start='100'
 uci set dhcp.${br_name}.limit='150'
 uci set dhcp.${br_name}.leasetime='12h'
 # add dns srv
-uci add_list dhcp.${br_name}.dhcp_option='6,1.1.1.1,8.8.8.8'
+uci add_list dhcp.${br_name}.dhcp_option="6,${DNS_SERVER}"
 # # add fw output wan
 uci set firewall.${br_name}=zone
 uci set firewall.${br_name}.name="${br_name}"
@@ -650,8 +651,8 @@ uci set firewall.@forwarding[-1].dest='wan'
 uci add firewall rule
 uci set firewall.@rule[-1].name="Allow-${br_name}-DHCP"
 uci set firewall.@rule[-1].src="${br_name}"
-uci set firewall.@rule[-1].dest_port='67'
-uci set firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].dest_port='67-68'
+uci set firewall.@rule[-1].proto='tcp udp'
 uci set firewall.@rule[-1].target='ACCEPT'
 # Allow DNS requests to the router
 uci add firewall rule
