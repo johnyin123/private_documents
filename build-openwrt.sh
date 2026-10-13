@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e575374a[2026-10-13T09:58:58+08:00]:build-openwrt.sh")
+VERSION+=("8be0cc24[2026-10-13T12:48:03+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -635,6 +635,31 @@ uci set dhcp.${br_name}.limit='150'
 uci set dhcp.${br_name}.leasetime='12h'
 # add dns srv
 uci add_list dhcp.${br_name}.dhcp_option='6,1.1.1.1,8.8.8.8'
+# # add fw output wan
+uci set firewall.${br_name}=zone
+uci set firewall.${br_name}.name="${br_name}"
+uci set firewall.${br_name}.network="${br_name}"
+uci set firewall.${br_name}.input='REJECT'   # Block clients from accessing router services by default
+uci set firewall.${br_name}.output='ACCEPT'  # Allow traffic originating from the router out to ${br_name}
+uci set firewall.${br_name}.forward='REJECT' # Block traffic forwarding between interfaces within this zone
+# Allow zone to forward to WAN zone
+uci add firewall forwarding
+uci set firewall.@forwarding[-1].src="${br_name}"
+uci set firewall.@forwarding[-1].dest='wan'
+# Allow DHCP requests to the router
+uci add firewall rule
+uci set firewall.@rule[-1].name="Allow-${br_name}-DHCP"
+uci set firewall.@rule[-1].src="${br_name}"
+uci set firewall.@rule[-1].dest_port='67'
+uci set firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].target='ACCEPT'
+# Allow DNS requests to the router
+uci add firewall rule
+uci set firewall.@rule[-1].name="Allow-${br_name}-DNS"
+uci set firewall.@rule[-1].src="${br_name}"
+uci set firewall.@rule[-1].dest_port='53'
+uci set firewall.@rule[-1].proto='tcp udp'
+uci set firewall.@rule[-1].target='ACCEPT'
 EOF
 }
 add_sysctl() {
