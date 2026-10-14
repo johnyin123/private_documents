@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("5e9d383d[2026-10-14T14:30:35+08:00]:build-openwrt.sh")
+VERSION+=("adba172d[2026-10-14T15:12:01+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -700,7 +700,7 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat kmod-nls-base kmod-nls-cp437 kmod-nls-utf8)    #vfat ext4 support
         PACKAGES+=(wpad relayd)                            #other tools
-        PACKAGES+=(wwan kmod-8021q) #vlan support
+        PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #vlan support
         # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
