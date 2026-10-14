@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e1d424e[2025-02-07T09:59:48+08:00]:br-hostapd.sh")
+VERSION+=("8593123d[2025-02-07T10:48:35+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -116,8 +116,12 @@ main() {
     directory_exists /sys/class/net/${wifi}/wireless || exit_msg "wireless ${wifi} nofound!!\n"
     [ -z "${bridge}" ] || { file_exists /sys/class/net/${bridge}/bridge/bridge_id || exit_msg "bridge ${bridge} nofound!!\n"; }
     gen_hostapd "${wifi}" "${ssid}" "/tmp/hostapd.conf" "${bridge}"
-    info_msg "start: hostapd -B /tmp/hostapd.conf\n"
-    try "start-stop-daemon --start --quiet --background --exec /sbin/hostapd -- -B /tmp/hostapd.conf"
+    info_msg "start: hostapd /tmp/hostapd.conf\n"
+    # try "start-stop-daemon --start --quiet --background --exec /sbin/hostapd -- -B /tmp/hostapd.conf"
+    try systemctl reset-failed
+    try systemd-run --unit br-hostapd /sbin/hostapd /tmp/hostapd.conf
+    info_msg "Stop service: systemctl stop br-hostapd.service\n"
+    info_msg "Reset failed: systemctl reset-failed\n"
     return 0
 }
 main "$@"
