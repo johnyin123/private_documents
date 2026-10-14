@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("adba172d[2026-10-14T15:12:01+08:00]:build-openwrt.sh")
+VERSION+=("779b4f1e[2026-10-14T15:37:28+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -638,6 +638,7 @@ uci -q set wireless.radio0.disabled='0' || true
 uci -q set wireless.default_radio0.disabled='1' || true
 uci set wireless.${br_name}_wifi=wifi-iface
 uci set wireless.${br_name}_wifi.disabled='0'
+uci set wireless.${br_name}.hidden=1
 uci set wireless.${br_name}_wifi.device='radio0'
 uci set wireless.${br_name}_wifi.mode='ap'
 uci set wireless.${br_name}_wifi.ssid="${br_name}_ap"
