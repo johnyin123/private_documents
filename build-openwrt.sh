@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cdf4ea6e[2026-10-14T09:51:39+08:00]:build-openwrt.sh")
+VERSION+=("306e0a5a[2026-10-14T13:02:30+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -598,15 +598,19 @@ EOF
 }
 add_demo_vlan_8021q() {
     cat <<'EOF'
-br_name=guest
-DNS_SERVER='8.8.8.8,8.8.4.4'
+#!/usr/bin/env sh
+set -o nounset -o pipefail -o errexit
+
+br_name=${1:?need bridge name}
+eth=${2:-}
+DNS=${DNS:-'8.8.8.8,8.8.4.4'}
 # # 17.01 uses dot-notation directly for 802.1q
 uci set network.${br_name}=interface
 uci set network.${br_name}.type='bridge' # use bridge or NOT
 uci set network.${br_name}.proto='static'
-uci set network.${br_name}.ifname='eth0.10' #vlan 10, no ifname use nat mode
 uci set network.${br_name}.ipaddr='192.168.10.1'
 uci set network.${br_name}.netmask='255.255.255.0'
+[ -z "${eth}" ] || uci set network.${br_name}.ifname="${eth}" #eth0.10(vlan 10), no ifname use nat mode
 # # add ap
 uci set wireless.default_radio0.disabled='1'
 uci set wireless.${br_name}_wifi=wifi-iface
@@ -623,7 +627,7 @@ uci set dhcp.${br_name}.start='100'
 uci set dhcp.${br_name}.limit='150'
 uci set dhcp.${br_name}.leasetime='12h'
 # add dns srv
-uci add_list dhcp.${br_name}.dhcp_option="6,${DNS_SERVER}"
+uci add_list dhcp.${br_name}.dhcp_option="6,${DNS}"
 # # add fw output wan
 uci set firewall.${br_name}=zone
 uci set firewall.${br_name}.name="${br_name}"
