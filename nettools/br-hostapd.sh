@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8593123d[2025-02-07T10:48:35+08:00]:br-hostapd.sh")
+VERSION+=("0aa41ce2[2026-10-14T08:36:53+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -36,7 +36,7 @@ ignore_broadcast_ssid=1
 wpa=3
 # # 指定 WPA 类型
 wpa_key_mgmt=WPA-PSK
-wpa_pairwise=TKIP
+# wpa_pairwise=TKIP
 rsn_pairwise=CCMP
 wpa_passphrase=Admin@123
 
@@ -44,12 +44,12 @@ driver=nl80211
 $([ "${MODE}" = "2G" ] && { cat << EO_MODE
 hw_mode=g
 # # 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
-channel=9
+channel=${CHANNEL:-9}
 EO_MODE
 } || { cat <<EO_MODE
-hw_mode=a
+# hw_mode=a
 # # a simply means 5GHz
-channel=44
+channel=${CHANNEL:-44}
 wmm_enabled=1
 # # QoS support
 ieee80211n=1
@@ -72,6 +72,7 @@ usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         env: ${R}MODE=2G/5G${N} default 2G, 5G not work!!
+             ${R}CHANNEL=${N} default 9 in 2G, 44 in 5G
         -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
         --ssid <ssid>        wifi ap ssid, default: s905d100
@@ -80,6 +81,10 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+    iw dev
+    iw phy | grep -A10 'valid interface combinations:'
+    iw phy phy0 interface add ap0 type __ap
+    iw dev ap0 del
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
@@ -120,6 +125,7 @@ main() {
     # try "start-stop-daemon --start --quiet --background --exec /sbin/hostapd -- -B /tmp/hostapd.conf"
     try systemctl reset-failed
     try systemd-run --unit br-hostapd /sbin/hostapd /tmp/hostapd.conf
+    info_msg "Query Status: systemctl status br-hostapd.service\n"
     info_msg "Stop service: systemctl stop br-hostapd.service\n"
     info_msg "Reset failed: systemctl reset-failed\n"
     return 0
