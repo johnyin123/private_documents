@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4ce74558[2026-10-14T13:31:25+08:00]:build-openwrt.sh")
+VERSION+=("5e9d383d[2026-10-14T14:30:35+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -602,7 +602,7 @@ add_demo_vlan_8021q() {
 set -o nounset -o pipefail -o errexit
 
 br_name=${1:?usage: prog.sh <brname> [eth]}
-eth=${2:-}
+eth=${2:-} # eth0.10
 DNS=${DNS:-'8.8.8.8,8.8.4.4'}
 
 prompt() {
@@ -801,7 +801,7 @@ add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
-add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q"
+add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q.sh"
 rm ./out/* -f
 
 echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
