@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("306e0a5a[2026-10-14T13:02:30+08:00]:build-openwrt.sh")
+VERSION+=("4ce74558[2026-10-14T13:31:25+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -601,33 +601,59 @@ add_demo_vlan_8021q() {
 #!/usr/bin/env sh
 set -o nounset -o pipefail -o errexit
 
-br_name=${1:?need bridge name}
+br_name=${1:?usage: prog.sh <brname> [eth]}
 eth=${2:-}
 DNS=${DNS:-'8.8.8.8,8.8.4.4'}
+
+prompt() {
+    local var="${1}"
+    local msg="${2}"
+    local tmout=${3:-}
+    local nchars=${4:-}
+    local value=""
+    {
+        trap "exit -1" SIGINT SIGTERM
+        read ${nchars:+-n ${nchars}} ${tmout:+-t ${tmout}} -p "${msg}" value || true
+        value="${value//\"/\'}";
+    } 2>&1
+    if [ ! -z "${value}" ]; then
+        eval "${var}"=\"${value}\"
+    fi
+    echo ""
+}
 # # 17.01 uses dot-notation directly for 802.1q
-uci set network.${br_name}=interface
-uci set network.${br_name}.type='bridge' # use bridge or NOT
-uci set network.${br_name}.proto='static'
-uci set network.${br_name}.ipaddr='192.168.10.1'
-uci set network.${br_name}.netmask='255.255.255.0'
-[ -z "${eth}" ] || uci set network.${br_name}.ifname="${eth}" #eth0.10(vlan 10), no ifname use nat mode
+uci -q get network.${br_name} || {
+    prompt ipaddr "${br_name} ipaddr:"
+    prompt netmask "${br_name} netmask:"
+    uci set network.${br_name}=interface
+    uci set network.${br_name}.type='bridge' # use bridge or NOT
+    uci set network.${br_name}.proto='static'
+    uci set network.${br_name}.ipaddr="${ipaddr}"
+    uci set network.${br_name}.netmask="${netmask}"
+    [ -z "${eth}" ] || uci set network.${br_name}.ifname="${eth}" #eth0.10(vlan 10), no ifname use nat mode
+}
 # # add ap
-uci set wireless.default_radio0.disabled='1'
+prompt wifiap_pass "${br_name}_ap password:"
+uci -q set wireless.radio0.disabled='0' || true
+uci -q set wireless.default_radio0.disabled='1' || true
 uci set wireless.${br_name}_wifi=wifi-iface
+uci set wireless.${br_name}_wifi.disabled='0'
 uci set wireless.${br_name}_wifi.device='radio0'
 uci set wireless.${br_name}_wifi.mode='ap'
 uci set wireless.${br_name}_wifi.ssid="${br_name}_ap"
 uci set wireless.${br_name}_wifi.encryption='psk2'
-uci set wireless.${br_name}_wifi.key='****'
+uci set wireless.${br_name}_wifi.key="${wifiap_pass}"
 uci set wireless.${br_name}_wifi.network="${br_name}"
 # # add dhcp
-uci set dhcp.${br_name}=dhcp
-uci set dhcp.${br_name}.interface="${br_name}"
-uci set dhcp.${br_name}.start='100'
-uci set dhcp.${br_name}.limit='150'
-uci set dhcp.${br_name}.leasetime='12h'
-# add dns srv
-uci add_list dhcp.${br_name}.dhcp_option="6,${DNS}"
+uci -q get dhcp.${br_name} || {
+    uci set dhcp.${br_name}=dhcp
+    uci set dhcp.${br_name}.interface="${br_name}"
+    uci set dhcp.${br_name}.start='100'
+    uci set dhcp.${br_name}.limit='150'
+    uci set dhcp.${br_name}.leasetime='12h'
+    # add dns srv
+    uci add_list dhcp.${br_name}.dhcp_option="6,${DNS}"
+}
 # # add fw output wan
 uci set firewall.${br_name}=zone
 uci set firewall.${br_name}.name="${br_name}"
