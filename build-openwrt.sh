@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a1d19cff[2026-10-13T13:34:31+08:00]:build-openwrt.sh")
+VERSION+=("cdf4ea6e[2026-10-14T09:51:39+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -214,7 +214,7 @@ EOF
 }
 add_uci_default_dropbear() {
     local rootfs="${1}"
-    mkdir -p -m0755 "${rootfs}/etc/config" "${rootfs}/etc/dropbear"
+    mkdir -p -m0755 "${rootfs}/etc/dropbear" "${rootfs}/etc/uci-defaults"
     cat << EOF >"${rootfs}/etc/uci-defaults/00-dropbear"
 uci set dropbear.@dropbear[0].Port='60022'
 uci set dropbear.@dropbear[0].Interface='lan'

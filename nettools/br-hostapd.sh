@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0aa41ce2[2026-10-14T08:36:53+08:00]:br-hostapd.sh")
+VERSION+=("4f6a1a48[2026-10-14T09:20:06+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -44,12 +44,12 @@ driver=nl80211
 $([ "${MODE}" = "2G" ] && { cat << EO_MODE
 hw_mode=g
 # # 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
-channel=${CHANNEL:-9}
+channel=${CHANNEL:-0}
 EO_MODE
 } || { cat <<EO_MODE
 # hw_mode=a
 # # a simply means 5GHz
-channel=${CHANNEL:-44}
+channel=${CHANNEL:-0}
 wmm_enabled=1
 # # QoS support
 ieee80211n=1
@@ -72,7 +72,7 @@ usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         env: ${R}MODE=2G/5G${N} default 2G, 5G not work!!
-             ${R}CHANNEL=${N} default 9 in 2G, 44 in 5G
+             ${R}CHANNEL=${N} default 0 auto
         -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
         --ssid <ssid>        wifi ap ssid, default: s905d100
