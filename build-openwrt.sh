@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("779b4f1e[2026-10-14T15:37:28+08:00]:build-openwrt.sh")
+VERSION+=("76b7441e[2026-10-14T15:49:04+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -296,6 +296,7 @@ wifi_name=stadev
 uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='sta'
+uci set wireless.${wifi_name}.disabled='0'
 uci set wireless.${wifi_name}.network='wan wan6'
 uci set wireless.${wifi_name}.ssid='outgoing_ssid'
 uci set wireless.${wifi_name}.identity='user'
@@ -311,6 +312,7 @@ uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='ap'
 uci set wireless.${wifi_name}.hidden=1
+uci set wireless.${wifi_name}.disabled='0'
 uci set wireless.${wifi_name}.network='lan'
 uci set wireless.${wifi_name}.ssid='myssid'
 uci set wireless.${wifi_name}.encryption='psk2'
@@ -516,51 +518,6 @@ EOF
 uci commit
 EOFDFT
 }
-add_demo_wifi_repeater() {
-    cat <<'EOF'
-# # Wi-Fi Extender/Repeater with Bridged AP
-cat << EO_NETWORK
-config interface 'lan'
-    option device 'br-lan'
-    option proto 'static'
-    option ipaddr '192.168.1.2'
-    option netmask '255.255.255.0'
-    option gateway '192.168.1.1'
-    option dns '192.168.1.1'
-# optional, for ipv6 connectivity on AP
-config interface 'lan6'
-    option proto 'dhcpv6'
-    option device '@lan'
-    option reqaddress 'try'
-    option reqprefix 'no'
-EO_NETWORK
-cat <<EO_WIFI
-config wifi-iface 'default_radio0'
-    option device 'radio0'
-    option network 'lan'
-    option mode 'ap'
-    option ssid 'ssid'
-    option encryption 'psk2'
-    option key '****'
-EO_WIFI
-# Disable DHCP and RA services
-uci batch <<EO_CMD
-    set dhcp.lan.dhcpv4='disabled'
-    set dhcp.lan.dhcpv6='disabled'
-    set dhcp.lan.ra='disabled'
-    set dhcp.lan.ignore='1'
-EO_CMD
-# # for relayd
-# cat << EO_NETWORK
-# config interface 'repeater_bridge'
-#     option proto 'relayd'
-#     list network 'lan'
-#     list network 'wwan'
-#     option ipaddr '192.168.1.254' # Choose an unused IP on your main router's subnet
-# EO_NETWORK
-uci commit dhcp
-EOF
-}
 add_demo_lan_dhcp_static() {
     cat <<'EOF'
 # # Create a secondary logical interface (wan) attached to the main LAN
@@ -594,6 +551,38 @@ uci set wireless.${wifi_name}.ssid='myssid'
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key='****'
 uci commit wireless
+EOF
+}
+add_demo_dnat() {
+    cat <<'EOF'
+#!/usr/bin/env sh
+set -o nounset -o pipefail -o errexit
+
+# # FullDNAT
+nat_name=FullDNAT
+dst_ip=192.168.168.2
+src_ip='!192.168.168.0/24' # exclude cidr
+uci set firewall.${nat_name}=redirect
+uci set firewall.${nat_name}.name="${nat_name} FullDNAT"
+uci set firewall.${nat_name}.proto='tcp udp'
+uci set firewall.${nat_name}.src='wan'
+uci set firewall.${nat_name}.src_ip="${src_ip}"
+uci set firewall.${nat_name}.dest='lan'
+uci set firewall.${nat_name}.dest_ip="${dst_ip}"
+uci set firewall.${nat_name}.target='DNAT'
+# # port redirect
+nat_name=PortRedir
+dst_ip=192.168.168.3
+src_port=62222 #5000:5010/'80 443 8080'
+dst_port=2222
+uci set firewall.${nat_name}=redirect
+uci set firewall.${nat_name}.name="${nat_name} Port Redirect"
+uci set firewall.${nat_name}.src='wan'
+uci set firewall.${nat_name}.proto='tcp'
+uci set firewall.${nat_name}.src_dport="${src_port}"
+uci set firewall.${nat_name}.dest='lan'
+uci set firewall.${nat_name}.dest_ip="${dst_ip}"
+[ -z "${dst_port:-}" ] || uci set firewall.${nat_name}.dest_port="${dst_port}"
 EOF
 }
 add_demo_vlan_8021q() {
@@ -638,7 +627,7 @@ uci -q set wireless.radio0.disabled='0' || true
 uci -q set wireless.default_radio0.disabled='1' || true
 uci set wireless.${br_name}_wifi=wifi-iface
 uci set wireless.${br_name}_wifi.disabled='0'
-uci set wireless.${br_name}.hidden=1
+uci set wireless.${br_name}_wifi.hidden=1
 uci set wireless.${br_name}_wifi.device='radio0'
 uci set wireless.${br_name}_wifi.mode='ap'
 uci set wireless.${br_name}_wifi.ssid="${br_name}_ap"
@@ -684,7 +673,6 @@ EOF
 }
 add_sysctl() {
     cat <<EOF
-# net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
@@ -707,6 +695,8 @@ case "$id" in
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
+uci rename firewall.@zone[0]=lan
+uci rename firewall.@zone[1]=wan
 uci set network.lan.ip6assign='64'
 uci set network.wan='interface'
 uci set network.wan.device='@lan'
@@ -749,6 +739,8 @@ EOF
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
+uci rename firewall.@zone[0]=lan
+uci rename firewall.@zone[1]=wan
 uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
 uci add_list system.ntp.server='1.debian.pool.ntp.org'
@@ -772,6 +764,8 @@ EOF
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
+uci rename firewall.@zone[0]=lan
+uci rename firewall.@zone[1]=wan
 uci del system.ntp.server
 uci add_list system.ntp.server='0.debian.pool.ntp.org'
 uci add_list system.ntp.server='1.debian.pool.ntp.org'
@@ -797,10 +791,10 @@ mkdir -pv -m0755 \
 add_shell_ps1 > "${DIRNAME}/mydir/etc/profile.d/johnyin.sh"
 add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
 add_demo > "${DIRNAME}/mydir/root/demo"
+add_demo_dnat > "${DIRNAME}/mydir/root/dnat.sh"
 add_demo_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
-add_demo_wifi_repeater > "${DIRNAME}/mydir/root/wifi_repeater"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
 add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q.sh"
 rm ./out/* -f
