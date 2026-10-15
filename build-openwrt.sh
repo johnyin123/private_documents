@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f6c54f26[2026-10-15T15:04:54+08:00]:build-openwrt.sh")
+VERSION+=("77b226fa[2026-10-15T16:22:12+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -766,17 +766,19 @@ uci add_list dhcp.lan.ra_flags='other-config'
 EOF
         ;;
     xiaomi_miwifi-mini) # Mini
-        PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset)
+        PACKAGES+=(kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan)
+        PACKAGES+=(ip-full ipset)
         PACKAGES+=(kmod-wireguard wireguard-tools)         #wireguard
         PACKAGES+=(block-mount kmod-usb3 kmod-usb-storage-uas  kmod-usb-storage) #usb storage
         PACKAGES+=(kmod-fs-ext4 kmod-fs-vfat e2fsprogs)    #vfat ext4 support
         PACKAGES+=(kmod-fs-jfs kmod-fs-xfs)                #xfs jfs support
         PACKAGES+=(nfs-kernel-server nfs-kernel-server-utils) #NFS
-        PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
-        PACKAGES+=(eject lsof procps-ng-ps socat sshfs dnsmasq-full nfs-utils kmod-veth relayd)
-        PACKAGES+=(wpad-basic-mbedtls)
-        PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
-        DISABLED_SVC+=(nfsd rpcbind relayd socat)
+        # PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
+        PACKAGES+=(eject socat dnsmasq-full nfs-utils)
+        PACKAGES+=(wpad-basic-mbedtls relayd)
+        PACKAGES+=(aria2 rsync wwan kmod-veth kmod-ipip ipip)  #vlan support
+        PACKAGES_REMOVE+=(-dnsmasq -wpad-mini -hostapd-mini) #remove packages
+        DISABLED_SVC+=(nfsd rpcbind relayd socat aria2)
         # add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
