@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cb0073da[2026-10-15T12:39:03+08:00]:build-openwrt.sh")
+VERSION+=("f6c54f26[2026-10-15T15:04:54+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -591,6 +591,7 @@ EOF
 }
 add_demo_ipip() {
     cat <<'EOF'
+# # ipip ont-to-one mode
 uci set network.ipip0=interface
 uci set network.ipip0.proto='ipip'
 uci set network.ipip0.ipaddr='192.168.168.254' # local outer public IPv4
@@ -600,6 +601,24 @@ uci set network.ipip_local.proto='static'
 uci set network.ipip_local.ifname='@ipip0'
 uci set network.ipip_local.ipaddr='192.168.111.1'
 uci set network.ipip_local.netmask='255.255.255.252'
+# # ipip one-to-many mode
+uci set network.ipip_mesh=interface
+uci set network.ipip_mesh.ifname='tunl0'
+uci set network.ipip_mesh.proto='static'
+uci set network.ipip_mesh.ipaddr='172.16.100.1'
+uci set network.ipip_mesh.netmask='255.255.255.0'
+# Add Route for Peer A
+uci add network route
+uci set network.@route[-1].interface='ipip_mesh'
+uci set network.@route[-1].target='192.168.1.0/24'
+uci set network.@route[-1].gateway='x.x.x.x'
+uci set network.@route[-1].onlink='1' # for 17.01 to accept external endpoints
+# Add Route for Peer B
+uci add network route
+uci set network.@route[-1].interface='ipip_mesh'
+uci set network.@route[-1].target='172.16.0.0/15'
+uci set network.@route[-1].gateway='a.a.a.a'
+uci set network.@route[-1].onlink='1' # for 17.01 to accept external endpoints
 EOF
 }
 add_demo_vlan_8021q() {
