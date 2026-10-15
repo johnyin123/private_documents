@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("0be025b2[2026-10-15T09:51:52+08:00]:build-openwrt.sh")
+VERSION+=("89d2c389[2026-10-15T11:07:09+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -561,7 +561,8 @@ set -o nounset -o pipefail -o errexit
 # # FullDNAT
 nat_name=FullDNAT
 dst_ip=192.168.168.2
-src_ip='!192.168.168.0/24' # exclude cidr
+lan_net=$(eval $(ipcalc.sh $(uci get network.lan.ipaddr) $(uci get network.lan.netmask)) && echo "$NETWORK/$PREFIX")
+src_ip="!${lan_net}" # exclude cidr
 uci set firewall.${nat_name}=redirect
 uci set firewall.${nat_name}.name="${nat_name} FullDNAT"
 uci set firewall.${nat_name}.proto='tcp udp'
