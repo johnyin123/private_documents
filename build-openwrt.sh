@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("76b7441e[2026-10-14T15:49:04+08:00]:build-openwrt.sh")
+VERSION+=("0be025b2[2026-10-15T09:51:52+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -163,7 +163,7 @@ XXXX是你网卡的后四位，不知道的自己用手机下个WIFI软件看接
 然后重启下路由器，用手机看看能不能绑定成功，如果绑定成功啦，用http://192.168.XX.XX/cgi-bin/luci/;stok=XX/api/xqsystem/init_info XX.XX是你路由器的管理地址stok=XX是登陆路由以后的加密字符串，看下SN是不是你自己的啦。注意刷啦这个固件ROOT密码只能用我提供的，官网提供的用不了
 EOF
 
-DISABLED_SERVICES="${DISABLED_SERVICES:-} odhcpd set-irq-affinity"
+DISABLED_SVC=(set-irq-affinity)
 PACKAGES_REMOVE=()                                 #remove package
 PACKAGES=()
 PACKAGES+=(kmod-zram zram-swap)                    #zram swap
@@ -685,12 +685,18 @@ case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
         echo "-----------703n, 17.01.7 worked, 19.07.10 need del opkg infos, and noswap support"
-        PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-exfat kmod-nls-base kmod-nls-cp437 kmod-nls-utf8)    #vfat ext4 support
         PACKAGES+=(wpad relayd)                            #other tools
         PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #vlan support
         # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
+        PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
+        DISABLED_SVC+=(relayd) # version 1701 not support disable svc
+        # Makefile: add read_ for background, and modify
+        # build_image: FORCE
+        #   @echo Building images...
+        #   @echo "Press [ENTER] to continue, or Ctrl+C to cancel..."
+        #   @read _
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
         add_uci_default_password "${DIRNAME}/mydir" "password"
@@ -734,6 +740,7 @@ EOF
         PACKAGES+=(eject lsof procps-ng-ps socat sshfs dnsmasq-full nfs-utils kmod-veth relayd)
         PACKAGES+=(wpad-basic-mbedtls)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq -wpad-mini -hostapd-mini)              #remove packages
+        DISABLED_SVC+=(nfsd rpcbind relayd socat)
         # add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
@@ -760,6 +767,7 @@ EOF
         PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
         PACKAGES+=(jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils)
         PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
+        DISABLED_SVC+=(socat)
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
         add_uci_default_password "${DIRNAME}/mydir" "password"
@@ -781,6 +789,7 @@ EOF
     *)  echo "Unexpected option $id"; exit 1;;
 esac
 PKG="${PACKAGES[@]} ${PACKAGES_REMOVE[@]}"
+SVC="${DISABLED_SVC[@]}"
 # mydir/etc/ssh/sshd_config
 # #change 192.168.1.1 => 192.168.31.1  via /etc/uci-defaults/00-network
 mkdir -pv -m0755 \
@@ -799,7 +808,7 @@ add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
 add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q.sh"
 rm ./out/* -f
 
-echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
+echo "DISABLED_SERVICES=${SVC}"
 echo "BIN_DIR=${DIRNAME}/out/"
 echo "PACKAGES=${PKG}"
 find "${DIRNAME}/mydir" -type f 2>/dev/null  | sed "s|${DIRNAME}/||g" | xargs -I@ echo "Add File: [@]"
@@ -809,7 +818,7 @@ PACKAGES="${PKG}" \
 BIN_DIR="${DIRNAME}/out/" \
 FILES="${DIRNAME}/mydir" \
 FILES_REMOVE="${DIRNAME}/files_remove" \
-DISABLED_SERVICES="${DISABLED_SERVICES:-}"
+DISABLED_SERVICES="${SVC}"
 
 cat <<'EOF'
 for radio in 'radio0' 'radio1'
