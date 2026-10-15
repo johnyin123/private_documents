@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("0b292549[2026-10-15T12:35:58+08:00]:build-openwrt.sh")
+VERSION+=("cb0073da[2026-10-15T12:39:03+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -589,6 +589,19 @@ uci set firewall.${nat_name}.dest_ip="${dst_ip}"
 [ -z "${dst_port:-}" ] || uci set firewall.${nat_name}.dest_port="${dst_port}"
 EOF
 }
+add_demo_ipip() {
+    cat <<'EOF'
+uci set network.ipip0=interface
+uci set network.ipip0.proto='ipip'
+uci set network.ipip0.ipaddr='192.168.168.254' # local outer public IPv4
+uci set network.ipip0.peeraddr='192.168.168.1' # Remote endpoint outer public IPv4
+uci set network.ipip_local=interface
+uci set network.ipip_local.proto='static'
+uci set network.ipip_local.ifname='@ipip0'
+uci set network.ipip_local.ipaddr='192.168.111.1'
+uci set network.ipip_local.netmask='255.255.255.252'
+EOF
+}
 add_demo_vlan_8021q() {
     cat <<'EOF'
 #!/usr/bin/env sh
@@ -808,6 +821,7 @@ add_demo_dnat > "${DIRNAME}/mydir/root/dnat.sh"
 add_demo_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
 add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
+add_demo_ipip > "${DIRNAME}/mydir/root/ipip"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
 add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q.sh"
 rm ./out/* -f
