@@ -4,6 +4,7 @@
 # pip install aria2p
 
 cat <<EOF
+https://github.com/abcfy2/aria2-static-build/releases
 docker save registry.local/aria:bookworm-amd64 | gzip > aria.tgz
 imgid=$(gunzip -c aria.tgz | docker image load -q 2>/dev/null | sed -E "s/Loaded image( ID:|:)\s//g")
 docker tag ${imgid} registry.local/aria:bookworm-amd64
