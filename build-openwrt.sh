@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("620036f4[2026-10-16T08:58:15+08:00]:build-openwrt.sh")
+VERSION+=("aa2e4d06[2026-10-16T09:13:39+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -891,4 +891,10 @@ OpenWrt Failsafe Mode:
     4. Set your computer's Ethernet adapter to a static IP (e.g., 192.168.1.2, subnet 255.255.255.0) and connect via LAN cable.
     5. Telnet or SSH into 192.168.1.1.
     ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
+
+#!/usr/bin/env sh
+DIRNAME="$(readlink -f "$(dirname "$0")")"
+export LD_LIBRARY_PATH="${DIRNAME}/lib"
+touch ${DIRNAME}/aria2.session
+start-stop-daemon -n aria -S -b -x sh -- -c "cd ${DIRNAME} && exec ./aria2c --conf-path=aria2.conf"
 EOF
