@@ -12,9 +12,10 @@ EOF
 echo "setup cli rpc client"
 zcat /usr/share/doc/aria2/xmlrpc/aria2rpc.gz | sudo tee /usr/bin/aria2rpc
 sudo chmod 755 /usr/bin/aria2rpc
-USER_HOME=/home/johnyin
-mkdir ${USER_HOME}/.aria2
-cat<<EOF > ${USER_HOME}/.aria2/aria2.conf
+USER_HOME=.
+# USER_HOME=/home/johnyin
+# mkdir ${USER_HOME}/.aria2
+cat<<EOF > aria2.conf
 # 下载目录。可使用绝对路径或相对路径, 默认: 当前启动位置
 dir=${USER_HOME}/down
 # 磁盘缓存, 0 为禁用缓存，默认:16M
@@ -52,11 +53,11 @@ remote-time=true
 
 ## 进度保存设置 ##
 # 从会话文件中读取下载任务
-input-file=${USER_HOME}/.aria2/aria2.session
+input-file=${USER_HOME}/aria2.session
 
 # 会话文件保存路径
 # Aria2 退出时或指定的时间间隔会保存"错误/未完成"的下载任务到会话文件
-save-session=${USER_HOME}/.aria2/aria2.session
+save-session=${USER_HOME}/aria2.session
 
 # 任务状态改变后保存会话的间隔时间（秒）, 0 为仅在进程正常退出时保存, 默认:0
 # 为了及时保存任务状态、防止任务丢失，此项值只建议设置为 1
@@ -124,7 +125,7 @@ max-overall-download-limit=0
 max-download-limit=0
 
 # 禁用 IPv6, 默认:false
-disable-ipv6=true
+disable-ipv6=false
 
 # GZip 支持，默认:false
 http-accept-gzip=true
@@ -163,17 +164,17 @@ enable-dht=true
 
 # 启用 IPv6 DHT 功能, PT 下载(私有种子)会自动禁用，默认:false
 # 在没有 IPv6 支持的环境开启可能会导致 DHT 功能异常
-enable-dht6=false
+enable-dht6=true
 
 # 指定 BT 和 DHT 网络中的 IP 地址
 # 使用场景：在家庭宽带没有公网 IP 的情况下可以把 BT 和 DHT 监听端口转发至具有公网 IP 的服务器，在此填写服务器的 IP ，可以提升 BT 下载速率。
 #bt-external-ip=
 
 # IPv4 DHT 文件路径
-dht-file-path=${USER_HOME}/.aria2/dht.dat
+dht-file-path=${USER_HOME}/dht.dat
 
 # IPv6 DHT 文件路径
-dht-file-path6=${USER_HOME}/.aria2/dht6.dat
+dht-file-path6=${USER_HOME}/dht6.dat
 
 # IPv4 DHT 网络引导节点
 dht-entry-point=dht.transmissionbt.com:6881
@@ -372,7 +373,7 @@ EOF
 # systemctl --user stop aria2
 # systemctl --user restart aria2
 # systemctl --user status aria2
-cat <<EOF | sudo tee /etc/systemd/system/aria2.service
+cat <<EOF > aria2.service
 [Unit]
 Description=Aria2 Service
 After=network.target
@@ -389,7 +390,7 @@ ExecStart=/usr/bin/aria2c --conf-path=${USER_HOME}/.aria2/aria2.conf
 WantedBy=default.target
 EOF
 
-cat <<"EOF" >  ~/.aria2/update_tracker.sh
+cat <<"EOF" >  update_tracker.sh
 #!/usr/bin/env bash
 # BT tracker is provided by the following project.
 # https://github.com/XIU2/TrackersListCollection
@@ -513,7 +514,6 @@ fi
 
 exit 0
 EOF
-chmod 755 ~/.aria2/update_tracker.sh
 cat <<'EOF'
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
