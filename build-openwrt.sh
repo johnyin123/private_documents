@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("aa2e4d06[2026-10-16T09:13:39+08:00]:build-openwrt.sh")
+VERSION+=("cce0511c[2026-10-16T11:08:26+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -892,9 +892,12 @@ OpenWrt Failsafe Mode:
     5. Telnet or SSH into 192.168.1.1.
     ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa root@192.168.1.1
 
+rc.local => [ -e /mnt/aria/start.sh ] && /mnt/aria/start.sh
+
 #!/usr/bin/env sh
 DIRNAME="$(readlink -f "$(dirname "$0")")"
 export LD_LIBRARY_PATH="${DIRNAME}/lib"
 touch ${DIRNAME}/aria2.session
+# cd ${DIRNAME} && exec ./aria2c $@
 start-stop-daemon -n aria -S -b -x sh -- -c "cd ${DIRNAME} && exec ./aria2c --conf-path=aria2.conf"
 EOF
