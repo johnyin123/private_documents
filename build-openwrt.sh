@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c3537875[2026-10-16T07:32:03+08:00]:build-openwrt.sh")
+VERSION+=("620036f4[2026-10-16T08:58:15+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -763,6 +763,13 @@ uci set dhcp.lan.ra_slaac='1'
 uci del dhcp.lan.ra_flags
 uci add_list dhcp.lan.ra_flags='managed-config'
 uci add_list dhcp.lan.ra_flags='other-config'
+# # auto mount
+uci set fstab.@global[0].auto_mount=1
+uci set fstab.extstor=mount
+uci set fstab.extstor.target=/mnt
+uci set fstab.extstor.label=wr703n
+uci set fstab.extstor.options=noatime
+uci set fstab.extstor.enabled=1
 EOF
         ;;
     xiaomi_miwifi-mini) # Mini
