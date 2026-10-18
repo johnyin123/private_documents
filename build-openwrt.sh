@@ -2,9 +2,19 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("46c5c3b0[2026-10-16T13:01:08+08:00]:build-openwrt.sh")
+VERSION+=("7c8ec79e[2026-10-16T13:09:35+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
+env: PASSWORD= #default password
+     LAN_IP=
+    ./build-openwrt.sh
+
+# Makefile: add read_ for background, and modify
+# build_image: FORCE
+#   @echo Building images...
+#   @echo "Press [ENTER] to continue, or Ctrl+C to cancel..."
+#   @read _
+
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
     sed -i 's|downloads.openwrt.org|mirrors.aliyun.com/openwrt|g' repositories
     # 17.01.7
@@ -163,6 +173,7 @@ XXXX是你网卡的后四位，不知道的自己用手机下个WIFI软件看接
 然后重启下路由器，用手机看看能不能绑定成功，如果绑定成功啦，用http://192.168.XX.XX/cgi-bin/luci/;stok=XX/api/xqsystem/init_info XX.XX是你路由器的管理地址stok=XX是登陆路由以后的加密字符串，看下SN是不是你自己的啦。注意刷啦这个固件ROOT密码只能用我提供的，官网提供的用不了
 EOF
 
+PASSWORD=${PASSWORD:-password}
 DISABLED_SVC=(set-irq-affinity)
 PACKAGES_REMOVE=()                                 #remove package
 PACKAGES=()
@@ -193,7 +204,7 @@ add_openssh_key() {
 }
 add_uci_default_lanip() {
     local rootfs="${1}"
-    local lan_ipaddr="${2:-192.168.31.1}"
+    local lan_ipaddr="${2}"
     mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     cat << EOF > ${rootfs}/etc/uci-defaults/00-network
 uci set network.lan.ipaddr=${lan_ipaddr}
@@ -202,7 +213,7 @@ EOF
 }
 add_uci_default_password() {
     local rootfs="${1}"
-    local pass="${2:-password}"
+    local pass="${2}"
     mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
     cat << EOF > "${rootfs}/etc/uci-defaults/99-passwd"
 passwd << EOPWD
@@ -724,18 +735,13 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-jfs)    #jfs is smaller enough for 4M flash
         PACKAGES+=(wpad relayd)                            #other tools
-        PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #vlan support
+        PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #ipip support
         # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         DISABLED_SVC+=(relayd) # version 1701 not support disable svc
-        # Makefile: add read_ for background, and modify
-        # build_image: FORCE
-        #   @echo Building images...
-        #   @echo "Press [ENTER] to continue, or Ctrl+C to cancel..."
-        #   @read _
         add_uci_default_dropbear "${DIRNAME}/mydir"
-        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.168.254"
-        add_uci_default_password "${DIRNAME}/mydir" "password"
+        add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.168.254}"
+        add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
@@ -783,13 +789,13 @@ EOF
         # PACKAGES+=(openssh-client openssh-server openssh-sftp-server) #openssh
         PACKAGES+=(eject socat dnsmasq-full nfs-utils)
         PACKAGES+=(wpad-basic-mbedtls relayd)
-        PACKAGES+=(aria2 rsync wwan kmod-veth kmod-ipip ipip)  #vlan support
+        PACKAGES+=(aria2 rsync wwan kmod-veth kmod-ipip ipip)  #ipip support
         PACKAGES_REMOVE+=(-dnsmasq -wpad-mini -hostapd-mini) #remove packages
         DISABLED_SVC+=(nfsd rpcbind relayd socat aria2)
         # add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_dropbear "${DIRNAME}/mydir"
-        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
-        add_uci_default_password "${DIRNAME}/mydir" "password"
+        add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.31.1}"
+        add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
@@ -814,8 +820,8 @@ EOF
         PACKAGES_REMOVE+=(-dropbear -dnsmasq)              #remove packages
         DISABLED_SVC+=(socat)
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_default_lanip "${DIRNAME}/mydir" "192.168.31.1"
-        add_uci_default_password "${DIRNAME}/mydir" "password"
+        add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.31.1}"
+        add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
