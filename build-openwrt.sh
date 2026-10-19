@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("d0a7d7c5[2026-10-19T12:58:45+08:00]:build-openwrt.sh")
+VERSION+=("e3eff265[2026-10-19T14:47:54+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -763,7 +763,7 @@ case "$id" in
         # # remove kmod-zram zram-swap, free enough
         # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
-        DISABLED_SVC+=(relayd) # version 1701 not support disable svc
+        DISABLED_SVC+=(relayd ddns) # version 1701 not support disable svc
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.168.254}"
         add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
@@ -817,7 +817,7 @@ EOF
         PACKAGES+=(aria2 rsync wwan kmod-veth kmod-ipip ipip)  #ipip support
         PACKAGES+=(ddns-scripts)   #ddns
         PACKAGES_REMOVE+=(-dnsmasq -wpad-mini -hostapd-mini) #remove packages
-        DISABLED_SVC+=(nfsd rpcbind relayd socat aria2)
+        DISABLED_SVC+=(nfsd rpcbind relayd socat aria2 ddns)
         # add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.31.1}"
