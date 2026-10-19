@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("09ea2d3b[2026-10-19T12:55:19+08:00]:build-openwrt.sh")
+VERSION+=("d0a7d7c5[2026-10-19T12:58:45+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -718,6 +718,29 @@ uci set firewall.@rule[-1].proto='tcp udp'
 uci set firewall.@rule[-1].target='ACCEPT'
 EOF
 }
+add_demo_ddns() {
+    cat <<'EOF'
+# /etc/config/ddns
+config service "duckdns"
+    option enabled          "1"
+    option domain           "johnyin.duckdns.org"
+    option username         "johnyin"
+    option password         "3765c6f7-216f-407b-b295-3f8fa4e70e59"
+    option ip_source        "network"
+    option ip_network       "wan"
+    option force_interval   "72"
+    option force_unit       "hours"
+    option check_interval   "10"
+    option check_unit       "minutes"
+    #option ip_source       "interface"
+    #option ip_interface    "eth0.1"
+    #option ip_source       "web"
+    #option ip_url          "http://ipv4.wtfismyip.com/text"
+    option update_url       "http://www.duckdns.org/update?domains=[USERNAME]&token=[PASSWORD]&ip=[IP]"
+    #option use_https       "1"
+    #option cacert          "/etc/ssl/certs/cacert.pem"
+EOF
+}
 add_sysctl() {
     cat <<EOF
 net.ipv4.ip_local_port_range = 1024 65531
@@ -734,6 +757,7 @@ case "$id" in
         echo "-----------703n, 17.01.7 worked, 19.07.10 need del opkg infos, and noswap support"
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-jfs)    #jfs is smaller enough for 4M flash
+        PACKAGES+=(ddns-scripts)   #ddns
         PACKAGES+=(wpad relayd)                            #other tools
         PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #ipip support
         # # remove kmod-zram zram-swap, free enough
@@ -791,6 +815,7 @@ EOF
         PACKAGES+=(eject socat dnsmasq-full nfs-utils)
         PACKAGES+=(wpad-basic-mbedtls relayd)
         PACKAGES+=(aria2 rsync wwan kmod-veth kmod-ipip ipip)  #ipip support
+        PACKAGES+=(ddns-scripts)   #ddns
         PACKAGES_REMOVE+=(-dnsmasq -wpad-mini -hostapd-mini) #remove packages
         DISABLED_SVC+=(nfsd rpcbind relayd socat aria2)
         # add_openssh_key "${DIRNAME}/mydir"
@@ -852,6 +877,7 @@ mkdir -pv -m0755 \
 add_shell_ps1 > "${DIRNAME}/mydir/etc/profile.d/johnyin.sh"
 add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
 add_demo > "${DIRNAME}/mydir/root/demo"
+add_demo_ddns > "${DIRNAME}/mydir/root/ddns"
 add_demo_dnat > "${DIRNAME}/mydir/root/dnat.sh"
 add_demo_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
