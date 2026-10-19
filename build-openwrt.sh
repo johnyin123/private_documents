@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7c8ec79e[2026-10-16T13:09:35+08:00]:build-openwrt.sh")
+VERSION+=("50b81e8c[2026-10-19T07:26:07+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -736,7 +736,7 @@ case "$id" in
         PACKAGES+=(kmod-fs-jfs)    #jfs is smaller enough for 4M flash
         PACKAGES+=(wpad relayd)                            #other tools
         PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #ipip support
-        # opkg install chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch usb-modeswitch-data
+        # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         DISABLED_SVC+=(relayd) # version 1701 not support disable svc
         add_uci_default_dropbear "${DIRNAME}/mydir"
