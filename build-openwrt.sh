@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("208fe361[2026-10-19T15:45:10+08:00]:build-openwrt.sh")
+VERSION+=("90a42e1e[2026-10-20T09:19:04+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -239,6 +239,7 @@ EOF
 add_shell_ps1() {
     cat <<EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+alias df='df -h'
 set -o vi
 EOF
 }
@@ -794,6 +795,9 @@ uci set dhcp.lan.ra_slaac='1'
 uci del dhcp.lan.ra_flags
 uci add_list dhcp.lan.ra_flags='managed-config'
 uci add_list dhcp.lan.ra_flags='other-config'
+# # add dns server
+uci add_list dhcp.@dnsmasq[0].server='114.114.114.114'
+uci add_list dhcp.@dnsmasq[0].server='223.5.5.5'
 # # auto mount
 uci set fstab.@global[0].auto_mount=1
 uci set fstab.extstor=mount
@@ -927,7 +931,7 @@ OpenWrt Failsafe Mode:
 
 rc.local => [ -e /mnt/aria/start.sh ] && /mnt/aria/start.sh
 # OR
-cat <<EO_SRIPT> /etc/hotplug.d/block/99-aria
+cat <<'EO_SRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
 if [ "$ACTION" = "add" ]; then
     sleep 2
