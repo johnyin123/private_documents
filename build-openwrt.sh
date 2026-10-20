@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("90a42e1e[2026-10-20T09:19:04+08:00]:build-openwrt.sh")
+VERSION+=("7b0f3970[2026-10-20T10:57:22+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -178,7 +178,7 @@ PASSWORD=${PASSWORD:-password}
 DISABLED_SVC=(set-irq-affinity)
 PACKAGES_REMOVE=()                                 #remove package
 PACKAGES=()
-[ "${ZRAM:-yes}" = "yes" ] { PACKAGES+=(kmod-zram zram-swap) }
+[ "${ZRAM:-yes}" = "yes" ] && { PACKAGES+=(kmod-zram zram-swap); }
 dialog() {
     local title="${1}"
     local menu="${2}"
