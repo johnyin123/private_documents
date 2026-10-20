@@ -2,11 +2,12 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e3eff265[2026-10-19T14:47:54+08:00]:build-openwrt.sh")
+VERSION+=("208fe361[2026-10-19T15:45:10+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
      LAN_IP=
+     ZRAM=no   #default yes
     ./build-openwrt.sh
 
 # Makefile: add read_ for background, and modify
@@ -177,8 +178,7 @@ PASSWORD=${PASSWORD:-password}
 DISABLED_SVC=(set-irq-affinity)
 PACKAGES_REMOVE=()                                 #remove package
 PACKAGES=()
-PACKAGES+=(kmod-zram zram-swap)                    #zram swap
-
+[ "${ZRAM:-yes}" = "yes" ] { PACKAGES+=(kmod-zram zram-swap) }
 dialog() {
     local title="${1}"
     local menu="${2}"
