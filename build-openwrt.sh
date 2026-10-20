@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f5ec837a[2026-10-20T12:35:17+08:00]:build-openwrt.sh")
+VERSION+=("9edd9327[2026-10-20T12:58:45+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -320,13 +320,14 @@ uci set wireless.${wifi_name}.phase1='peaplabel=auto tls_disable_tlsv1_0=0 tls_d
 uci commit wireless
 #3. Create the AP
 wifi_name=apdev
+ssid_name=$(uci -q get system.@system[0].hostname)-$(ifconfig eth0 | awk '/HWaddr/ { printf $5 }' | tr -d : | tail -c 6)
 uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='ap'
 uci set wireless.${wifi_name}.hidden=1
 uci set wireless.${wifi_name}.disabled='0'
 uci set wireless.${wifi_name}.network='lan'
-uci set wireless.${wifi_name}.ssid='myssid'
+uci set wireless.${wifi_name}.ssid="${ssid_name}"
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key='****'
 uci commit wireless
@@ -554,12 +555,13 @@ uci set wireless.radio0.disabled='0'
 while uci delete wireless.@wifi-iface[0] 2>/dev/null; do :; done
 
 wifi_name=apdev
+ssid_name=$(uci -q get system.@system[0].hostname)-$(ifconfig eth0 | awk '/HWaddr/ { printf $5 }' | tr -d : | tail -c 6)
 uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='ap'
 uci set wireless.${wifi_name}.hidden=1
 uci set wireless.${wifi_name}.network='lan'
-uci set wireless.${wifi_name}.ssid='myssid'
+uci set wireless.${wifi_name}.ssid="${ssid_name}"
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key='****'
 uci commit wireless
