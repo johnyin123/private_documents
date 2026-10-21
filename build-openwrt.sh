@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e21a274a[2026-10-20T13:16:42+08:00]:build-openwrt.sh")
+VERSION+=("a017375c[2026-10-21T08:17:26+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -757,17 +757,17 @@ id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
-        echo "-----------703n, 17.01.7 worked, 19.07.10 need del opkg infos, and noswap support"
-        PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
-        PACKAGES+=(kmod-fs-jfs)    #jfs is smaller enough for 4M flash
+        echo "703n, 17.01.7 worked, 19.07.10 need del opkg infos, and noswap support"
+        # # usb storage, more kmod not enough memory mount fs will failed
+        PACKAGES+=(block-mount kmod-usb-storage kmod-usb2 kmod-fs-jfs)    #jfs is smaller enough for 4M flash
         PACKAGES+=(ddns-scripts)   #ddns
         PACKAGES+=(wpad)           #other tools
         PACKAGES+=(kmod-ipip ipip) #ipip support
-        PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether kmod-usb-net-cdc-ncm usb-modeswitch) #android share network via usb
+        # # android share network via usb
+        PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether kmod-usb-net-cdc-ncm usb-modeswitch)
         # # remove kmod-zram zram-swap, free enough
         # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
-        DISABLED_SVC+=(relayd ddns) # version 1701 not support disable svc
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.168.254}"
         add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
@@ -804,7 +804,7 @@ uci add_list dhcp.@dnsmasq[0].server='223.5.5.5'
 # # auto mount
 uci set fstab.@global[0].auto_mount=1
 uci set fstab.extstor=mount
-uci set fstab.extstor.target=/mnt
+uci set fstab.extstor.target=/mnt/wr703n
 uci set fstab.extstor.label=wr703n
 uci set fstab.extstor.options=noatime
 uci set fstab.extstor.enabled=1
@@ -938,7 +938,8 @@ cat <<'EO_SRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
 if [ "$ACTION" = "add" ]; then
     sleep 2
-    [ -e /mnt/aria/start.sh ] && /mnt/aria/start.sh
+    hostname=$(uci -q get system.@system[0].hostname)
+    [ -e "/mnt/${hostname}/start.sh" ] && /mnt/${hostname}/start.sh
 fi
 EO_SRIPT
 cat <<EO_SRIPT > start.sh
