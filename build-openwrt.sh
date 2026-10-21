@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7d0a8e7b[2026-10-21T12:29:59+08:00]:build-openwrt.sh")
+VERSION+=("6c15dc6d[2026-10-21T12:32:32+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -433,7 +433,8 @@ ifup wan6
 
 # 1. Ensure WAN zone covers both wan and wan6 network interfaces
 uci set firewall.@zone[1].name='wan'
-uci set firewall.@zone[1].network='wan wan6'
+uci add_list firewall.@zone[1].network='wan'
+uci add_list firewall.@zone[1].network='wan6'
 uci set firewall.@zone[1].masq='1'
 uci set firewall.@zone[1].mtu_fix='1'
 # 2. Enable IPv6 masquerading (NAT66) on the WAN zone if needed
@@ -697,7 +698,7 @@ uci -q get dhcp.${br_name} || {
 # # add fw output wan
 uci set firewall.${br_name}=zone
 uci set firewall.${br_name}.name="${br_name}"
-uci set firewall.${br_name}.network="${br_name}"
+uci add_list firewall.${br_name}.network="${br_name}"
 uci set firewall.${br_name}.input='REJECT'   # Block clients from accessing router services by default
 uci set firewall.${br_name}.output='ACCEPT'  # Allow traffic originating from the router out to ${br_name}
 uci set firewall.${br_name}.forward='REJECT' # Block traffic forwarding between interfaces within this zone
