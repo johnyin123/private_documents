@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a017375c[2026-10-21T08:17:26+08:00]:build-openwrt.sh")
+VERSION+=("de6472e3[2026-10-21T10:06:18+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -764,6 +764,7 @@ case "$id" in
         PACKAGES+=(wpad)           #other tools
         PACKAGES+=(kmod-ipip ipip) #ipip support
         # # android share network via usb
+        # # cat /sys/kernel/debug/usb/devices
         PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether kmod-usb-net-cdc-ncm usb-modeswitch)
         # # remove kmod-zram zram-swap, free enough
         # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
