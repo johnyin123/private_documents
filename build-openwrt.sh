@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("9edd9327[2026-10-20T12:58:45+08:00]:build-openwrt.sh")
+VERSION+=("e21a274a[2026-10-20T13:16:42+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -761,11 +761,11 @@ case "$id" in
         PACKAGES+=(block-mount kmod-usb-storage kmod-usb2) #usb storage
         PACKAGES+=(kmod-fs-jfs)    #jfs is smaller enough for 4M flash
         PACKAGES+=(ddns-scripts)   #ddns
-        PACKAGES+=(wpad relayd)                            #other tools
-        PACKAGES+=(wwan kmod-8021q kmod-veth kmod-ipip ipip)  #ipip support
+        PACKAGES+=(wpad)           #other tools
+        PACKAGES+=(kmod-ipip ipip) #ipip support
+        PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether kmod-usb-net-cdc-ncm usb-modeswitch) #android share network via usb
         # # remove kmod-zram zram-swap, free enough
         # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
-        # PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether usb-modeswitch)
         PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
         DISABLED_SVC+=(relayd ddns) # version 1701 not support disable svc
         add_uci_default_dropbear "${DIRNAME}/mydir"
