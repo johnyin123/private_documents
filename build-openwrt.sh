@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cfdbdbb4[2026-10-21T10:34:41+08:00]:build-openwrt.sh")
+VERSION+=("6157695d[2026-10-21T12:24:05+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -772,6 +772,7 @@ case "$id" in
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.168.254}"
         add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
+        echo "$(date '+%Y%m%d') ${PACKAGES[@]}" > ${DIRNAME}/mydir/etc/banner
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
@@ -830,7 +831,6 @@ EOF
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.31.1}"
         add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
-        echo "$(date '+%Y%m%d') ${PACKAGES[@]}" > ${DIRNAME}/mydir/etc/banner
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
