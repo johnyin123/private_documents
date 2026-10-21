@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("6157695d[2026-10-21T12:24:05+08:00]:build-openwrt.sh")
+VERSION+=("7d0a8e7b[2026-10-21T12:29:59+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -936,20 +936,20 @@ OpenWrt Failsafe Mode:
 
 rc.local => [ -e /mnt/aria/start.sh ] && /mnt/aria/start.sh
 # OR
-cat <<'EO_SRIPT'> /etc/hotplug.d/block/99-aria
+cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
 if [ "$ACTION" = "add" ]; then
     sleep 2
     hostname=$(uci -q get system.@system[0].hostname)
     [ -e "/mnt/${hostname}/start.sh" ] && /mnt/${hostname}/start.sh
 fi
-EO_SRIPT
-cat <<EO_SRIPT > start.sh
+EO_SCRIPT
+cat <<EO_SCRIPT > start.sh
 #!/usr/bin/env sh
 DIRNAME="$(readlink -f "$(dirname "$0")")"
 export LD_LIBRARY_PATH="${DIRNAME}/lib"
 touch ${DIRNAME}/aria2.session
 # cd ${DIRNAME} && exec ./aria2c $@
 start-stop-daemon -n aria -S -b -x sh -- -c "cd ${DIRNAME} && exec ./aria2c --conf-path=aria2.conf"
-EO_SRIPT
+EO_SCRIPT
 EOF
