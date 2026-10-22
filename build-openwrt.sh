@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("3257e9d5[2026-10-21T14:59:05+08:00]:build-openwrt.sh")
+VERSION+=("1b32c19a[2026-10-22T13:13:35+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -848,6 +848,16 @@ uci set dhcp.lan.ra_slaac='1'
 uci del dhcp.lan.ra_flags
 uci add_list dhcp.lan.ra_flags='managed-config'
 uci add_list dhcp.lan.ra_flags='other-config'
+# # add dns server
+uci add_list dhcp.@dnsmasq[0].server='114.114.114.114'
+uci add_list dhcp.@dnsmasq[0].server='223.5.5.5'
+# # auto mount
+uci set fstab.@global[0].auto_mount=1
+uci set fstab.extstor=mount
+uci set fstab.extstor.target=/mnt/mimini
+uci set fstab.extstor.label=mimini
+uci set fstab.extstor.options=noatime
+uci set fstab.extstor.enabled=1
 EOF
         ;;
     xiaomi_mir4a-100m) # R4AC
