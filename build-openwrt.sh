@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("6c15dc6d[2026-10-21T12:32:32+08:00]:build-openwrt.sh")
+VERSION+=("3257e9d5[2026-10-21T14:59:05+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -777,6 +777,9 @@ case "$id" in
         cat << EOF > ${DIRNAME}/mydir/etc/uci-defaults/99-custom
 uci rename firewall.@zone[0]=lan
 uci rename firewall.@zone[1]=wan
+uci set firewall.@defaults[0].input='REJECT'
+uci set firewall.@defaults[0].output='ACCEPT'
+uci set firewall.@defaults[0].forward='REJECT'
 uci set network.lan.ip6assign='64'
 uci set network.wan='interface'
 uci set network.wan.device='@lan'
