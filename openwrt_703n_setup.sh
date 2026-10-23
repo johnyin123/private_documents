@@ -68,5 +68,8 @@ uci set firewall.${rule_name}.src="${network}"
 uci set firewall.${rule_name}.dest_port='50000 51413 6800'
 uci set firewall.${rule_name}.proto='tcp udp'
 uci set firewall.${rule_name}.target='ACCEPT'
-
+cat <<EOF
+sysctl -w net.ipv6.conf.all.accept_ra=2
+sysctl -w net.ipv6.conf.default.accept_ra=2
+EOF
 echo "run: uci commit"
