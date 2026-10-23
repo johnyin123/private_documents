@@ -51,6 +51,7 @@ uci set firewall.${nat_name}.src="${network}"
 uci set firewall.${nat_name}.proto='tcp'
 uci set firewall.${nat_name}.src_dport="${port}"
 uci set firewall.${nat_name}.dest='lan'
+uci set firewall.${nat_name}.dest_ip="${dst_ip}"
 uci set firewall.${nat_name}.dest_port="${port}"
 
 rule_name=aria
