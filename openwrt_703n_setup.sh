@@ -14,7 +14,7 @@ uci set wireless.${wifi_name}=wifi-iface
 uci set wireless.${wifi_name}.device='radio0'
 uci set wireless.${wifi_name}.mode='sta'
 uci set wireless.${wifi_name}.disabled='0'
-uci set wireless.${wifi_name}.network="${network}"
+uci set wireless.${wifi_name}.network="${network} ${network}6"
 uci set wireless.${wifi_name}.ssid="${wifi_ssid}"
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key="${wifi_pass}"
@@ -24,6 +24,12 @@ uci set network.${network}.proto='static' #'dhcp'
 uci set network.${network}.ipaddr="${IP}"
 uci set network.${network}.netmask="${NETMASK}"
 uci set network.${network}.gateway="${wifi_gw}"
+uci set network.${network}6=interface
+uci set network.${network}6.device="@${network}"
+uci set network.${network}6.proto='dhcpv6'
+uci set network.${network}6.reqaddress='try'
+uci set network.${network}6.reqprefix='auto'
+
 # uci commit
 cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
