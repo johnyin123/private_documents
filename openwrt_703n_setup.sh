@@ -27,9 +27,9 @@ uci set network.${network}.gateway="${wifi_gw}"
 uci set network.${network}6=interface
 uci set network.${network}6.device="@${network}"
 uci set network.${network}6.proto='dhcpv6'
-uci set network.${network}6.reqaddress='try'
-uci set network.${network}6.reqaddress='none' # Disables stateful DHCPv6 address request, enforcing SLAAC
-# uci set network.${network}6.reqprefix='auto'
+# uci set network.${network}6.reqaddress='try'
+uci set network.${network}6.reqaddress='force' # Disables stateful DHCPv6 address request, enforcing SLAAC
+uci set network.${network}6.reqprefix='no' #SLAAC-only endpoint allocation
 
 # uci commit
 cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
@@ -44,6 +44,7 @@ EO_SCRIPT
 uci set firewall.${network}=zone
 uci set firewall.${network}.name="${network}"
 uci add_list firewall.${network}.network="${network}"
+uci add_list firewall.${network}.network="${network}6"
 uci set firewall.${network}.input='REJECT'
 uci set firewall.${network}.output='ACCEPT'
 uci set firewall.${network}.forward='REJECT'
@@ -68,6 +69,24 @@ uci set firewall.${rule_name}.src="${network}"
 uci set firewall.${rule_name}.dest_port='50000 51413 6800'
 uci set firewall.${rule_name}.proto='tcp udp'
 uci set firewall.${rule_name}.target='ACCEPT'
+
+rule_name=${network}6_slaac_inbond
+uci set firewall.${rule_name}=rule
+uci set firewall.${rule_name}.name="Allow-SLAAC-ICMPv6-Inbound"
+uci set firewall.${rule_name}.src="${network}"
+uci set firewall.${rule_name}.proto='icmp'
+uci set firewall.${rule_name}.icmp_type='router-advertisement'
+uci set firewall.${rule_name}.target='ACCEPT'
+uci set firewall.${rule_name}.family='ipv6'
+rule_name=${network}6_slaac_disc
+uci set firewall.${rule_name}=rule
+uci set firewall.${rule_name}.name="Allow-SLAAC-Neighbor-Discovery"
+uci set firewall.${rule_name}.src="${network}"
+uci set firewall.${rule_name}.proto='icmp'
+uci set firewall.${rule_name}.icmp_type='neighbor-advertisement'
+uci set firewall.${rule_name}.target='ACCEPT'
+uci set firewall.${rule_name}.family='ipv6'
+
 cat <<EOF
 sysctl -w net.ipv6.conf.all.accept_ra=2
 sysctl -w net.ipv6.conf.default.accept_ra=2
