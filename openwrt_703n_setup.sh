@@ -28,7 +28,8 @@ uci set network.${network}6=interface
 uci set network.${network}6.device="@${network}"
 uci set network.${network}6.proto='dhcpv6'
 uci set network.${network}6.reqaddress='try'
-uci set network.${network}6.reqprefix='auto'
+uci set network.${network}6.reqaddress='none' # Disables stateful DHCPv6 address request, enforcing SLAAC
+# uci set network.${network}6.reqprefix='auto'
 
 # uci commit
 cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
