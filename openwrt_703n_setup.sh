@@ -70,14 +70,17 @@ uci set firewall.${rule_name}.dest_port='50000 51413 6800'
 uci set firewall.${rule_name}.proto='tcp udp'
 uci set firewall.${rule_name}.target='ACCEPT'
 
-rule_name=${network}6_slaac_inbond
+rule_name=${network}6_dhcpv6
 uci set firewall.${rule_name}=rule
-uci set firewall.${rule_name}.name="Allow-SLAAC-ICMPv6-Inbound"
+uci set firewall.${rule_name}.name='Allow-DHCPv6'
 uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.proto='icmp'
-uci set firewall.${rule_name}.icmp_type='router-advertisement'
-uci set firewall.${rule_name}.target='ACCEPT'
+uci set firewall.${rule_name}.proto='udp'
+uci set firewall.${rule_name}.src_ip='fc00::/6'
+uci set firewall.${rule_name}.dest_ip='fc00::/6'
+uci set firewall.${rule_name}.dest_port='546'
 uci set firewall.${rule_name}.family='ipv6'
+uci set firewall.${rule_name}.target='ACCEPT'
+
 rule_name=${network}6_slaac_disc
 uci set firewall.${rule_name}=rule
 uci set firewall.${rule_name}.name="Allow-SLAAC-Neighbor-Discovery"
@@ -86,6 +89,24 @@ uci set firewall.${rule_name}.proto='icmp'
 uci set firewall.${rule_name}.icmp_type='neighbor-advertisement'
 uci set firewall.${rule_name}.target='ACCEPT'
 uci set firewall.${rule_name}.family='ipv6'
+
+rule_name=${network}_dhcp
+uci set firewall.${rule_name}=rule
+uci set firewall.${rule_name}.name='Allow-DHCP-Renew'
+uci set firewall.${rule_name}.src="${network}"
+uci set firewall.${rule_name}.proto='udp'
+uci set firewall.${rule_name}.dest_port='68'
+uci set firewall.${rule_name}.target='ACCEPT'
+uci set firewall.${rule_name}.family='ipv4'
+
+rule_name=${network}_ping
+uci set firewall.${rule_name}=rule
+uci set firewall.${rule_name}.name='Allow-Ping'
+uci set firewall.${rule_name}.src="${network}"
+uci set firewall.${rule_name}.proto='icmp'
+uci set firewall.${rule_name}.icmp_type='echo-request'
+uci set firewall.${rule_name}.family='ipv4'
+uci set firewall.${rule_name}.target='ACCEPT'
 
 cat <<EOF
 sysctl -w net.ipv6.conf.all.accept_ra=2
