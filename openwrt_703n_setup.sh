@@ -108,6 +108,15 @@ uci set firewall.${rule_name}.icmp_type='echo-request'
 uci set firewall.${rule_name}.family='ipv4'
 uci set firewall.${rule_name}.target='ACCEPT'
 
+# config rule
+#     string name 'Allow-Multi-Zone-Access'
+#     list src 'lan'
+#     list src 'guest'
+#     option dest 'wan'
+#     option target 'ACCEPT'
+#     option proto 'tcp'
+#     option dest_port '80 443'
+
 cat <<EOF
 sysctl -w net.ipv6.conf.all.accept_ra=2
 sysctl -w net.ipv6.conf.default.accept_ra=2
