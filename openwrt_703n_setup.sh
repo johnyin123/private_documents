@@ -62,12 +62,21 @@ uci set firewall.${nat_name}.dest='lan'
 uci set firewall.${nat_name}.dest_ip="${dst_ip}"
 uci set firewall.${nat_name}.dest_port="${port}"
 
-rule_name=aria
+rule_name=aria_dht
 uci set firewall.${rule_name}=rule
 uci set firewall.${rule_name}.name="Allow-${rule_name}"
 uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.dest_port='50000 51413 6800'
+uci set firewall.${rule_name}.dest_port='50000 51413'
 uci set firewall.${rule_name}.proto='tcp udp'
+uci set firewall.${rule_name}.target='ACCEPT'
+
+rule_name=aria_rpc
+uci set firewall.${rule_name}=rule
+uci set firewall.${rule_name}.name="Allow-${rule_name} rpc"
+uci set firewall.${rule_name}.src="${network}"
+# uci set firewall.${rule_name}.src_ip="!${NETWORK}/${PREFIX}"
+uci set firewall.${rule_name}.dest_port='6800'
+uci set firewall.${rule_name}.proto='tcp'
 uci set firewall.${rule_name}.target='ACCEPT'
 
 rule_name=${network}6_dhcpv6
@@ -107,15 +116,6 @@ uci set firewall.${rule_name}.proto='icmp'
 uci set firewall.${rule_name}.icmp_type='echo-request'
 uci set firewall.${rule_name}.family='ipv4'
 uci set firewall.${rule_name}.target='ACCEPT'
-
-# config rule
-#     string name 'Allow-Multi-Zone-Access'
-#     list src 'lan'
-#     list src 'guest'
-#     option dest 'wan'
-#     option target 'ACCEPT'
-#     option proto 'tcp'
-#     option dest_port '80 443'
 
 cat <<EOF
 sysctl -w net.ipv6.conf.all.accept_ra=2
