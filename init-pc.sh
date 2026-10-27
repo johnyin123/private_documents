@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2495e5e4[2026-10-10T13:36:45+08:00]:init-pc.sh")
+VERSION+=("213675fc[2026-10-27T08:57:38+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -69,12 +69,6 @@ EOF
 echo "install network bridge"
 apt_install bridge-utils python3-venv
 cat << EOF | tee /etc/network/interfaces.d/br-int
-# auto br-int
-# iface br-int inet manual
-#     bridge_ports none
-#     bridge_maxwait 0
-#     bridge_stp on
-
 auto br-int
 iface br-int inet static
     bridge_ports none
@@ -100,7 +94,15 @@ iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
     bridge_stp on
-    #bridge_ports none
+auto br-ext
+iface br-ext inet static
+    bridge_ports eth0
+    bridge_maxwait 0
+    bridge_stp on
+    bridge-vlan-aware yes
+    # Allows untagged traffic (PVID 1) and tagged VLAN 10 traffic
+    bridge-vids 1 10
+    bridge-pvid 1
     hwaddress 00:be:43:53:2c:b9
     address ${IPADDR:-10.32.166.31/25}
     ${GATEWAY:+gateway ${GATEWAY}}

@@ -18,19 +18,29 @@ uci set wireless.${wifi_name}.network="${network} ${network}6"
 uci set wireless.${wifi_name}.ssid="${wifi_ssid}"
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key="${wifi_pass}"
+uci -q get network.${network} && {
+    uci show network.${network}
+    echo "delete network ${network}"
+    uci del network.${network}
+}
 uci set network.${network}=interface
 uci set network.${network}.device="${network}"
 uci set network.${network}.proto='static' #'dhcp'
 uci set network.${network}.ipaddr="${IP}"
 uci set network.${network}.netmask="${NETMASK}"
 uci set network.${network}.gateway="${wifi_gw}"
+
+uci -q get network.${network}6 && {
+    uci show network.${network}6
+    echo "delete network ${network}6"
+    uci del network.${network}6
+}
 uci set network.${network}6=interface
 uci set network.${network}6.device="@${network}"
 uci set network.${network}6.proto='dhcpv6'
 # uci set network.${network}6.reqaddress='try'
 uci set network.${network}6.reqaddress='force' # Disables stateful DHCPv6 address request, enforcing SLAAC
 uci set network.${network}6.reqprefix='no' #SLAAC-only endpoint allocation
-
 # uci commit
 cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
@@ -41,10 +51,52 @@ if [ "$ACTION" = "add" ]; then
 fi
 EO_SCRIPT
 
-uci set firewall.${network}=zone
-uci set firewall.${network}.name="${network}"
-uci add_list firewall.${network}.network="${network}"
-uci add_list firewall.${network}.network="${network}6"
+uci -q get firewall.${network} && {
+    uci show network.${network}
+} || {
+    uci set firewall.${network}=zone
+    uci set firewall.${network}.name="${network}"
+    uci add_list firewall.${network}.network="${network}"
+    uci add_list firewall.${network}.network="${network}6"
+
+    rule_name=${network}6_dhcpv6
+    uci set firewall.${rule_name}=rule
+    uci set firewall.${rule_name}.name="Allow-${rule_name}"
+    uci set firewall.${rule_name}.src="${network}"
+    uci set firewall.${rule_name}.proto='udp'
+    uci set firewall.${rule_name}.src_ip='fc00::/6'
+    uci set firewall.${rule_name}.dest_ip='fc00::/6'
+    uci set firewall.${rule_name}.dest_port='546'
+    uci set firewall.${rule_name}.family='ipv6'
+    uci set firewall.${rule_name}.target='ACCEPT'
+    
+    rule_name=${network}6_slaac_disc
+    uci set firewall.${rule_name}=rule
+    uci set firewall.${rule_name}.name="Allow-${rule_name}"
+    uci set firewall.${rule_name}.src="${network}"
+    uci set firewall.${rule_name}.proto='icmp'
+    uci set firewall.${rule_name}.icmp_type='neighbor-advertisement'
+    uci set firewall.${rule_name}.target='ACCEPT'
+    uci set firewall.${rule_name}.family='ipv6'
+    
+    rule_name=${network}_dhcp
+    uci set firewall.${rule_name}=rule
+    uci set firewall.${rule_name}.name="Allow-${rule_name}"
+    uci set firewall.${rule_name}.src="${network}"
+    uci set firewall.${rule_name}.proto='udp'
+    uci set firewall.${rule_name}.dest_port='68'
+    uci set firewall.${rule_name}.target='ACCEPT'
+    uci set firewall.${rule_name}.family='ipv4'
+    
+    rule_name=${network}_ping
+    uci set firewall.${rule_name}=rule
+    uci set firewall.${rule_name}.name="Allow-${rule_name}"
+    uci set firewall.${rule_name}.src="${network}"
+    uci set firewall.${rule_name}.proto='icmp'
+    uci set firewall.${rule_name}.icmp_type='echo-request'
+    uci set firewall.${rule_name}.family='ipv4'
+    uci set firewall.${rule_name}.target='ACCEPT'
+}
 uci set firewall.${network}.input='REJECT'
 uci set firewall.${network}.output='ACCEPT'
 uci set firewall.${network}.forward='REJECT'
@@ -78,45 +130,6 @@ uci set firewall.${rule_name}.src="${network}"
 uci set firewall.${rule_name}.dest_port='6800'
 uci set firewall.${rule_name}.proto='tcp'
 uci set firewall.${rule_name}.target='ACCEPT'
-
-rule_name=${network}6_dhcpv6
-uci set firewall.${rule_name}=rule
-uci set firewall.${rule_name}.name="Allow-${rule_name}"
-uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.proto='udp'
-uci set firewall.${rule_name}.src_ip='fc00::/6'
-uci set firewall.${rule_name}.dest_ip='fc00::/6'
-uci set firewall.${rule_name}.dest_port='546'
-uci set firewall.${rule_name}.family='ipv6'
-uci set firewall.${rule_name}.target='ACCEPT'
-
-rule_name=${network}6_slaac_disc
-uci set firewall.${rule_name}=rule
-uci set firewall.${rule_name}.name="Allow-${rule_name}"
-uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.proto='icmp'
-uci set firewall.${rule_name}.icmp_type='neighbor-advertisement'
-uci set firewall.${rule_name}.target='ACCEPT'
-uci set firewall.${rule_name}.family='ipv6'
-
-rule_name=${network}_dhcp
-uci set firewall.${rule_name}=rule
-uci set firewall.${rule_name}.name="Allow-${rule_name}"
-uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.proto='udp'
-uci set firewall.${rule_name}.dest_port='68'
-uci set firewall.${rule_name}.target='ACCEPT'
-uci set firewall.${rule_name}.family='ipv4'
-
-rule_name=${network}_ping
-uci set firewall.${rule_name}=rule
-uci set firewall.${rule_name}.name="Allow-${rule_name}"
-uci set firewall.${rule_name}.src="${network}"
-uci set firewall.${rule_name}.proto='icmp'
-uci set firewall.${rule_name}.icmp_type='echo-request'
-uci set firewall.${rule_name}.family='ipv4'
-uci set firewall.${rule_name}.target='ACCEPT'
-
 cat <<EOF
 sysctl -w net.ipv6.conf.all.accept_ra=2
 sysctl -w net.ipv6.conf.default.accept_ra=2
