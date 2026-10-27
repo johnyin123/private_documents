@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5fae9677[2026-08-05T08:27:03+08:00]:init-pc.sh")
+VERSION+=("2495e5e4[2026-10-10T13:36:45+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -73,11 +73,13 @@ cat << EOF | tee /etc/network/interfaces.d/br-int
 # iface br-int inet manual
 #     bridge_ports none
 #     bridge_maxwait 0
+#     bridge_stp on
 
 auto br-int
 iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
+    bridge_stp on
     address 192.168.167.1/24
 
 iface br-int inet6 static
@@ -97,6 +99,7 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
+    bridge_stp on
     #bridge_ports none
     hwaddress 00:be:43:53:2c:b9
     address ${IPADDR:-10.32.166.31/25}
@@ -626,6 +629,8 @@ cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
 [NetDev]
 Name=${BR_NAME}
 Kind=bridge
+[Bridge]
+STP=true
 EOF
 
 cat <<EOF >/etc/systemd/network/${BR_NAME}.network
@@ -644,6 +649,8 @@ cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
 [NetDev]
 Name=${BR_NAME}
 Kind=bridge
+[Bridge]
+STP=true
 EOF
 
 BR_NAME=br-dl
@@ -651,6 +658,8 @@ cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
 [NetDev]
 Name=${BR_NAME}
 Kind=bridge
+[Bridge]
+STP=true
 EOF
 
 BR_NAME=br-bj
@@ -658,6 +667,8 @@ cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
 [NetDev]
 Name=${BR_NAME}
 Kind=bridge
+[Bridge]
+STP=true
 EOF
 # # By setting the fsck pass number to 0, you prevent systemd-fstab-generator from attempting an inappropriate file system check on a non-device mount point
 echo '/home/johnyin/disk/storage /storage none defaults,bind 0 0' >> /etc/fstab

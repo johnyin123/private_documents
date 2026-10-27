@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1b32c19a[2026-10-22T13:13:35+08:00]:build-openwrt.sh")
+VERSION+=("d1e889ea[2026-10-22T13:18:31+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -661,6 +661,14 @@ prompt() {
     fi
     echo ""
 }
+macaddr_add() {
+    local mac=$1
+    local val=$2
+    local oui=${mac%:*:*:*}
+    local nic=${mac#*:*:*:}
+    nic=$(printf "%06x" $((0x${nic//:/} + $val & 0xffffff)) | sed 's/^\(.\{2\}\)\(.\{2\}\)\(.\{2\}\)/\1:\2:\3/')
+    echo $oui:$nic
+}
 # # 17.01 uses dot-notation directly for 802.1q
 uci -q get network.${br_name} || {
     prompt ipaddr "${br_name} ipaddr:"
@@ -670,6 +678,8 @@ uci -q get network.${br_name} || {
     uci set network.${br_name}.proto='static'
     uci set network.${br_name}.ipaddr="${ipaddr}"
     uci set network.${br_name}.netmask="${netmask}"
+    uci set network.${br_name}.macaddr="$(macaddr_add $(cat /sys/class/net/eth0/address) +1)"
+    uci set network.${br_name}.stp='1'
     [ -z "${eth}" ] || uci set network.${br_name}.ifname="${eth}" #eth0.10(vlan 10), no ifname use nat mode
 }
 # # add ap
@@ -781,6 +791,7 @@ uci set firewall.@defaults[0].input='REJECT'
 uci set firewall.@defaults[0].output='ACCEPT'
 uci set firewall.@defaults[0].forward='REJECT'
 uci set network.lan.ip6assign='64'
+uci set network.lan.stp='1'
 uci set network.wan='interface'
 uci set network.wan.device='@lan'
 uci set network.wan.proto='dhcp'

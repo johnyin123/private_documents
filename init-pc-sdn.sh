@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("64b3a8e4[2026-07-02T16:12:59+08:00]:init-pc-sdn.sh")
+VERSION+=("38f7a46e[2026-07-02T16:17:57+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -42,6 +42,7 @@ auto br-int
 iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
+    bridge_stp on
     address 192.168.167.1/24
     # # aws route rule
     post-up (/usr/sbin/ip rule add from 192.168.167.10/32 table ${AWS} || true)
