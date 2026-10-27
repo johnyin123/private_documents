@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e0bcdcf3[2026-10-27T10:12:33+08:00]:build-openwrt.sh")
+VERSION+=("c386ff03[2026-10-27T10:33:58+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -267,8 +267,6 @@ uci batch <<EO_CMD
     set network.@switch_vlan[-1].vlan='2'
     set network.@switch_vlan[-1].ports='0t 2t'
 EO_CMD
-# 703n no switch chip, can not untagged to defaut tag(1), so add eth0 and tag1 togeter
-uci set network.lan.ifname='eth0 eth0.1'
 uci commit network
 EOF
 }
