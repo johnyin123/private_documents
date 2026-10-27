@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("213675fc[2026-10-27T08:57:38+08:00]:build-openwrt.sh")
+VERSION+=("e0bcdcf3[2026-10-27T10:12:33+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -916,7 +916,7 @@ add_demo_ddns > "${DIRNAME}/mydir/root/ddns"
 add_demo_dnat > "${DIRNAME}/mydir/root/dnat.sh"
 add_demo_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
 add_demo_wifi_sta_ap_slaac > "${DIRNAME}/mydir/root/wifi_sta_ap_slaac"
-add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
+# add_demo_vlan > "${DIRNAME}/mydir/root/vlan"
 add_demo_ipip > "${DIRNAME}/mydir/root/ipip"
 add_demo_lan_dhcp_static > "${DIRNAME}/mydir/root/lan_static_dhcp"
 add_demo_vlan_8021q > "${DIRNAME}/mydir/root/vlan_8021q.sh"
