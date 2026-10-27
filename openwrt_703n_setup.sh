@@ -8,6 +8,17 @@ read -p "input wifi cidr ipaddr:" wifi_ipaddr
 read -p "input wifi gateway:" wifi_gw
 network=${wifi_name}
 eval $(ipcalc.sh ${wifi_ipaddr})
+uci -q get network.${network} && {
+    uci show network.${network}
+    echo "delete network ${network}"
+    uci del network.${network}
+}
+uci -q get network.${network}6 && {
+    uci show network.${network}6
+    echo "delete network ${network}6"
+    uci del network.${network}6
+}
+echo "create wifi sta ${network}"
 uci -q set wireless.radio0.disabled='0' || true
 uci -q set wireless.default_radio0.disabled='1' || true
 uci set wireless.${wifi_name}=wifi-iface
@@ -18,11 +29,8 @@ uci set wireless.${wifi_name}.network="${network} ${network}6"
 uci set wireless.${wifi_name}.ssid="${wifi_ssid}"
 uci set wireless.${wifi_name}.encryption='psk2'
 uci set wireless.${wifi_name}.key="${wifi_pass}"
-uci -q get network.${network} && {
-    uci show network.${network}
-    echo "delete network ${network}"
-    uci del network.${network}
-}
+
+echo "create interface ${network}"
 uci set network.${network}=interface
 uci set network.${network}.device="${network}"
 uci set network.${network}.proto='static' #'dhcp'
@@ -30,11 +38,7 @@ uci set network.${network}.ipaddr="${IP}"
 uci set network.${network}.netmask="${NETMASK}"
 uci set network.${network}.gateway="${wifi_gw}"
 
-uci -q get network.${network}6 && {
-    uci show network.${network}6
-    echo "delete network ${network}6"
-    uci del network.${network}6
-}
+echo "create interface ${network}6"
 uci set network.${network}6=interface
 uci set network.${network}6.device="@${network}"
 uci set network.${network}6.proto='dhcpv6'
@@ -42,6 +46,7 @@ uci set network.${network}6.proto='dhcpv6'
 uci set network.${network}6.reqaddress='force' # Disables stateful DHCPv6 address request, enforcing SLAAC
 uci set network.${network}6.reqprefix='no' #SLAAC-only endpoint allocation
 # uci commit
+echo "create disk autoexecute"
 cat <<'EO_SCRIPT'> /etc/hotplug.d/block/99-aria
 #!/bin/sh
 if [ "$ACTION" = "add" ]; then
@@ -54,12 +59,14 @@ EO_SCRIPT
 uci -q get firewall.${network} && {
     uci show network.${network}
 } || {
+    echo "create firewall zone ${network}"
     uci set firewall.${network}=zone
     uci set firewall.${network}.name="${network}"
     uci add_list firewall.${network}.network="${network}"
     uci add_list firewall.${network}.network="${network}6"
 
     rule_name=${network}6_dhcpv6
+    echo "create firewall ${network} rule ${rule_name}"
     uci set firewall.${rule_name}=rule
     uci set firewall.${rule_name}.name="Allow-${rule_name}"
     uci set firewall.${rule_name}.src="${network}"
@@ -71,6 +78,7 @@ uci -q get firewall.${network} && {
     uci set firewall.${rule_name}.target='ACCEPT'
     
     rule_name=${network}6_slaac_disc
+    echo "create firewall ${network} rule ${rule_name}"
     uci set firewall.${rule_name}=rule
     uci set firewall.${rule_name}.name="Allow-${rule_name}"
     uci set firewall.${rule_name}.src="${network}"
@@ -80,6 +88,7 @@ uci -q get firewall.${network} && {
     uci set firewall.${rule_name}.family='ipv6'
     
     rule_name=${network}_dhcp
+    echo "create firewall ${network} rule ${rule_name}"
     uci set firewall.${rule_name}=rule
     uci set firewall.${rule_name}.name="Allow-${rule_name}"
     uci set firewall.${rule_name}.src="${network}"
@@ -89,6 +98,7 @@ uci -q get firewall.${network} && {
     uci set firewall.${rule_name}.family='ipv4'
     
     rule_name=${network}_ping
+    echo "create firewall ${network} rule ${rule_name}"
     uci set firewall.${rule_name}=rule
     uci set firewall.${rule_name}.name="Allow-${rule_name}"
     uci set firewall.${rule_name}.src="${network}"
@@ -102,6 +112,7 @@ uci set firewall.${network}.output='ACCEPT'
 uci set firewall.${network}.forward='REJECT'
 # # port redirect
 nat_name=ssh
+echo "create firewall ${network} redirect ${nat_name}"
 dst_ip=$(uci -q get network.lan.ipaddr)
 port=60022
 uci set firewall.${nat_name}=redirect
@@ -115,6 +126,7 @@ uci set firewall.${nat_name}.dest_ip="${dst_ip}"
 uci set firewall.${nat_name}.dest_port="${port}"
 
 rule_name=aria_dht
+echo "create firewall ${network} rule ${rule_name}"
 uci set firewall.${rule_name}=rule
 uci set firewall.${rule_name}.name="Allow-${rule_name}"
 uci set firewall.${rule_name}.src="${network}"
@@ -123,6 +135,7 @@ uci set firewall.${rule_name}.proto='tcp udp'
 uci set firewall.${rule_name}.target='ACCEPT'
 
 rule_name=aria_rpc
+echo "create firewall ${network} rule ${rule_name}"
 uci set firewall.${rule_name}=rule
 uci set firewall.${rule_name}.name="Allow-${rule_name}"
 uci set firewall.${rule_name}.src="${network}"
