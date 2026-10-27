@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c386ff03[2026-10-27T10:33:58+08:00]:build-openwrt.sh")
+VERSION+=("4c70af66[2026-10-27T12:02:23+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -778,7 +778,7 @@ case "$id" in
         PACKAGES+=(kmod-usb-net kmod-usb-net-rndis kmod-usb-net-cdc-ether kmod-usb-net-cdc-ncm usb-modeswitch)
         # # remove kmod-zram zram-swap, free enough
         # PACKAGES+=(chat comgt kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan usb-modeswitch)
-        PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini)
+        PACKAGES_REMOVE+=(-opkg -wpad-mini -hostapd-mini -swconfig) # no hardware switch topology
         add_uci_default_dropbear "${DIRNAME}/mydir"
         add_uci_default_lanip "${DIRNAME}/mydir" "${LAN_IP:-192.168.168.254}"
         add_uci_default_password "${DIRNAME}/mydir" "${PASSWORD}"
