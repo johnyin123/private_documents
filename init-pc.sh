@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("213675fc[2026-10-27T08:57:38+08:00]:init-pc.sh")
+VERSION+=("c97a3e9f[2026-10-27T10:08:42+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -67,7 +67,7 @@ iface lo inet loopback
 EOF
 
 echo "install network bridge"
-apt_install bridge-utils python3-venv
+apt_install ifupdown2 bridge-utils python3-venv
 cat << EOF | tee /etc/network/interfaces.d/br-int
 auto br-int
 iface br-int inet static
@@ -83,6 +83,7 @@ auto br-int:1
 iface br-int:1 inet static
     address 192.168.169.1/24
 EOF
+# need ifupdown2, for bridge-vids...
 cat << EOF | tee /etc/network/interfaces.d/br-ext
 # auto eth0
 allow-hotplug eth0
