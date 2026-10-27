@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c97a3e9f[2026-10-27T10:08:42+08:00]:init-pc.sh")
+VERSION+=("f5167b4a[2026-10-27T16:45:19+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -107,6 +107,7 @@ iface br-ext inet static
     hwaddress 00:be:43:53:2c:b9
     address ${IPADDR:-10.32.166.31/25}
     ${GATEWAY:+gateway ${GATEWAY}}
+# # bridge vlan show
 
 iface br-ext inet6 static
     address 2001::c0a8:a801/96
