@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("d1e889ea[2026-10-22T13:18:31+08:00]:build-openwrt.sh")
+VERSION+=("213675fc[2026-10-27T08:57:38+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 env: PASSWORD= #default password
@@ -670,6 +670,7 @@ macaddr_add() {
     echo $oui:$nic
 }
 # # 17.01 uses dot-notation directly for 802.1q
+# option ifname 'eth0.1 eth0.10' ## vlan1 untaged and taged 10 in bridge
 uci -q get network.${br_name} || {
     prompt ipaddr "${br_name} ipaddr:"
     prompt netmask "${br_name} netmask:"
