@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f5167b4a[2026-10-27T16:45:19+08:00]:init-pc.sh")
+VERSION+=("62cc87d9[2026-10-27T16:46:59+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -67,7 +67,7 @@ iface lo inet loopback
 EOF
 
 echo "install network bridge"
-apt_install ifupdown2 bridge-utils python3-venv
+apt_install ifupdown bridge-utils python3-venv
 cat << EOF | tee /etc/network/interfaces.d/br-int
 auto br-int
 iface br-int inet static
@@ -83,7 +83,7 @@ auto br-int:1
 iface br-int:1 inet static
     address 192.168.169.1/24
 EOF
-# need ifupdown2, for bridge-vids...
+# ifupdown, not support vlan config, need up script
 cat << EOF | tee /etc/network/interfaces.d/br-ext
 # auto eth0
 allow-hotplug eth0
@@ -100,17 +100,21 @@ iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
     bridge_stp on
-    bridge-vlan-aware yes
-    # Allows untagged traffic (PVID 1) and tagged VLAN 10 traffic
-    bridge-vids 1 10
-    bridge-pvid 1
     hwaddress 00:be:43:53:2c:b9
+    # # Allows untagged traffic (PVID 1) and tagged VLAN 10 traffic
+    # # 1. Enable VLAN filtering on bridge
+    bridge-vlan-aware yes
+    # up ip link set dev br-ext type bridge vlan_filtering 1
+    # # 2. Set VLAN 1 as the Untagged Ingress/Egress Native VLAN on eth0
+    # # tag any incoming untagged frame with VLAN 1, and strips the VLAN 1 tag off any outgoing frame
+    up bridge vlan add dev eth0 vid 1 pvid untagged
+    # # 3. Allow Tagged VLAN 10 packets to pass through eth0
+    up bridge vlan add dev eth0 vid 10
+    # # 4. Bind the host's IP layer to the untagged VLAN 1 domain, egress untaged
+    up bridge vlan add dev br-ext vid 1 self pvid untagged
     address ${IPADDR:-10.32.166.31/25}
     ${GATEWAY:+gateway ${GATEWAY}}
 # # bridge vlan show
-
-iface br-ext inet6 static
-    address 2001::c0a8:a801/96
 
 auto br-ext:1
 iface br-ext:1 inet static

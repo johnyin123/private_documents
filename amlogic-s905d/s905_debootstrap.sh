@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d06af651[2026-10-12T08:22:15+08:00]:s905_debootstrap.sh")
+VERSION+=("f5167b4a[2026-10-27T16:45:19+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -38,7 +38,7 @@ old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
 IFS=$old_ifs
 
-PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown2,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
+PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
 PKG+=",ksmbd-tools,procps"
@@ -309,6 +309,7 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
+    bridge_stp on
     address 192.168.168.2/24
 
 # post-up ip rule add from 192.168.168.0/24 table out.168
@@ -431,6 +432,7 @@ auto br-int
 iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
+    bridge_stp on
     address 192.168.31.1/24
 EOF
 
