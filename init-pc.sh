@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("62cc87d9[2026-10-27T16:46:59+08:00]:init-pc.sh")
+VERSION+=("66fc77ae[2026-10-28T08:57:08+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -76,11 +76,10 @@ iface br-int inet static
     bridge_stp on
     address 192.168.167.1/24
 
-iface br-int inet6 static
-    address 2001::c0a8:a701/96
+# iface br-int inet6 static
+#     address 2001::c0a8:a701/96
 
-auto br-int:1
-iface br-int:1 inet static
+iface br-int inet static
     address 192.168.169.1/24
 EOF
 # ifupdown, not support vlan config, need up script
@@ -116,8 +115,7 @@ iface br-ext inet static
     ${GATEWAY:+gateway ${GATEWAY}}
 # # bridge vlan show
 
-auto br-ext:1
-iface br-ext:1 inet static
+iface br-ext inet static
     address 192.168.168.1/24
 
 # auto bond0
