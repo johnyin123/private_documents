@@ -23,5 +23,5 @@ kubectl get pod -A -o wide | grep <pod-name>
 for pid in $(pidof java); do echo "java pid = $pid";nsenter -n -t $pid ip a | grep 11.244.82.149/32; done
 lsof -p <pid>
 cat /proc/<pid>/limits
-nsenter -t <pid> -n tcpdump
+nsenter -t <pid> -n tcpdump -nn host <srv> and port <srv port>
 nsenter -t <pid> -m /bin/sh
