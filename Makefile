@@ -6,6 +6,7 @@ INCFILE     ?= make.inc
 # # make INCFILE=make.win ,LDFLAGS+=-Wl,--out-implib,mydll.dll.a
 # # CROSS_COMPILE=x86_64-w64-mingw32-
 # EXE?=libmyutils # env EXE first -lmyutils -L./
+# # C_STANDARD = -std=gnu99
 # # define EXPORT_API __attribute__((visibility("default")))
 # # objdump -T libmyutils.so|grep 'DF .text' || gendef - HeaSecReadInfo.dll
 # # CFLAGS  +=-DCJSON_HIDE_SYMBOLS -DCURL_STATICLIB -DBUILDING_LIBRARY
