@@ -31,8 +31,8 @@ GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a gi
 GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
 BUILD_DATE  := $(shell date --iso=seconds)
 CC          := $(CROSS_COMPILE)gcc
-C_STANDARD   = -std=c99
-CPP_STANDARD = -std=c++20
+C_STANDARD  ?= -std=c99
+CC_STANDARD ?= -std=c++20
 STRIP       := $(CROSS_COMPILE)strip
 RM          := rm -f
 DEBUG_FLAG  += -Wall -Wextra
@@ -74,7 +74,7 @@ OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 
 %.o: %.cpp
 	$(call msg,G++,$@)
-	$(Q)$(CC) $(CPP_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
+	$(Q)$(CC) $(CC_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 
 .PHONY : all
 all: $(EXE) strip
