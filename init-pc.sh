@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("66fc77ae[2026-10-28T08:57:08+08:00]:init-pc.sh")
+VERSION+=("aa8b7dfc[2026-10-29T07:48:11+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -89,11 +89,6 @@ allow-hotplug eth0
 iface eth0 inet manual
     hwaddress 9e:7f:97:92:78:74
 
-auto br-ext
-iface br-ext inet static
-    bridge_ports eth0
-    bridge_maxwait 0
-    bridge_stp on
 auto br-ext
 iface br-ext inet static
     bridge_ports eth0
