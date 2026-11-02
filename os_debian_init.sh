@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("5b9c50f5[2026-11-02T09:56:06+08:00]:os_debian_init.sh")
+VERSION+=("fbda4c6b[2026-11-02T11:14:34+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -701,7 +701,7 @@ func SetTitle()
         call setline(90, "#define SHOW_EXECUTION_TIME(func_call) (func_call)")
         call setline(91, "#endif")
         call setline(92, "")
-        call setline(93, "#ifdef USE_SYSLOG")
+        call setline(93, "#ifdef CONFIG_SYSLOG")
         call setline(94, "#include <syslog.h>")
         call setline(95, "#define log_debug(fmt,args...)  { if(g_env.trace_level>=LOG_DEBUG) syslog(LOG_DEBUG, fmt \"\\n\", ##args); }")
         call setline(96, "#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  syslog(LOG_INFO, fmt \"\\n\", ##args); }")
