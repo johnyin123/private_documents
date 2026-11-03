@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("384cf403[2026-11-02T12:35:49+08:00]:os_debian_init.sh")
+VERSION+=("259aaa70[2026-11-02T13:50:36+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -615,7 +615,7 @@ func SetTitle()
         call setline(4, "#include <stdlib.h>")
         call setline(5, "#include \"utils.h\"")
         call setline(6, "struct env g_env = {")
-        call setline(7, "    .trace_level = 0,")
+        call setline(7, "    .trace_level = LOG_ERR,")
         call setline(8, "};")
         call setline(9, "const char *opt_short=\"h\";")
         call setline(10, "struct option opt_long[] = {")
