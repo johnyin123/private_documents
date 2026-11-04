@@ -1,25 +1,46 @@
-#define XSTR(s)       STR(s)
-#define STR(s)        #s
+#ifndef __CONF_H_133255_1078767780__INC__
+#define __CONF_H_133255_1078767780__INC__
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#define CONF_KEY_LEN  16
-#define CONF_VAL_LEN  256
+
+#ifndef XSTR
+#define XSTR(s)       STR(s)
+#endif
+#ifndef STR
+#define STR(s)        #s
+#endif
+#ifndef CONF_KEY_LEN
+#define CONF_KEY_LEN  32
+#endif
+#ifndef CONF_VAL_LEN
+#define CONF_VAL_LEN  512
+#endif
 struct conf_kv_t {
     char key[CONF_KEY_LEN];
     char val[CONF_VAL_LEN];
 };
 static inline int __isspace(int c) { return (c==' '||c=='\t'||c=='\n'||c=='\v'||c=='\f'||c=='\r'); }
-static inline void trim_end(char *s) {
-    char *back = s + strlen(s);
-    while(back > s && __isspace((unsigned char)*--back)) { *back = '\0'; }
+static inline char *trim(char *s) {
+    while (__isspace((unsigned char)*s)) s++;
+    char *end = s + strlen(s);
+    while (end > s && __isspace((unsigned char)end[-1])) { *--end = '\0'; }
+    return s;
 }
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
-    char buff[CONF_KEY_LEN + CONF_VAL_LEN];
+    char buff[CONF_KEY_LEN + CONF_VAL_LEN + 8];
     FILE* file;
     size_t rows = 0;
+    if (!appname || !conf || !conf_len) { return -1; }
     snprintf(buff, sizeof(buff), "./%s.conf", appname);
     if(!(file=fopen(buff,"r"))) {
         snprintf(buff, sizeof(buff), "%s/%s.conf", getenv("HOME"), appname);
@@ -32,25 +53,25 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
         }
     }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
-        char *first_char = buff;
-        while(__isspace((unsigned char)*first_char)) first_char++;
-        if(*first_char == '#' || *first_char == '\0') continue;
+        char *p = trim(buff);
+        if(*p == '#' || *p == '\0') continue;
         /*sscanf fmt skip blanks*/
         if(sscanf(buff, " %" XSTR(CONF_KEY_LEN) "[^ \r\n=] = %" XSTR(CONF_VAL_LEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
-            trim_end(conf[rows++].val);
+            trim(conf[rows++].val);
         }
     }
     fclose(file);
-    return rows<=conf_len ? (int)rows : -1;
+    return (int)rows;
 }
-#ifdef TEST_CASE
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-int main(int argc, char *argv[]) {
-    struct conf_kv_t myconf[4];
-    int ret = get_conf("app", myconf, ARRAY_LEN(myconf));
+/*
+    struct conf_kv_t myconf[20];
+    int ret = get_conf("config", myconf, ARRAY_LEN(myconf));
     fprintf(stderr, "RET: %d\n", ret);
     for(int i=0;i<ret;i++)
-        fprintf(stderr, "CONF: %s = %s\n", myconf[i].key, myconf[i].val);
+        fprintf(stderr, "CONF: %s = %s||\n", myconf[i].key, myconf[i].val);
     return 0;
+*/
+#ifdef __cplusplus
 }
+#endif
 #endif
