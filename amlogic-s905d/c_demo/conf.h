@@ -71,12 +71,27 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
     fclose(file);
     return (int)rows;
 }
+static inline bool conf_get(const struct conf_kv_t *conf, const size_t conf_len, const char *key, const char *scanfmt, void *dst) {
+    for (size_t i=0;i<conf_len;i++) {
+        if (strcasecmp(conf[i].key, key) == 0) {
+            if (scanfmt) { sscanf(conf[i].val, scanfmt, dst); }
+            else { *((const char**) dst) = conf[i].val; }
+            return true;
+        }
+    }
+    return false;
+}
 /*
     struct conf_kv_t myconf[20];
     int ret = get_conf("config", myconf, ARRAY_LEN(myconf));
     fprintf(stderr, "RET: %d\n", ret);
-    for(int i=0;i<ret;i++)
-        fprintf(stderr, "CONF: %s = %s||\n", myconf[i].key, myconf[i].val);
+    if(ret > 0) {
+        int port = 100;
+        conf_get(myconf, ret, "port", "%d",  &port);
+        const char *name = "fule";
+        conf_get(myconf, ret, "name", NULL,  &name);
+        fprintf(stderr, "name=%s, port=%d", name, port);
+    }
     return 0;
 */
 #ifdef __cplusplus
