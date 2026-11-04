@@ -43,7 +43,7 @@ ifneq (,$(wildcard ./config.h))
 	CFLAGS += -DHAVE_CONFIG_H
 endif
 
-ifdef DEBUG
+ifeq ($(DEBUG),1)
 	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
 else
 	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
