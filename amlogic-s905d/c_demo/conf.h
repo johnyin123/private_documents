@@ -12,6 +12,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 #ifndef XSTR
 #define XSTR(s)       STR(s)
@@ -37,15 +38,16 @@ static inline char *trim(char *s) {
     return s;
 }
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
-    char buff[CONF_KEY_LEN + CONF_VAL_LEN + 8];
+    char buff[CONF_KEY_LEN + CONF_VAL_LEN + 8], path[PATH_MAX];
     FILE* file;
+    int c;
     size_t rows = 0;
-    if (!appname || !conf || !conf_len) { return -1; }
-    snprintf(buff, sizeof(buff), "./%s.conf", appname);
-    if(!(file=fopen(buff,"r"))) {
-        snprintf(buff, sizeof(buff), "%s/%s.conf", getenv("HOME"), appname);
-        if(!(file=fopen(buff,"r"))) {
-            snprintf(buff, sizeof(buff), "/etc/%s.conf", appname);
+    if (!appname || !*appname || !conf || !conf_len) { return -1; }
+    if (snprintf(path, sizeof(path), "./%s.conf", appname) >= (int)sizeof(path)) { return -2; }
+    if(!(file=fopen(path, "r"))) {
+        if (snprintf(path, sizeof(path), "%s/%s.conf", getenv("HOME") ? getenv("HOME") : "/etc", appname) >= (int)sizeof(path)) { return -3; }
+        if(!(file=fopen(path,"r"))) {
+            if (snprintf(path, sizeof(path), "/etc/%s.conf", appname) >= (int)sizeof(path)) { return -4; }
             if(!(file=fopen(buff,"r"))) {
                 fprintf(stderr, "Can't locate %s.conf: %s\n", appname, strerror(errno));
                 exit(1);
@@ -53,7 +55,13 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
         }
     }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
-        char *p = trim(buff);
+        /* Skip incomplete lines */
+        size_t len = strlen(buff);
+        if (len && buff[len - 1] != '\n' && !feof(file)) {
+            while ((c = fgetc(file)) != '\n' && c != EOF);
+            continue;
+        }
+        const char *p = trim(buff);
         if(*p == '#' || *p == '\0') continue;
         /*sscanf fmt skip blanks*/
         if(sscanf(buff, " %" XSTR(CONF_KEY_LEN) "[^ \r\n=] = %" XSTR(CONF_VAL_LEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
