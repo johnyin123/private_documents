@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("74dc30db[2026-06-10T14:31:41+08:00]:mk_nginx.sh")
+VERSION+=("212d9838[2026-06-11T13:30:06+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -632,7 +632,6 @@ proxy_headers_hash_max_size 102400;
 proxy_ignore_client_abort on;
 
 # # proxy headers, if use proxy_set_header, below header will overwrite.
-proxy_set_header X-Request-ID      $requestid;
 proxy_set_header X-Real-IP         $remote_addr;
 proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
