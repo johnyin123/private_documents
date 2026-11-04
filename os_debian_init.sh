@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("259aaa70[2026-11-02T13:50:36+08:00]:os_debian_init.sh")
+VERSION+=("258417b4[2026-11-03T09:52:46+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -608,7 +608,7 @@ func SetTitle()
         call setline(13, "#endif")
         call setline(14, "#endif")
     endif
-    if expand ("%:e") == 'c'
+    if expand('%:t') ==# 'main.c'
         call setline(1, "#include <stdio.h>")
         call setline(2, "#include <getopt.h>")
         call setline(3, "#include <string.h>")
