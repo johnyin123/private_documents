@@ -28,7 +28,7 @@ extern "C" {
 #ifndef CONFIG_VLEN
 #define CONFIG_VLEN  512
 #endif
-struct conf_kv_t { char key[CONFIG_KLEN]; char val[CONFIG_VLEN]; };
+struct conf_kv_t { char key[CONFIG_KLEN+1]; char val[CONFIG_VLEN+1]; };
 static inline int __isspace(int c) { return (c==' '||c=='\t'||c=='\n'||c=='\v'||c=='\f'||c=='\r'); }
 static inline char *trim(char *s) {
     while (__isspace((unsigned char)*s)) s++;
