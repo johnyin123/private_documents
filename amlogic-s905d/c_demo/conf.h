@@ -20,15 +20,15 @@ extern "C" {
 #ifndef STR
 #define STR(s)        #s
 #endif
-#ifndef CONF_KEY_LEN
-#define CONF_KEY_LEN  32
+#ifndef CONFIG_KLEN
+#define CONFIG_KLEN  32
 #endif
-#ifndef CONF_VAL_LEN
-#define CONF_VAL_LEN  512
+#ifndef CONFIG_VLEN
+#define CONFIG_VLEN  512
 #endif
 struct conf_kv_t {
-    char key[CONF_KEY_LEN];
-    char val[CONF_VAL_LEN];
+    char key[CONFIG_KLEN];
+    char val[CONFIG_VLEN];
 };
 static inline int __isspace(int c) { return (c==' '||c=='\t'||c=='\n'||c=='\v'||c=='\f'||c=='\r'); }
 static inline char *trim(char *s) {
@@ -38,7 +38,7 @@ static inline char *trim(char *s) {
     return s;
 }
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
-    char buff[CONF_KEY_LEN + CONF_VAL_LEN + 8], path[PATH_MAX];
+    char buff[CONFIG_KLEN + CONFIG_VLEN + 8], path[PATH_MAX];
     FILE* file;
     int c;
     size_t rows = 0;
@@ -64,7 +64,7 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
         const char *p = trim(buff);
         if(*p == '#' || *p == '\0') continue;
         /*sscanf fmt skip blanks*/
-        if(sscanf(buff, " %" XSTR(CONF_KEY_LEN) "[^ \r\n=] = %" XSTR(CONF_VAL_LEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
+        if(sscanf(buff, " %" XSTR(CONFIG_KLEN) "[^ \r\n=] = %" XSTR(CONFIG_VLEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
             trim(conf[rows++].val);
         }
     }
