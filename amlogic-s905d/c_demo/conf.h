@@ -38,7 +38,7 @@ static inline char *trim(char *s) {
 }
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
     const char *dirs[] = { ".", getenv("HOME"), "/etc" };
-    char buff[CONFIG_KLEN + CONFIG_VLEN + 8], path[PATH_MAX];
+    char buff[CONFIG_KLEN + CONFIG_VLEN + 32], path[PATH_MAX];
     FILE* file = NULL;
     int c;
     size_t rows = 0;
