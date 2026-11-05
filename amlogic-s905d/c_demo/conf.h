@@ -87,10 +87,13 @@ static inline bool conf_get(const struct conf_kv_t *conf, const size_t conf_len,
     fprintf(stderr, "RET: %d\n", ret);
     if(ret > 0) {
         int port = 100;
-        conf_get(myconf, ret, "port", "%d",  &port);
+        conf_get(myconf, ret, "port", "%d", &port);
         const char *name = "fule";
-        conf_get(myconf, ret, "name", NULL,  &name);
-        fprintf(stderr, "name=%s, port=%d", name, port);
+        conf_get(myconf, ret, "name", NULL, &name);
+        // #include <inttypes.h>
+        // int64_t  i64=1; "%" SCNd64, &i64
+        // uint64_t u64=1; "%" SCNu64, &u64
+        // fprintf(stderr, "%" PRId64 ",%" PRIu64 "\n", i64, u64);
     }
     return 0;
 */
