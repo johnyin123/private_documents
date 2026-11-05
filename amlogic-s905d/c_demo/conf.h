@@ -37,19 +37,19 @@ static inline char *trim(char *s) {
     return s;
 }
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
+    const char *dirs[] = { ".", getenv("HOME"), "/etc" };
     char buff[CONFIG_KLEN + CONFIG_VLEN + 8], path[PATH_MAX];
-    FILE* file;
+    FILE* file = NULL;
     int c;
     size_t rows = 0;
     if (!appname || !*appname || !conf || !conf_len) { return -1; }
-    if (snprintf(path, sizeof(path), "./%s" CONFIG_EXT, appname) >= (int)sizeof(path)) { return -2; }
-    if(!(file=fopen(path, "r"))) {
-        if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, getenv("HOME") ? getenv("HOME") : "/etc", appname) >= (int)sizeof(path)) { return -3; }
-        if(!(file=fopen(path,"r"))) {
-            if (snprintf(path, sizeof(path), "/etc/%s" CONFIG_EXT, appname) >= (int)sizeof(path)) { return -4; }
-            if(!(file=fopen(buff,"r"))) { return 0; /*exit(1);*/ }
-        }
+    for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
+        if (!dirs[i] || !*dirs[i]) continue;
+        if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, dirs[i], appname) >= (int)sizeof(path)) continue;
+        file = fopen(path, "r");
+        if (file) break;
     }
+    if (!file) { return 0; /*exit(1);*/ }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
         /* Skip incomplete lines */
         size_t len = strlen(buff);
