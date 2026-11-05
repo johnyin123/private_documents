@@ -11,7 +11,6 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <limits.h>
 
 #ifndef XSTR
@@ -20,16 +19,16 @@ extern "C" {
 #ifndef STR
 #define STR(s)        #s
 #endif
+#ifndef CONFIG_EXT
+#define CONFIG_EXT  ".conf"
+#endif
 #ifndef CONFIG_KLEN
 #define CONFIG_KLEN  32
 #endif
 #ifndef CONFIG_VLEN
 #define CONFIG_VLEN  512
 #endif
-struct conf_kv_t {
-    char key[CONFIG_KLEN];
-    char val[CONFIG_VLEN];
-};
+struct conf_kv_t { char key[CONFIG_KLEN]; char val[CONFIG_VLEN]; };
 static inline int __isspace(int c) { return (c==' '||c=='\t'||c=='\n'||c=='\v'||c=='\f'||c=='\r'); }
 static inline char *trim(char *s) {
     while (__isspace((unsigned char)*s)) s++;
@@ -43,15 +42,12 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
     int c;
     size_t rows = 0;
     if (!appname || !*appname || !conf || !conf_len) { return -1; }
-    if (snprintf(path, sizeof(path), "./%s.conf", appname) >= (int)sizeof(path)) { return -2; }
+    if (snprintf(path, sizeof(path), "./%s" CONFIG_EXT, appname) >= (int)sizeof(path)) { return -2; }
     if(!(file=fopen(path, "r"))) {
-        if (snprintf(path, sizeof(path), "%s/%s.conf", getenv("HOME") ? getenv("HOME") : "/etc", appname) >= (int)sizeof(path)) { return -3; }
+        if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, getenv("HOME") ? getenv("HOME") : "/etc", appname) >= (int)sizeof(path)) { return -3; }
         if(!(file=fopen(path,"r"))) {
-            if (snprintf(path, sizeof(path), "/etc/%s.conf", appname) >= (int)sizeof(path)) { return -4; }
-            if(!(file=fopen(buff,"r"))) {
-                fprintf(stderr, "Can't locate %s.conf: %s\n", appname, strerror(errno));
-                exit(1);
-            }
+            if (snprintf(path, sizeof(path), "/etc/%s" CONFIG_EXT, appname) >= (int)sizeof(path)) { return -4; }
+            if(!(file=fopen(buff,"r"))) { return 0; /*exit(1);*/ }
         }
     }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
