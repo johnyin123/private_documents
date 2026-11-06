@@ -51,11 +51,10 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
     }
     if (!file) { return 0; /*exit(1);*/ }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
-        /* Skip incomplete lines */
+        /* cut incomplete lines */
         size_t len = strlen(buff);
         if (len && buff[len - 1] != '\n' && !feof(file)) {
             while ((c = fgetc(file)) != '\n' && c != EOF);
-            continue;
         }
         const char *p = trim(buff);
         if(*p == '#' || *p == '\0') continue;
