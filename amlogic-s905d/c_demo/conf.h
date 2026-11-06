@@ -60,9 +60,7 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
         const char *p = trim(buff);
         if(*p == '#' || *p == '\0') continue;
         /*sscanf fmt skip blanks*/
-        if(sscanf(buff, " %" XSTR(CONFIG_KLEN) "[^ \r\n=] = %" XSTR(CONFIG_VLEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) {
-            trim(conf[rows++].val);
-        }
+        if(sscanf(p, " %" XSTR(CONFIG_KLEN) "[^ \r\n=] = %" XSTR(CONFIG_VLEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) { rows++; }
     }
     fclose(file);
     return (int)rows;
