@@ -46,8 +46,7 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
     for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
         if (!dirs[i] || !*dirs[i]) continue;
         if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, dirs[i], appname) >= (int)sizeof(path)) continue;
-        file = fopen(path, "r");
-        if (file) break;
+        if ((file = fopen(path, "r")) != NULL) break;
     }
     if (!file) { return 0; /*exit(1);*/ }
     while(rows < conf_len && fgets(buff,sizeof(buff),file)) {
