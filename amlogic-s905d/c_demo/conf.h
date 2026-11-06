@@ -36,6 +36,7 @@ static inline char *trim(char *s) {
     while (end > s && __isspace((unsigned char)end[-1])) { *--end = '\0'; }
     return s;
 }
+#ifndef CONFIG_MMAP_CONF
 static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
     const char *dirs[] = { ".", getenv("HOME"), "/etc" };
     char buff[CONFIG_KLEN + CONFIG_VLEN + 32], path[PATH_MAX];
@@ -64,6 +65,39 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
     fclose(file);
     return (int)rows;
 }
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t conf_len) {
+    const char *dirs[] = { ".", getenv("HOME"), "/etc" };
+    char path[PATH_MAX];
+    struct stat sb;
+    int fd = -1;
+    if (!appname || !*appname || !conf || !conf_len) { return -1; }
+    for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
+        if (!dirs[i] || !*dirs[i]) continue;
+        if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, dirs[i], appname) >= (int)sizeof(path)) continue;
+        if ((fd = open(path, O_RDONLY)) != -1) break;
+    }
+    if (stat(path, &sb) == -1) { close(fd); return -1; }
+    if (sb.st_size == 0) { close(fd); return -2; }
+    char *file_mem = mmap(NULL, sb.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (file_mem == MAP_FAILED) { close(fd); return -3; }
+    close(fd);
+    char *line, *running_buf = file_mem;
+    size_t rows = 0;
+    while (rows < conf_len && (line = strsep(&running_buf, "\n")) != NULL) {
+        const char *p = trim(line);
+        if(*p == '#' || *p == '\0') continue;
+        /*sscanf fmt skip blanks*/
+        if(sscanf(p, " %" XSTR(CONFIG_KLEN) "[^ \r\n=] = %" XSTR(CONFIG_VLEN) "[^\r\n]", conf[rows].key, conf[rows].val) == 2) { rows++; }
+    }
+    munmap(file_mem, sb.st_size);
+    return (int)rows;
+}
+#endif
 static inline bool conf_get(const struct conf_kv_t *conf, const size_t conf_len, const char *key, const char *scanfmt, void *dst) {
     for (size_t i=0;i<conf_len;i++) {
         if (strcasecmp(conf[i].key, key) == 0) {
