@@ -80,7 +80,7 @@ static inline int get_conf(const char *appname, struct conf_kv_t *conf, size_t c
         if (snprintf(path, sizeof(path), "%s/%s" CONFIG_EXT, dirs[i], appname) >= (int)sizeof(path)) continue;
         if ((fd = open(path, O_RDONLY)) != -1) break;
     }
-    if (stat(path, &sb) == -1) { close(fd); return -1; }
+    if (stat(path, &sb) == -1) { close(fd); return 0; }
     if (sb.st_size == 0) { close(fd); return -2; }
     char *file_mem = mmap(NULL, sb.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (file_mem == MAP_FAILED) { close(fd); return -3; }
