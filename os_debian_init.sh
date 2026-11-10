@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("214f7cda[2026-11-04T09:44:12+08:00]:os_debian_init.sh")
+VERSION+=("d77d4935[2026-11-10T13:11:16+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -712,7 +712,7 @@ func SetTitle()
         call setline(101, "#define log_info(fmt,args...)   { if(g_env.trace_level>=LOG_INFO)  fprintf(stderr, GREEN \"INFO \" RESET \" %s:%d \" fmt \"\\n\", __FILE__, __LINE__, ##args); }")
         call setline(102, "#define log_error(fmt,args...)  { if(g_env.trace_level>=LOG_ERR)   fprintf(stderr, RED   \"ERROR\" RESET \" %s:%d \" fmt \"\\n\", __FILE__, __LINE__, ##args); }")
         call setline(103, "#endif")
-        call setline(104, "#define CPY_MEM_STR(dst, dst_size, src, src_size) snprintf(dst, dst_size, "%.*s", (int)src_size, src) /* replace strncpy */")
+        call setline(104, "#define CPY_MEM_STR(dst, dst_size, src, src_size) snprintf(dst, dst_size, \"%.*s\", (int)src_size, src) //replace strncpy")
         call setline(105, "*/")
     endif
 endfunc
