@@ -44,7 +44,7 @@ struct conn_t {
     int fd;
     char peer_ip[INET6_ADDRSTRLEN];
     uint16_t peer_port;
-    uint8_t tick_cnt;
+    time_t last_active;
     enum conn_state_t state;
     unsigned int content_len;
     size_t bytes_parsed;
@@ -119,6 +119,7 @@ static void reset_conn(struct conn_t *c, int fd) {
     c->total_read = total_read;
     c->total_write = total_write;
     c->fd=fd;
+    c->last_active = now_sec();
 }
 #include <netdb.h>
 static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) {
@@ -239,9 +240,10 @@ static void event_loop() {
             log_error("select %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
+        time_t now = now_sec();
         if(nready==0) { /*timeout*/
             for(size_t i=0; i<ARRAY_LEN(conns); i++) {
-                if(conns[i].state!=ST_NONE && ++conns[i].tick_cnt>=IDEL_TICK) {
+                if(conns[i].state!=ST_NONE && (now - conns[i].last_active)>=IDLE_SEC) {
                     log_debug("IDEL TIMEOUT %d", conns[i].fd);
                     handle_close(&conns[i]);
                 }
@@ -253,13 +255,13 @@ static void event_loop() {
         }
         for(size_t i=0;i<ARRAY_LEN(conns);i++) {
             if(conns[i].state==ST_NONE) continue;
-            if(conns[i].tick_cnt>=IDEL_TICK) {
+            if((now - conns[i].last_active)>=IDLE_SEC) {
                 log_debug("IDEL TIMEOUT %d", conns[i].fd);
                 handle_close(&conns[i]);
                 continue; 
             }
             if(FD_ISSET(conns[i].fd,&rset)) {
-                if(buf_avail(&conns[i].rbuf) > 0) { conns[i].tick_cnt=0; }
+                if(buf_avail(&conns[i].rbuf) > 0) { conns[i].last_active=now; }
                 ssize_t n = buf_read_fd(&conns[i].rbuf, conns[i].fd, &(conns[i].total_read));
                 if ((n == 0) || (n < 0 && !is_wouldblock(sock_errno()))) { CONN_STATE(&conns[i], ST_CLOSE); } /* peer shutdown or fatal error */
                 if(conns[i].state == ST_HEAD)  { handle_head(&conns[i]); }
@@ -268,7 +270,7 @@ static void event_loop() {
                 if(conns[i].state == ST_CLOSE) { handle_close(&conns[i]); continue; }
             }
             if(FD_ISSET(conns[i].fd,&wset)) {
-                conns[i].tick_cnt=0;
+                conns[i].last_active=now;
                 handle_resp(&conns[i]);
                 if(conns[i].state == ST_CLOSE) { handle_close(&conns[i]); continue; }
             }

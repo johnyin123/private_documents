@@ -158,12 +158,17 @@ static inline void hexdump(FILE *fp, const void *ptr, size_t len) {
         fprintf(fp, "|");
     }
 }
-
+#include <time.h>
+static inline time_t now_sec() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec;
+}
 #define HTTP_PORT     8080
 #define SRV_INFO      "Server: inner"
 #define MAX_CONNS     64  /* < FD_SETSIZE */
-#define IDEL_TICK     5
-#define POLL_TMOUT    2   /* IDEL_TICK * POLL_TMOUT */
+#define IDLE_SEC      10
+#define POLL_TMOUT    2   /* POLL_TMOUT */
 #define MAX_HEADERS   8
 #define HDR_KEY_LEN   16
 #define HDR_VAL_LEN   256
