@@ -1,5 +1,6 @@
 google-chrome --disable-background-networking
-
+/usr/bin/google-chrome:
+    exec -a "$0" "$HERE/chrome" --simulate-outdated-no-au='Tue, 31 Dec 2099' "$@"
 Enable QUIC/HTTP3 in Google Chrome:
     chrome://flags -> Search for Experimental QUIC protocol
 Enable QUIC/HTTP3 in Mozilla Firefox:
