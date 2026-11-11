@@ -43,7 +43,7 @@ static int parse_command_line(int argc, char **argv) {
 struct conn_t {
     int fd;
     char peer_ip[INET6_ADDRSTRLEN];
-    int peer_port;
+    uint16_t peer_port;
     uint8_t tick_cnt;
     enum conn_state_t state;
     unsigned int content_len;
@@ -265,9 +265,13 @@ static void event_loop() {
                 if(conns[i].state == ST_HEAD)  { handle_head(&conns[i]); }
                 if(conns[i].state == ST_PROP)  { handle_prop(&conns[i]); }
                 if(conns[i].state == ST_BODY)  { handle_body(&conns[i]); }
-                if(conns[i].state == ST_CLOSE) { handle_close(&conns[i]); }
+                if(conns[i].state == ST_CLOSE) { handle_close(&conns[i]); continue; }
             }
-            if(FD_ISSET(conns[i].fd,&wset)) { conns[i].tick_cnt=0; handle_resp(&conns[i]); }
+            if(FD_ISSET(conns[i].fd,&wset)) {
+                conns[i].tick_cnt=0;
+                handle_resp(&conns[i]);
+                if(conns[i].state == ST_CLOSE) { handle_close(&conns[i]); continue; }
+            }
         }
     }
 }
