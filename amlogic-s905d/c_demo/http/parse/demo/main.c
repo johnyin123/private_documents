@@ -209,7 +209,7 @@ static void handle_resp(struct conn_t *c) {
     /* peer shutdown or fatal error */
     if ((n == 0) || (n < 0 && !is_wouldblock(sock_errno()))) { CONN_STATE(c, ST_CLOSE); }
 }
-static void event_loop() {
+static void event_loop(int srv_sock) {
     struct conn_t conns[MAX_CONNS] = { 0 };
     for (size_t i = 0; i < ARRAY_LEN(conns); i++) {
         conns[i].fd = -1;
@@ -219,8 +219,8 @@ static void event_loop() {
     for(;;) {
         FD_ZERO(&rset);
         FD_ZERO(&wset);
-        FD_SET(g_env.server_sock, &rset);
-        int maxfd=g_env.server_sock;
+        FD_SET(srv_sock, &rset);
+        int maxfd=srv_sock;
         for(size_t i=0; i<ARRAY_LEN(conns); i++) {
             struct conn_t *c = &conns[i];
             switch (c->state) {
@@ -250,8 +250,8 @@ static void event_loop() {
             }
             continue;
         }
-        if(FD_ISSET(g_env.server_sock, &rset)) {
-            handle_accept(g_env.server_sock, conns, ARRAY_LEN(conns));
+        if(FD_ISSET(srv_sock, &rset)) {
+            handle_accept(srv_sock, conns, ARRAY_LEN(conns));
         }
         for(size_t i=0;i<ARRAY_LEN(conns);i++) {
             if(conns[i].state==ST_NONE) continue;
@@ -294,7 +294,8 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, sig_func);
     signal(SIGTERM, sig_func);
     g_env.server_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
-    if(g_env.server_sock>0) event_loop();
+    if(g_env.server_sock<0) { return EXIT_FAILURE; }
+    event_loop(g_env.server_sock);
     log_info("Exit");
-    return 0;
+    return EXIT_SUCCESS;
 }
