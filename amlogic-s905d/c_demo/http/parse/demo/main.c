@@ -80,8 +80,6 @@ static inline void log_access(struct conn_t *c, uint16_t status) {
 static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
     CONN_STATE(c, ST_RESP);
     log_access(c, status);
-    //"M(%s) %d.%d %.*s (Content-Length=%d)", METHOD_STR(http_method(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, c->req.target_size, c->req.target, c->content_len);
-
     return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
 }
 static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t mime, const char *format, ...) {
