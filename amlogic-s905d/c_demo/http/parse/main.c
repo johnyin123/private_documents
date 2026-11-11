@@ -95,12 +95,14 @@ void test() {
     size_t buf_len = strlen(buf);
     struct conn_t conn = { 0 };
     char req[PATH_MAX];
+    size_t hdr_parsed = 0;
     int ret = parse_request_line(&conn.req_parser, &conn.req, &conn.bytes_parsed, buf, buf_len);
     if (ret == PARSE_OK) {
         CPY_MEM_STR(req, sizeof(req), conn.req.target, conn.req.target_size);
         log_debug("M(%s) %d.%d %s", METHOD_STR(http_method(conn.req.method, conn.req.method_size)), conn.req.httpver_major, conn.req.httpver_minor, req);
-        ret = parse_headers(&conn.hdr_parser, conn.hdr, ARRAY_LEN(conn.hdr), &conn.hdr_count, &conn.bytes_parsed, buf+conn.bytes_parsed, buf_len - conn.bytes_parsed);
+        ret = parse_headers(&conn.hdr_parser, conn.hdr, ARRAY_LEN(conn.hdr), &conn.hdr_count, &hdr_parsed, buf+conn.bytes_parsed, buf_len - conn.bytes_parsed);
         if (ret == PARSE_OK) {
+            conn.bytes_parsed += hdr_parsed;
             for (uint32_t i=0;i<conn.hdr_count;i++) {
                 char skey[HDR_KEY_LEN], sval[HDR_VAL_LEN];
                 CPY_MEM_STR(skey, sizeof(skey), conn.hdr[i].name, conn.hdr[i].name_size);
