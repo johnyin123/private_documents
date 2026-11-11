@@ -1,4 +1,5 @@
-sed -i 's/^exec.*chrome.*$/exec -a "$0" "$HERE\/chrome" --simulate-outdated-no-au="Tue, 31 Dec 2099" "$@"/g' $(readlink -f /usr/bin/google-chrome)
+google-chrome --disable-background-networking
+sed -i 's/^exec\s.*chrome"/& --simulate-outdated-no-au="Tue, 31 Dec 2099"/g' $(readlink -f /usr/bin/google-chrome)
 Enable QUIC/HTTP3 in Google Chrome:
     chrome://flags -> Search for Experimental QUIC protocol
 Enable QUIC/HTTP3 in Mozilla Firefox:
