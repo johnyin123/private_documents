@@ -72,7 +72,7 @@ static void handle_prop(struct conn_t *c) {
         case PARSE_OK      :
             c->bytes_parsed += hdr_parsed;
             CONN_STATE(c, ST_BODY);
-            const char *remain = buf_buf(&c->rbuf);
+            const char *remain = buf_buf(&c->rbuf) + c->bytes_parsed;
             size_t remain_len = buf_len(&c->rbuf) - c->bytes_parsed;
             buf_reset(&c->rbuf, c->rchunk, sizeof(c->rchunk));
             if(remain_len > 0) { buf_push(remain, remain_len, &c->rbuf); }
