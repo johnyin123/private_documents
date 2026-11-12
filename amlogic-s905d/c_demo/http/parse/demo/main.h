@@ -196,6 +196,7 @@ struct conn_t {
     char wchunk[BUF_SIZE];
     uint64_t total_read;
     uint64_t total_write;
+    void *ctx;
 };
 #define PARSE_ERR(c, status) log_parse_error((c), __FUNCTION__, status)
 static inline void log_parse_error(struct conn_t *c, const char *fn, uint16_t status) {
