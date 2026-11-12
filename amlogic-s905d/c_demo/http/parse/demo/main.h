@@ -247,6 +247,7 @@ void METHOD_FUNC_PATCH(struct conn_t *c);
 void METHOD_FUNC_TRACE(struct conn_t *c);
 void METHOD_FUNC_CONNECT(struct conn_t *c);
 #define method2func(c)  (method_func_t)code2ptr((c), (const void **)method_funcs, method_funcs_len, METHOD_FUNC_NONE)
+void event_loop(int srv_sock);
 
 #ifdef __cplusplus
 }
