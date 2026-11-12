@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "main.h"
-#include "const.h"
-#include "http_parser.h"
 struct env g_env = {
     .trace_level = LOG_ERR,
     .server_sock = 0,
@@ -39,64 +37,6 @@ static int parse_command_line(int argc, char **argv) {
         }
     }
     return 0;
-}
-struct conn_t {
-    int fd;
-    char peer_ip[INET6_ADDRSTRLEN];
-    uint16_t peer_port;
-    time_t last_active;
-    enum conn_state_t state;
-    unsigned int content_len;
-    size_t bytes_parsed;
-    struct req_line req;
-    uint32_t hdr_count;
-    struct http_header hdr[MAX_HEADERS];
-    struct req_line_parser req_parser;
-    struct http_headers_parser hdr_parser;
-    struct buf_t rbuf;
-    char head[HDR_SIZE];
-    char rchunk[BUF_SIZE];
-    struct buf_t wbuf;
-    char wchunk[BUF_SIZE];
-    uint64_t total_read;
-    uint64_t total_write;
-};
-static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
-    for (size_t i=0;i<hdr_count;i++) {
-        if (memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
-    }
-    return NULL;
-}
-static inline void log_bad_req(struct conn_t *c) {
-    log_error("bad request %d", c->fd);
-}
-static inline void log_invalid_req(struct conn_t *c) {
-    log_error("invalid request %d", c->fd);
-}
-static inline void log_access(struct conn_t *c, uint16_t status) {
-    log_info("ACCESS: %s:%d, http(%d) parsed(%zu), %.*s", c->peer_ip, c->peer_port, status,  c->bytes_parsed, (int)c->bytes_parsed, c->head);
-}
-#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
-static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
-    CONN_STATE(c, ST_RESP);
-    log_access(c, status);
-    return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
-}
-static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t mime, const char *format, ...) {
-    va_list args;
-    char buf[BUF_SIZE];
-    struct buf_t body;
-    buf_reset(&body, buf, sizeof(buf));
-    va_start(args, format);
-    int hdr_len = buf_vprintf(&body, format, args);
-    va_end(args);
-    if(hdr_len<0) return hdr_len; /*format = ""*/
-    int body_len = make_header(c, status, mime, hdr_len);
-    if(body_len<=0) return body_len;
-    int ret = buf_push(body.buf, body.len, &c->wbuf);
-    if(ret<0) return ret; /*format = ""*/
-    if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
-    return ret + hdr_len;
 }
 static void cleanup() {
     log_info("cleanup");
@@ -140,7 +80,7 @@ static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) 
         return;
     }
     set_sock_nonblock_nodelay(cli_sock);
-    log_info("Connect %d accept", cli_sock);
+    log_info("Connection %d accept", cli_sock);
     for(size_t i=0; i<len; i++) {
         if(conns[i].state == ST_NONE) {
             conns[i].fd = cli_sock;
@@ -150,7 +90,7 @@ static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) 
             return;
         }
     }
-    log_error("max connection %08zx exceed, socket %d closed", len, cli_sock);
+    log_error("MAX connection %08zx exceed, socket %d closed", len, cli_sock);
     close_socket(cli_sock);
     return;
 }
@@ -165,9 +105,7 @@ static void handle_head(struct conn_t *c) {
     switch (ret) {
         case PARSE_OK      : CONN_STATE(c, ST_PROP); return;
         case PARSE_CONTINUE: return;
-        case PARSE_BAD_REQ : log_bad_req(c); break;
-        case PARSE_INVALID : log_invalid_req(c); break;
-        default            : log_error("parse_request_line unknow %d", ret); break;
+        default            : PARSE_ERR(c, ret); break;
     }
     handle_close(c);
 }
@@ -184,25 +122,21 @@ static void handle_prop(struct conn_t *c) {
             if(remain_len > 0) { buf_push(remain, remain_len, &c->rbuf); }
             return;
         case PARSE_CONTINUE: return;
-        case PARSE_BAD_REQ : log_bad_req(c); break;
-        case PARSE_INVALID : log_invalid_req(c); break;
-        default            : log_error("parse_headers unknow %d", ret); break;
+        default            : PARSE_ERR(c, ret); break;
     }
     handle_close(c);
 }
 static void handle_body(struct conn_t *c) {
-    char val[HDR_VAL_LEN];
-    const struct http_header *content_len = find_hdr("Content-Length", c->hdr, c->hdr_count);
-    if(content_len) {
-        CPY_MEM_STR(val, sizeof(val), content_len->value, content_len->value_size);
-        c->content_len = atoi(val);
+    if (c->content_len == 0) {
+        char val[HDR_VAL_LEN];
+        const struct http_header *content_len = find_hdr("Content-Length", c->hdr, c->hdr_count);
+        if(content_len) {
+            CPY_MEM_STR(val, sizeof(val), content_len->value, content_len->value_size);
+            c->content_len = atoi(val);
+        }
     }
-    if(buf_len(&c->rbuf) != c->bytes_parsed && c->content_len!=0) {
-        const char *msg = "Bad Request!!!";
-        make_response(c, HTTP_400, MIME_TEXT, "%.*s", strlen(msg), msg);
-        return;
-    }
-    make_response(c, HTTP_200, MIME_TEXT, "M(%s) %d.%d %.*s (Content-Length=%d) parsed %zu", METHOD_STR(http_method(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, c->req.target_size, c->req.target, c->content_len, c->bytes_parsed);
+    method_func_t func = method2func(http_method(c->req.method, c->req.method_size));
+    func(c);
 }
 static void handle_resp(struct conn_t *c) {
     ssize_t n = buf_write_fd(&(c->wbuf), c->fd, &(c->total_write));

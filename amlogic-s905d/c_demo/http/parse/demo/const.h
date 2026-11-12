@@ -17,7 +17,7 @@ extern "C" {
     X(ST_CLOSE,  CLOSE)
 extern const char *conn_state[];
 extern const int conn_state_len;
-#define STATE_STR(c)  code2str((c), conn_state, conn_state_len, "N/A")
+#define STATE_STR(c)  (const char *)code2ptr((c), (const void **)(const void **)conn_state, conn_state_len, "N/A")
 #define _ITEM(c, n)   c,
 enum conn_state_t { S_CONN_STATE(_ITEM) };
 #undef _ITEM
@@ -35,7 +35,7 @@ enum conn_state_t { S_CONN_STATE(_ITEM) };
     X(METHOD_CONNECT,  CONNECT)
 extern const int method_map_len;
 extern const char *method_map[];
-#define METHOD_STR(c) code2str((c), method_map, method_map_len, "NONE")
+#define METHOD_STR(c) (const char *)code2ptr((c), (const void **)method_map, method_map_len, "NONE")
 #define _ITEM(c, n)   c,
 enum method_t     { S_METHOD(_ITEM) };
 #undef _ITEM
@@ -56,7 +56,7 @@ enum method_t     { S_METHOD(_ITEM) };
     X(505,      HTTP Version not supported)
 extern const char *http_status[];
 extern const int http_status_len;
-#define STATUS_STR(c) code2str((c), http_status, http_status_len, "No Defined")
+#define STATUS_STR(c) (const char *)code2ptr((c), (const void **)http_status, http_status_len, "No Defined")
 #define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
 #undef _ITEM
@@ -67,13 +67,13 @@ enum http_code_t  { S_HTTP_CODE(_ITEM) };
     X(MIME_TEXT,      text/plain; charset=utf-8)
 extern const char *mime_type[];
 extern const int mime_type_len;
-#define MIME_STR(c)   code2str((c), mime_type, mime_type_len, "application/octet-stream")
+#define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_type, mime_type_len, "application/octet-stream")
 #define _ITEM(c, n)   c,
 enum mime_t       { S_MIME_TYPE(_ITEM) };
 #undef _ITEM
 
-static inline const char *code2str(const uint16_t code, const char *tbl[], const size_t tbl_len, const char *nodef) {
-    const char *s = nodef;
+static inline const void *code2ptr(const uint16_t code, const void *tbl[], const size_t tbl_len, void *nodef) {
+    const void *s = nodef;
     if(code<tbl_len) { s = tbl[code]; }
     return s;
 }

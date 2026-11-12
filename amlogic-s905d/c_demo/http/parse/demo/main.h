@@ -174,6 +174,78 @@ static inline time_t now_sec() {
 #define HDR_VAL_LEN   256
 #define HDR_SIZE      (4*1024)
 #define BUF_SIZE      (8*1024)
+#include "http_parser.h"
+#include "const.h"
+struct conn_t {
+    int fd;
+    char peer_ip[INET6_ADDRSTRLEN];
+    uint16_t peer_port;
+    time_t last_active;
+    enum conn_state_t state;
+    unsigned int content_len;
+    size_t bytes_parsed;
+    struct req_line req;
+    uint32_t hdr_count;
+    struct http_header hdr[MAX_HEADERS];
+    struct req_line_parser req_parser;
+    struct http_headers_parser hdr_parser;
+    struct buf_t rbuf;
+    char head[HDR_SIZE];
+    char rchunk[BUF_SIZE];
+    struct buf_t wbuf;
+    char wchunk[BUF_SIZE];
+    uint64_t total_read;
+    uint64_t total_write;
+};
+#define PARSE_ERR(c, status) log_parse_error((c), __FUNCTION__, status)
+static inline void log_parse_error(struct conn_t *c, const char *fn, uint16_t status) {
+    log_error("PARSER: sock=%d, fn=%s, status=%d", c->fd, fn, status);
+}
+static inline void log_access(struct conn_t *c, uint16_t status) {
+    log_info("ACCESS: %s:%d, http(%d) parsed(%zu), %.*s", c->peer_ip, c->peer_port, status,  c->bytes_parsed, (int)c->bytes_parsed, c->head);
+}
+#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
+static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
+    CONN_STATE(c, ST_RESP);
+    log_access(c, status);
+    return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
+}
+static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t mime, const char *format, ...) {
+    va_list args;
+    char buf[BUF_SIZE];
+    struct buf_t body;
+    buf_reset(&body, buf, sizeof(buf));
+    va_start(args, format);
+    int hdr_len = buf_vprintf(&body, format, args);
+    va_end(args);
+    if(hdr_len<0) return hdr_len; /*format = ""*/
+    int body_len = make_header(c, status, mime, hdr_len);
+    if(body_len<=0) return body_len;
+    int ret = buf_push(body.buf, body.len, &c->wbuf);
+    if(ret<0) return ret; /*format = ""*/
+    if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
+    return ret + hdr_len;
+}
+static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
+    for (size_t i=0;i<hdr_count;i++) {
+        if (memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
+    }
+    return NULL;
+}
+typedef void (*method_func_t)(struct conn_t *c);
+extern const method_func_t method_funcs[];
+extern const int method_funcs_len;
+void METHOD_FUNC_NONE(struct conn_t *c);
+void METHOD_FUNC_GET(struct conn_t *c);
+void METHOD_FUNC_POST(struct conn_t *c);
+void METHOD_FUNC_PUT(struct conn_t *c);
+void METHOD_FUNC_DELETE(struct conn_t *c);
+void METHOD_FUNC_HEAD(struct conn_t *c);
+void METHOD_FUNC_OPTIONS(struct conn_t *c);
+void METHOD_FUNC_PATCH(struct conn_t *c);
+void METHOD_FUNC_TRACE(struct conn_t *c);
+void METHOD_FUNC_CONNECT(struct conn_t *c);
+#define method2func(c)  (method_func_t)code2ptr((c), (const void **)method_funcs, method_funcs_len, METHOD_FUNC_NONE)
 
 #ifdef __cplusplus
 }
