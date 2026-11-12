@@ -234,7 +234,7 @@ static inline const struct http_header *find_hdr(const char *key, struct http_he
 }
 typedef void (*method_func_t)(struct conn_t *c);
 extern const method_func_t method_funcs[];
-extern const int method_funcs_len;
+extern const size_t method_funcs_len;
 void METHOD_FUNC_NONE(struct conn_t *c);
 void METHOD_FUNC_GET(struct conn_t *c);
 void METHOD_FUNC_POST(struct conn_t *c);

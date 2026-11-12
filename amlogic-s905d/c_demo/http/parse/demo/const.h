@@ -16,7 +16,7 @@ extern "C" {
     X(ST_RESP,   RESP)  \
     X(ST_CLOSE,  CLOSE)
 extern const char *conn_state[];
-extern const int conn_state_len;
+extern const size_t conn_state_len;
 #define STATE_STR(c)  (const char *)code2ptr((c), (const void **)(const void **)conn_state, conn_state_len, "N/A")
 #define _ITEM(c, n)   c,
 enum conn_state_t { S_CONN_STATE(_ITEM) };
@@ -33,7 +33,7 @@ enum conn_state_t { S_CONN_STATE(_ITEM) };
     X(METHOD_PATCH,    PATCH) \
     X(METHOD_TRACE,    TRACE) \
     X(METHOD_CONNECT,  CONNECT)
-extern const int method_map_len;
+extern const size_t method_map_len;
 extern const char *method_map[];
 #define METHOD_STR(c) (const char *)code2ptr((c), (const void **)method_map, method_map_len, "NONE")
 #define _ITEM(c, n)   c,
@@ -55,7 +55,7 @@ enum method_t     { S_METHOD(_ITEM) };
     X(503,      Service Unavailable) \
     X(505,      HTTP Version not supported)
 extern const char *http_status[];
-extern const int http_status_len;
+extern const size_t http_status_len;
 #define STATUS_STR(c) (const char *)code2ptr((c), (const void **)http_status, http_status_len, "No Defined")
 #define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
@@ -66,7 +66,7 @@ enum http_code_t  { S_HTTP_CODE(_ITEM) };
     X(MIME_JSON,      application/json) \
     X(MIME_TEXT,      text/plain; charset=utf-8)
 extern const char *mime_type[];
-extern const int mime_type_len;
+extern const size_t mime_type_len;
 #define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_type, mime_type_len, "application/octet-stream")
 #define _ITEM(c, n)   c,
 enum mime_t       { S_MIME_TYPE(_ITEM) };
@@ -79,7 +79,7 @@ static inline const void *code2ptr(const uint16_t code, const void *tbl[], const
 }
 #include <string.h>
 static inline enum method_t http_method(const char *m, size_t len) {
-    for(int i=0;i<method_map_len;i++) {
+    for(size_t i=0;i<method_map_len;i++) {
         const char *s = METHOD_STR(i);
         if(strlen(s)==len && memcmp(m, s, len)==0) return i;
     }
