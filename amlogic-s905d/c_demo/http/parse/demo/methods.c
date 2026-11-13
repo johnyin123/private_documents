@@ -1,8 +1,5 @@
 #include "utils.h"
 #include "main.h"
-static void close_conn(struct conn_t *c) {
-    CONN_STATE(c, ST_CLOSE);
-}
 void METHOD_FUNC_NONE(struct conn_t *c) {
     make_response(c, HTTP_501, MIME_TEXT, "");
 }

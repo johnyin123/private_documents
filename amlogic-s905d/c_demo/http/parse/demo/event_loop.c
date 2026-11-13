@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "main.h"
+#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
+void close_conn(struct conn_t *c) { CONN_STATE(c, ST_CLOSE); }
 static void reset_conn(struct conn_t *c, int fd) {
     uint64_t total_read = 0;
     uint64_t total_write = 0;
@@ -55,6 +57,8 @@ static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) 
 static void __handle_close(struct conn_t *c, const char *msg) {
     UNUSED(msg);
     log_debug("%sClose socket=%d, %s:%d", msg ? msg : "", c->fd, c->peer_ip, c->peer_port);
+    if(buf_avail(&c->rbuf)>0) { log_error("socket=%d, %s:%d, rx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_avail(&c->rbuf)); }
+    if(buf_len(&c->wbuf)>0)   { log_error("socket=%d, %s:%d, tx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_len(&c->wbuf)); }
     CONN_STATE(c, ST_NONE);
     close_socket(c->fd);
     c->fd = -1;
@@ -68,7 +72,7 @@ static void handle_head(struct conn_t *c) {
         case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
         default            : PARSE_ERR(c, ret); break;
     }
-    CONN_STATE(c, ST_CLOSE);
+    close_conn(c);
 }
 static void handle_prop(struct conn_t *c) {
     size_t hdr_parsed = 0;
@@ -88,7 +92,7 @@ static void handle_prop(struct conn_t *c) {
         case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
         default            : PARSE_ERR(c, ret); break;
     }
-    CONN_STATE(c, ST_CLOSE);
+    close_conn(c);
 }
 static void handle_body(struct conn_t *c) {
     if(c->content_len == 0) {

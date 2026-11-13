@@ -198,6 +198,7 @@ struct conn_t {
     uint64_t total_write;
     void *ctx;
 };
+void close_conn(struct conn_t *c);
 #define PARSE_ERR(c, status) log_parse_error((c), __FUNCTION__, status)
 static inline void log_parse_error(struct conn_t *c, const char *fn, uint16_t status) {
     log_error("PARSER: sock=%d, fn=%s, status=%d", c->fd, fn, status);
@@ -205,7 +206,6 @@ static inline void log_parse_error(struct conn_t *c, const char *fn, uint16_t st
 static inline void log_access(struct conn_t *c, uint16_t status) {
     log_info("ACCESS: %s:%d, http(%d) parsed(%zu), %.*s", c->peer_ip, c->peer_port, status,  c->bytes_parsed, (int)c->bytes_parsed, c->head);
 }
-#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
     log_access(c, status);
     return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
