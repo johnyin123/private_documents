@@ -1,10 +1,14 @@
 #include "utils.h"
 #include "main.h"
+static void close_conn(struct conn_t *c) {
+    CONN_STATE(c, ST_CLOSE);
+}
 void METHOD_FUNC_NONE(struct conn_t *c) {
     make_response(c, HTTP_501, MIME_TEXT, "");
 }
 void METHOD_FUNC_GET(struct conn_t *c) {
     make_response(c, HTTP_200, MIME_TEXT, "M(%s) %d.%d %.*s (Content-Length=%d) parsed %zu", METHOD_STR(http_method(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, c->req.target_size, c->req.target, c->content_len, c->bytes_parsed);
+    close_conn(c);
 }
 void METHOD_FUNC_POST(struct conn_t *c) {
     if (c->content_len == 0) { make_response(c, HTTP_400, MIME_TEXT, ""); return; }

@@ -13,7 +13,6 @@ extern "C" {
     X(ST_HEAD,   HEAD)  \
     X(ST_PROP,   PROP)  \
     X(ST_BODY,   BODY)  \
-    X(ST_RESP,   RESP)  \
     X(ST_CLOSE,  CLOSE)
 extern const char *conn_state[];
 extern const size_t conn_state_len;

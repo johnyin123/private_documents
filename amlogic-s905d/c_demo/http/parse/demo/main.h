@@ -207,7 +207,6 @@ static inline void log_access(struct conn_t *c, uint16_t status) {
 }
 #define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
-    CONN_STATE(c, ST_RESP);
     log_access(c, status);
     return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
 }
@@ -224,7 +223,6 @@ static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t m
     if(body_len<=0) return body_len;
     int ret = buf_push(body.buf, body.len, &c->wbuf);
     if(ret<0) return ret; /*format = ""*/
-    if(c->state!=ST_RESP) CONN_STATE(c, ST_RESP);
     return ret + hdr_len;
 }
 static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
