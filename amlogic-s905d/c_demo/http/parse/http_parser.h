@@ -29,7 +29,7 @@ struct http_header {
     const char *name;
     size_t name_size;
     const char *value;
-    size_t value_size;    
+    size_t value_size;
 };
 struct req_line_parser {
     int state;
@@ -43,7 +43,7 @@ struct http_headers_parser {
     int state;
     const char *p;
     const char *nm, *vm;
-    size_t ns;    
+    size_t ns;
 };
 /* RFC5234 core rules refered by RFC7230 */
 static inline int is_digit(char c) { return c >= '0' && c <= '9'; }

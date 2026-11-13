@@ -9,10 +9,7 @@ void METHOD_FUNC_GET(struct conn_t *c) {
 }
 void METHOD_FUNC_POST(struct conn_t *c) {
     if (c->content_len == 0) { make_response(c, HTTP_400, MIME_TEXT, ""); return; }
-    if (!c->ctx) {
-        c->ctx = (void *)(intptr_t)1; 
-        make_header(c, HTTP_200, MIME_BIN, c->content_len);
-    }
+    if(!c->status) { make_header(c, HTTP_200, MIME_BIN, c->content_len); }
     const char *body = buf_buf(&c->rbuf);
     size_t body_len = buf_len(&c->rbuf);
     size_t send_avail = buf_avail(&c->wbuf);
@@ -20,6 +17,8 @@ void METHOD_FUNC_POST(struct conn_t *c) {
         int pushed = buf_push(body, body_len, &c->wbuf);
         if (pushed < 0) { return; }
         buf_remove_head(&c->rbuf, pushed);
+        c->ctx = (void *)((uintptr_t)c->ctx + pushed);
+        if((uintptr_t)c->ctx >= c->content_len) { close_conn(c); }
     }
 }
 void METHOD_FUNC_PUT(struct conn_t *c) {
