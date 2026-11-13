@@ -2,20 +2,19 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "main.h"
-#define CONN_STATE(c, st) { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
+#define CONN_STATE(c, st)    { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
 void close_conn(struct conn_t *c) { CONN_STATE(c, ST_CLOSE); }
+#include <inttypes.h>
+static inline void log_access(struct conn_t *c) {
+    char buf[64] = { 0, };
+    time_t tm = time(NULL);
+    strftime(buf, sizeof(buf), "%d/%m/%Y:%H:%M:%S %Z", localtime(&tm));
+    fprintf(stdout, GREEN "ACCESS:" RESET " %s - - [%s] \"%.*s\" %d %" PRIu64 "\n", c->peer_ip, buf, (int)c->req.target_size, c->req.target, c->status, c->total_write);
+}
 static void reset_conn(struct conn_t *c, int fd) {
-    uint64_t total_read = 0;
-    uint64_t total_write = 0;
-    if((fd >= 0) && (fd == c->fd)) {
-        total_read = c->total_read;
-        total_write = c->total_write;
-    }
     memset(c, 0, sizeof(struct conn_t));
     buf_reset(&c->rbuf, c->head, sizeof(c->head));
     buf_reset(&c->wbuf, c->wchunk, sizeof(c->wchunk));
-    c->total_read = total_read;
-    c->total_write = total_write;
     c->fd=fd;
     c->last_active = now_sec();
     CONN_STATE(c, ST_HEAD);
@@ -57,8 +56,15 @@ static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) 
 static void __handle_close(struct conn_t *c, const char *msg) {
     UNUSED(msg);
     log_debug("%sClose socket=%d, %s:%d", msg ? msg : "", c->fd, c->peer_ip, c->peer_port);
-    if(buf_avail(&c->rbuf)>0) { log_error("socket=%d, %s:%d, rx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_avail(&c->rbuf)); }
-    if(buf_len(&c->wbuf)>0)   { log_error("socket=%d, %s:%d, tx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_len(&c->wbuf)); }
+    if(buf_len(&c->rbuf)>0) {
+        log_error("socket=%d, %s:%d, rx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_len(&c->rbuf));
+        hexdump(stderr, buf_buf(&c->rbuf), buf_len(&c->rbuf));
+    }
+    if(buf_len(&c->wbuf)>0) {
+        log_error("socket=%d, %s:%d, tx remaining: %zu", c->fd, c->peer_ip, c->peer_port, buf_len(&c->wbuf));
+        hexdump(stderr, buf_buf(&c->wbuf), buf_len(&c->wbuf));
+    }
+    log_access(c);
     CONN_STATE(c, ST_NONE);
     close_socket(c->fd);
     c->fd = -1;
@@ -70,7 +76,7 @@ static void handle_head(struct conn_t *c) {
         case PARSE_CONTINUE: return;
         case PARSE_BAD_REQ : make_response(c, HTTP_406, MIME_TEXT, ""); break;
         case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
-        default            : PARSE_ERR(c, ret); break;
+        default            : log_error("socket=%d, %s:%d, parse_request_line=%d", c->fd, c->peer_ip, c->peer_port, ret); break;
     }
     close_conn(c);
 }
@@ -79,18 +85,18 @@ static void handle_prop(struct conn_t *c) {
     int ret = parse_headers(&c->hdr_parser, c->hdr, ARRAY_LEN(c->hdr), &c->hdr_count, &hdr_parsed, buf_buf(&c->rbuf)+c->bytes_parsed, buf_len(&c->rbuf)-c->bytes_parsed);
     switch (ret) {
         case PARSE_OK      :
-            if(c->hdr_count == 0) { make_response(c, HTTP_400, MIME_TEXT, ""); break; }
             c->bytes_parsed += hdr_parsed;
             const char *remain = buf_buf(&c->rbuf) + c->bytes_parsed;
             size_t remain_len = buf_len(&c->rbuf) - c->bytes_parsed;
             buf_reset(&c->rbuf, c->rchunk, sizeof(c->rchunk));
             if(remain_len > 0) { buf_push(remain, remain_len, &c->rbuf); }
-            CONN_STATE(c, ST_BODY);
-            return;
+            if(c->hdr_count > 0) { CONN_STATE(c, ST_BODY); return; }
+            make_response(c, HTTP_400, MIME_TEXT, "");
+            break;
         case PARSE_CONTINUE: return;
         case PARSE_BAD_REQ : make_response(c, HTTP_406, MIME_TEXT, ""); break;
         case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
-        default            : PARSE_ERR(c, ret); break;
+        default            : log_error("socket=%d, %s:%d, parse_headers=%d", c->fd, c->peer_ip, c->peer_port, ret); break;
     }
     close_conn(c);
 }
@@ -135,21 +141,13 @@ void event_loop(int srv_sock) {
         time_t now = now_sec();
         if(nready==0) { /*timeout*/
             for(size_t i=0; i<ARRAY_LEN(conns); i++) {
-                if(conns[i].state!=ST_NONE && (now - conns[i].last_active)>=IDLE_SEC) {
-                    log_debug("IDEL TIMEOUT socket=%d, %s:%d", conns[i].fd, conns[i].peer_ip, conns[i].peer_port);
-                    idle_close(&conns[i]);
-                }
+                if(conns[i].state!=ST_NONE && (now - conns[i].last_active)>=IDLE_SEC) { idle_close(&conns[i]); }
             }
-            continue;
         }
         if(FD_ISSET(srv_sock, &rset)) { handle_accept(srv_sock, conns, ARRAY_LEN(conns)); }
         for(size_t i=0;i<ARRAY_LEN(conns);i++) {
             if(conns[i].state==ST_NONE) continue;
-            if((now - conns[i].last_active)>=IDLE_SEC) {
-                log_debug("IDEL TIMEOUT socket=%d, %s:%d", conns[i].fd, conns[i].peer_ip, conns[i].peer_port);
-                idle_close(&conns[i]);
-                continue; 
-            }
+            if((now - conns[i].last_active)>=IDLE_SEC) { idle_close(&conns[i]); continue; }
             if(FD_ISSET(conns[i].fd,&rset) && buf_avail(&conns[i].rbuf)>0) {
                 conns[i].last_active=now;
                 /* peer shutdown or fatal error */

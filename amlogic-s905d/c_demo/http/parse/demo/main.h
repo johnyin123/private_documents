@@ -184,6 +184,7 @@ struct conn_t {
     enum conn_state_t state;
     unsigned int content_len;
     size_t bytes_parsed;
+    uint16_t status; /* response code */
     struct req_line req;
     uint32_t hdr_count;
     struct http_header hdr[MAX_HEADERS];
@@ -199,15 +200,15 @@ struct conn_t {
     void *ctx;
 };
 void close_conn(struct conn_t *c);
-#define PARSE_ERR(c, status) log_parse_error((c), __FUNCTION__, status)
-static inline void log_parse_error(struct conn_t *c, const char *fn, uint16_t status) {
-    log_error("PARSER: sock=%d, fn=%s, status=%d", c->fd, fn, status);
-}
-static inline void log_access(struct conn_t *c, uint16_t status) {
-    log_info("ACCESS: %s:%d, http(%d) parsed(%zu), %.*s", c->peer_ip, c->peer_port, status,  c->bytes_parsed, (int)c->bytes_parsed, c->head);
+static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
+    for (size_t i=0;i<hdr_count;i++) {
+        if (memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
+    }
+    return NULL;
 }
 static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
-    log_access(c, status);
+    if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
+    c->status = status;
     return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
 }
 static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t mime, const char *format, ...) {
@@ -224,12 +225,6 @@ static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t m
     int ret = buf_push(body.buf, body.len, &c->wbuf);
     if(ret<0) return ret; /*format = ""*/
     return ret + hdr_len;
-}
-static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
-    for (size_t i=0;i<hdr_count;i++) {
-        if (memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
-    }
-    return NULL;
 }
 typedef void (*method_func_t)(struct conn_t *c);
 extern const method_func_t method_funcs[];
