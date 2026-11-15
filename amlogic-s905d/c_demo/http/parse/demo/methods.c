@@ -44,3 +44,7 @@ void METHOD_FUNC_TRACE(struct conn_t *c) {
 void METHOD_FUNC_CONNECT(struct conn_t *c) {
     make_header(c, HTTP_501, MIME_TEXT, 0, HDR_CLOSE);
 }
+#define _ITEM(c, n)   [c] = METHOD_FUNC_##n,
+const method_func_t method_funcs[] = { S_METHOD(_ITEM) };
+const size_t method_funcs_len = ARRAY_LEN(method_funcs);
+#undef _ITEM

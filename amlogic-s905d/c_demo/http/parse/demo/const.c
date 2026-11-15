@@ -16,9 +16,3 @@ const size_t http_status_len = ARRAY_LEN(http_status);
 const char *mime_type[] = { S_MIME_TYPE(_ITEM) };
 const size_t mime_type_len = ARRAY_LEN(mime_type);
 #undef _ITEM
-
-#include "main.h"
-#define _ITEM(c, n)   [c] = METHOD_FUNC_##n,
-const method_func_t method_funcs[] = { S_METHOD(_ITEM) };
-const size_t method_funcs_len = ARRAY_LEN(method_funcs);
-#undef _ITEM
