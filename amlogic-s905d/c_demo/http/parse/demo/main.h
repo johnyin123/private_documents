@@ -209,9 +209,11 @@ struct conn_t {
     char wchunk[CONFIG_BUF_SIZE];
     uint64_t total_read;
     uint64_t total_write;
-    void *ctx;
+    struct {
+        FILE *fp;
+        off_t st_size;
+    } ctx;
 };
-void close_conn(struct conn_t *c);
 static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
     for(size_t i=0;i<hdr_count;i++) {
         if(memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
@@ -246,6 +248,7 @@ static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mim
     written += last;
     return written;
 }
+void close_conn(struct conn_t *c);
 typedef void (*method_func_t)(struct conn_t *c);
 extern const method_func_t method_funcs[];
 extern const size_t method_funcs_len;
