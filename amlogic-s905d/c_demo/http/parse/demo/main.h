@@ -159,6 +159,12 @@ static inline void hexdump(FILE *fp, const void *ptr, size_t len) {
     }
 }
 #include <time.h>
+static inline bool rfc1123_date(char *dest, size_t len, const time_t when) {
+    time_t when_copy = when;
+    if (strftime(dest, len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&when_copy)) == 0)
+        return false;
+    return true;
+}
 static inline time_t now_sec() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

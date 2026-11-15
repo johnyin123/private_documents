@@ -7,8 +7,7 @@ void close_conn(struct conn_t *c) { CONN_STATE(c, ST_CLOSE); }
 #include <inttypes.h>
 static inline void log_access(struct conn_t *c) {
     char buf[64] = { 0, };
-    time_t tm = time(NULL);
-    strftime(buf, sizeof(buf), "%d/%m/%Y:%H:%M:%S %Z", localtime(&tm));
+    rfc1123_date(buf, sizeof(buf), time(NULL)); //"%d/%m/%Y:%H:%M:%S %Z"
     fprintf(stdout, GREEN "ACCESS:" RESET " %s - - [%s] \"%.*s\" %d %" PRIu64 "\n", c->peer_ip, buf, (int)c->req.target_size, c->req.target, c->status, c->total_write);
 }
 static void reset_conn(struct conn_t *c, int fd) {
