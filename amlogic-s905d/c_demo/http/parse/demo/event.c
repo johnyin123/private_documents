@@ -73,8 +73,8 @@ static void handle_head(struct conn_t *c) {
     switch (ret) {
         case PARSE_OK      : CONN_STATE(c, ST_PROP); return;
         case PARSE_CONTINUE: return;
-        case PARSE_BAD_REQ : make_response(c, HTTP_406, MIME_TEXT, ""); break;
-        case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
+        case PARSE_BAD_REQ : make_header(c, HTTP_406, MIME_TEXT, 0, HDR_CLOSE); break;
+        case PARSE_INVALID : make_header(c, HTTP_403, MIME_TEXT, 0, HDR_CLOSE); break;
         default            : log_error("socket=%d, %s:%d, parse_request_line=%d", c->fd, c->peer_ip, c->peer_port, ret); break;
     }
     close_conn(c);
@@ -90,18 +90,18 @@ static void handle_prop(struct conn_t *c) {
             buf_reset(&c->rbuf, c->rchunk, sizeof(c->rchunk));
             if(remain_len > 0) { buf_push(remain, remain_len, &c->rbuf); }
             if(c->hdr_count > 0) { CONN_STATE(c, ST_BODY); return; }
-            make_response(c, HTTP_400, MIME_TEXT, "");
+            make_header(c, HTTP_400, MIME_TEXT, 0, HDR_CLOSE);
             break;
         case PARSE_CONTINUE: return;
-        case PARSE_BAD_REQ : make_response(c, HTTP_406, MIME_TEXT, ""); break;
-        case PARSE_INVALID : make_response(c, HTTP_403, MIME_TEXT, ""); break;
+        case PARSE_BAD_REQ : make_header(c, HTTP_406, MIME_TEXT, 0, HDR_CLOSE); break;
+        case PARSE_INVALID : make_header(c, HTTP_403, MIME_TEXT, 0, HDR_CLOSE); break;
         default            : log_error("socket=%d, %s:%d, parse_headers=%d", c->fd, c->peer_ip, c->peer_port, ret); break;
     }
     close_conn(c);
 }
 static void handle_body(struct conn_t *c) {
     if(c->content_len == 0) {
-        char val[HDR_VAL_LEN];
+        char val[64];
         const struct http_header *content_len = find_hdr("Content-Length", c->hdr, c->hdr_count);
         if(content_len) {
             CPY_MEM_STR(val, sizeof(val), content_len->value, content_len->value_size);
@@ -112,7 +112,7 @@ static void handle_body(struct conn_t *c) {
     func(c);
 }
 void event_loop(int srv_sock) {
-    struct conn_t conns[MAX_CONNS] = { 0 };
+    struct conn_t conns[CONFIG_MAX_CONNS] = { 0 };
     for (size_t i = 0; i < ARRAY_LEN(conns); i++) {
         conns[i].fd = -1;
         conns[i].state = ST_NONE;

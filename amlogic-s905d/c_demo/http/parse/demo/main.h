@@ -34,6 +34,7 @@ extern "C" {
     #include <errno.h>
     #define sock_errno() errno
 #endif
+#include "utils.h"
 static inline int is_wouldblock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
 static inline int set_sock_nonblock_nodelay(int fd) {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&(int){1}, sizeof(int));
@@ -139,10 +140,10 @@ static inline ssize_t buf_write_fp(struct buf_t *b, FILE *fp, unsigned int *tota
 }
 #include <ctype.h>
 static inline bool memcasecmp(const void *buf1, size_t buf1_len, const char *buf2, size_t buf2_len) {
-    if (buf1_len != buf2_len) return false;
+    if(buf1_len != buf2_len) return false;
     const unsigned char *b = buf1;
-    for (size_t i = 0; i < buf1_len; i++) {
-        if (tolower((unsigned char)buf2[i]) != tolower(b[i])) return false;
+    for(size_t i = 0; i < buf1_len; i++) {
+        if(tolower((unsigned char)buf2[i]) != tolower(b[i])) return false;
     }
     return true;
 }
@@ -161,7 +162,7 @@ static inline void hexdump(FILE *fp, const void *ptr, size_t len) {
 #include <time.h>
 static inline bool rfc1123_date(char *dest, size_t len, const time_t when) {
     time_t when_copy = when;
-    if (strftime(dest, len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&when_copy)) == 0)
+    if(strftime(dest, len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&when_copy)) == 0)
         return false;
     return true;
 }
@@ -170,16 +171,21 @@ static inline time_t now_sec() {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec;
 }
-#define HTTP_PORT     8080
 #define SRV_INFO      "Server: inner"
-#define MAX_CONNS     64  /* < FD_SETSIZE */
 #define IDLE_SEC      10
 #define POLL_TMOUT    2   /* POLL_TMOUT */
-#define MAX_HEADERS   8
-#define HDR_KEY_LEN   16
-#define HDR_VAL_LEN   256
-#define HDR_SIZE      (4*1024)
-#define BUF_SIZE      (8*1024)
+#ifndef CONFIG_MAX_CONNS
+#define CONFIG_MAX_CONNS     64  /* < FD_SETSIZE */
+#endif
+#ifndef CONFIG_MAX_HEADERS
+#define CONFIG_MAX_HEADERS   8
+#endif
+#ifndef CONFIG_HDR_SIZE
+#define CONFIG_HDR_SIZE      (4*1024)
+#endif
+#ifndef CONFIG_BUF_SIZE
+#define CONFIG_BUF_SIZE      (8*1024)
+#endif
 #include "http_parser.h"
 #include "const.h"
 struct conn_t {
@@ -193,44 +199,52 @@ struct conn_t {
     uint16_t status; /* response code */
     struct req_line req;
     uint32_t hdr_count;
-    struct http_header hdr[MAX_HEADERS];
+    struct http_header hdr[CONFIG_MAX_HEADERS];
     struct req_line_parser req_parser;
     struct http_headers_parser hdr_parser;
     struct buf_t rbuf;
-    char head[HDR_SIZE];
-    char rchunk[BUF_SIZE];
+    char head[CONFIG_HDR_SIZE];
+    char rchunk[CONFIG_BUF_SIZE];
     struct buf_t wbuf;
-    char wchunk[BUF_SIZE];
+    char wchunk[CONFIG_BUF_SIZE];
     uint64_t total_read;
     uint64_t total_write;
     void *ctx;
 };
 void close_conn(struct conn_t *c);
 static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
-    for (size_t i=0;i<hdr_count;i++) {
-        if (memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
+    for(size_t i=0;i<hdr_count;i++) {
+        if(memcasecmp(key, strlen(key), hdr[i].name, hdr[i].name_size)) { return &hdr[i]; }
     }
     return NULL;
 }
-static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len) {
+#define make_response(c, fmt, args...)  buf_printf(&(c)->wbuf, fmt, ##args)
+#define HDR_CLOSE         "Connection: close"
+#define HDR_KEEP_ALIVE    "Connection: keep-alive"
+static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len, ...) {
     if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
     c->status = status;
-    return buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\nConnection: %s\r\nContent-Length: %d\r\n\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime), "close", content_len);
-}
-static inline int make_response(struct conn_t *c, uint16_t status, enum mime_t mime, const char *format, ...) {
+    int written = buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime));
+    if(written < 0) { return written; }
+    if(content_len > 0) {
+        int extra = buf_printf(&c->wbuf, "Content-Length: %d\r\n", content_len);
+        if(extra < 0) { return extra; }
+        written += extra;
+    }
     va_list args;
-    char buf[BUF_SIZE];
-    struct buf_t body;
-    buf_reset(&body, buf, sizeof(buf));
-    va_start(args, format);
-    int hdr_len = buf_vprintf(&body, format, args);
+    va_start(args, content_len);
+    for(;;) {
+        const char *next_header = va_arg(args, const char *);
+        if(next_header == NULL) { break; }
+        int extra = buf_printf(&c->wbuf, "%s\r\n", next_header);
+        if(extra < 0) { va_end(args); return extra; }
+        written += extra;
+    }
+    int last = buf_printf(&c->wbuf, "\r\n");
     va_end(args);
-    if(hdr_len<0) return hdr_len; /*format = ""*/
-    int body_len = make_header(c, status, mime, hdr_len);
-    if(body_len<=0) return body_len;
-    int ret = buf_push(body.buf, body.len, &c->wbuf);
-    if(ret<0) return ret; /*format = ""*/
-    return ret + hdr_len;
+    if(last < 0) { return last; }
+    written += last;
+    return written;
 }
 typedef void (*method_func_t)(struct conn_t *c);
 extern const method_func_t method_funcs[];

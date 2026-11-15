@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include "utils.h"
 #include "main.h"
 struct env g_env = {
     .trace_level = LOG_ERR,
@@ -60,7 +59,7 @@ int main(int argc, char *argv[]) {
     atexit(cleanup);
     signal(SIGINT, sig_func);
     signal(SIGTERM, sig_func);
-    g_env.server_sock = create_tcp_server("127.0.0.1", HTTP_PORT, 10);
+    g_env.server_sock = create_tcp_server("127.0.0.1", 8080, 10);
     if(g_env.server_sock<0) { return EXIT_FAILURE; }
     event_loop(g_env.server_sock);
     log_info("Exit");
