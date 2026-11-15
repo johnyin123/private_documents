@@ -77,13 +77,14 @@ static inline const void *code2ptr(const uint16_t code, const void *tbl[], const
     return s;
 }
 #include <string.h>
-static inline enum method_t http_method(const char *m, size_t len) {
-    for(size_t i=0;i<method_map_len;i++) {
-        const char *s = METHOD_STR(i);
+static inline uint16_t str2code(const char *m, size_t len, const void *tbl[], const size_t tbl_len, uint16_t nodef) {
+    for (size_t i = 0; i < tbl_len; i++) {
+        const char *s = (const char *)tbl[i];
         if(strlen(s)==len && memcmp(m, s, len)==0) return i;
     }
-    return METHOD_NONE;
+    return nodef;
 }
+#define http_method(m, len)  str2code((m), (len), (const void **)method_map, method_map_len, METHOD_NONE)
 #ifdef __cplusplus
 }
 #endif
