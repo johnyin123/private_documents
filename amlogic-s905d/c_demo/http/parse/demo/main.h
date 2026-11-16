@@ -195,24 +195,27 @@ struct conn_t {
     time_t last_active;
     enum conn_state_t state;
     unsigned int content_len;
-    size_t bytes_parsed;
     uint16_t status; /* response code */
-    struct req_line req;
-    uint32_t hdr_count;
-    struct http_header hdr[CONFIG_MAX_HEADERS];
-    struct req_line_parser req_parser;
-    struct http_headers_parser hdr_parser;
-    struct buf_t rbuf;
-    char head[CONFIG_HDR_SIZE];
-    char rchunk[CONFIG_BUF_SIZE];
-    struct buf_t wbuf;
-    char wchunk[CONFIG_BUF_SIZE];
-    uint64_t total_read;
-    uint64_t total_write;
     struct {
-        FILE *fp;
+        struct req_line req;
+        struct req_line_parser req_parser;
+        uint32_t hdr_count;
+        struct http_header hdr[CONFIG_MAX_HEADERS];
+        struct http_headers_parser hdr_parser;
+        size_t bytes_parsed;
+        char head[CONFIG_HDR_SIZE];
+    };
+    struct {
+        struct buf_t rbuf;
+        char rchunk[CONFIG_BUF_SIZE];
+        uint64_t total_read;
+        struct buf_t wbuf;
+        char wchunk[CONFIG_BUF_SIZE];
+        uint64_t total_write;
+    };
+    union {
         off_t st_size;
-    } ctx;
+    };
 };
 static inline const struct http_header *find_hdr(const char *key, struct http_header *hdr, uint32_t hdr_count) {
     for(size_t i=0;i<hdr_count;i++) {
@@ -221,9 +224,10 @@ static inline const struct http_header *find_hdr(const char *key, struct http_he
     return NULL;
 }
 #define make_response(c, fmt, args...)  buf_printf(&(c)->wbuf, fmt, ##args)
+#define make_header(c, s, m, l, ...)    __make_header(c, s, m, l, __VA_ARGS__, NULL)
 #define HDR_CLOSE         "Connection: close"
 #define HDR_KEEP_ALIVE    "Connection: keep-alive"
-static inline int make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len, ...) {
+static inline int __make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len, ...) {
     if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
     c->status = status;
     int written = buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime));

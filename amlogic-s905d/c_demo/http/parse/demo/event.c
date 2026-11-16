@@ -38,9 +38,8 @@ static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) 
     set_sock_nonblock_nodelay(cli_sock);
     for(size_t i=0; i<len; i++) {
         if(conns[i].state == ST_NONE) {
-            conns[i].fd = cli_sock;
             reset_conn(&conns[i], cli_sock);
-            CPY_MEM_STR(conns[i].peer_ip, sizeof(conns[i].peer_ip), ip_str, sizeof(ip_str));
+            CPY_MEM_STR(conns[i].peer_ip, sizeof(conns[i].peer_ip), ip_str, strlen(ip_str));
             conns[i].peer_port = atoi(port_str);
             log_info("Connection accept: socket=%d, %s:%d", conns[i].fd, conns[i].peer_ip, conns[i].peer_port);
             return;

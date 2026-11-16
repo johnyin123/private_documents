@@ -19,9 +19,9 @@ void METHOD_FUNC_POST(struct conn_t *c) {
         int pushed = buf_push(body, body_len, &c->wbuf);
         if(pushed < 0) { return; }
         buf_remove_head(&c->rbuf, pushed);
-        c->ctx.st_size += pushed;
+        c->st_size += pushed;
     }
-    if(c->ctx.st_size >= c->content_len) { close_conn(c); }
+    if(c->st_size >= c->content_len) { close_conn(c); }
 }
 void METHOD_FUNC_PUT(struct conn_t *c) {
     make_header(c, HTTP_501, MIME_TEXT, 0, HDR_CLOSE);
