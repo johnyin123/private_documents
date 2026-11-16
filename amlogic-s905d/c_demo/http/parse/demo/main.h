@@ -228,29 +228,31 @@ static inline const struct http_header *find_hdr(const char *key, struct http_he
 #define HDR_CLOSE         "Connection: close"
 #define HDR_KEEP_ALIVE    "Connection: keep-alive"
 static inline int __make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len, ...) {
-    if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
-    c->status = status;
-    int written = buf_printf(&c->wbuf, "HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime));
-    if(written < 0) { return written; }
-    if(content_len > 0) {
-        int extra = buf_printf(&c->wbuf, "Content-Length: %d\r\n", content_len);
-        if(extra < 0) { return extra; }
-        written += extra;
-    }
+    int ret, written = 0;
+    size_t old_len = c->wbuf.len;
+    #define HEADER_WRITE(...) do { \
+        if((ret = buf_printf(&c->wbuf, __VA_ARGS__)) < 0) { goto error; } \
+        written += ret; \
+    } while (0)
+    HEADER_WRITE("HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime));
+    if(content_len > 0) { HEADER_WRITE("Content-Length: %d\r\n", content_len); }
     va_list args;
     va_start(args, content_len);
     for(;;) {
         const char *next_header = va_arg(args, const char *);
         if(next_header == NULL) { break; }
-        int extra = buf_printf(&c->wbuf, "%s\r\n", next_header);
-        if(extra < 0) { va_end(args); return extra; }
-        written += extra;
+        HEADER_WRITE("%s\r\n", next_header);
     }
-    int last = buf_printf(&c->wbuf, "\r\n");
     va_end(args);
-    if(last < 0) { return last; }
-    written += last;
+    HEADER_WRITE("\r\n");
+    if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
+    c->status = status;
     return written;
+error:
+    /*Restore buffer to its original state*/
+    c->wbuf.len = old_len;
+    return ret;
+    #undef HEADER_WRITE
 }
 void close_conn(struct conn_t *c);
 typedef void (*method_func_t)(struct conn_t *c);
