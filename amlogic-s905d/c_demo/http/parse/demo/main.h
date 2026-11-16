@@ -172,8 +172,7 @@ static inline time_t now_sec() {
     return ts.tv_sec;
 }
 #define SRV_INFO      "Server: inner"
-#define IDLE_SEC      10
-#define POLL_TMOUT    2   /* POLL_TMOUT */
+#define POLL_TMOUT    1   /* POLL_TMOUT */
 #ifndef CONFIG_MAX_CONNS
 #define CONFIG_MAX_CONNS     64  /* < FD_SETSIZE */
 #endif
@@ -271,8 +270,13 @@ void METHOD_FUNC_PATCH(struct conn_t *c);
 void METHOD_FUNC_TRACE(struct conn_t *c);
 void METHOD_FUNC_CONNECT(struct conn_t *c);
 #define method2func(c)  (method_func_t)code2ptr((c), (const void **)method_funcs, method_funcs_len, METHOD_FUNC_NONE)
-void event_loop(int srv_sock);
-
+void event_loop(int srv_sock, uint16_t idel_timeout);
+#ifndef min
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef max
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
 #ifdef __cplusplus
 }
 #endif

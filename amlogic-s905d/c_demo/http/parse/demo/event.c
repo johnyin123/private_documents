@@ -110,7 +110,7 @@ static void handle_body(struct conn_t *c) {
     method_func_t func = method2func(http_method(c->req.method, c->req.method_size));
     func(c);
 }
-void event_loop(int srv_sock) {
+void event_loop(int srv_sock, uint16_t idle_timeout) {
     struct conn_t conns[CONFIG_MAX_CONNS] = { 0 };
     for (size_t i = 0; i < ARRAY_LEN(conns); i++) {
         conns[i].fd = -1;
@@ -139,13 +139,13 @@ void event_loop(int srv_sock) {
         time_t now = now_sec();
         if(nready==0) { /*timeout*/
             for(size_t i=0; i<ARRAY_LEN(conns); i++) {
-                if(conns[i].state!=ST_NONE && (now - conns[i].last_active)>=IDLE_SEC) { idle_close(&conns[i]); }
+                if(conns[i].state!=ST_NONE && (now - conns[i].last_active)>=idle_timeout) { idle_close(&conns[i]); }
             }
         }
         if(FD_ISSET(srv_sock, &rset)) { handle_accept(srv_sock, conns, ARRAY_LEN(conns)); }
         for(size_t i=0;i<ARRAY_LEN(conns);i++) {
             if(conns[i].state==ST_NONE) continue;
-            if((now - conns[i].last_active)>=IDLE_SEC) { idle_close(&conns[i]); continue; }
+            if((now - conns[i].last_active)>=idle_timeout) { idle_close(&conns[i]); continue; }
             if(FD_ISSET(conns[i].fd,&rset) && buf_avail(&conns[i].rbuf)>0) {
                 conns[i].last_active=now;
                 /* peer shutdown or fatal error */
