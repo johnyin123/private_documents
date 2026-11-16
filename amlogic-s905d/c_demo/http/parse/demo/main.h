@@ -224,7 +224,10 @@ static inline const struct http_header *find_hdr(const char *key, struct http_he
     return NULL;
 }
 #define make_response(c, fmt, args...)  buf_printf(&(c)->wbuf, fmt, ##args)
-#define make_header(c, s, m, l, ...)    __make_header(c, s, m, l, __VA_ARGS__, NULL)
+#define make_header(c, s, m, l, ...)    do { \
+        if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", (c)->fd, (c)->peer_ip, (c)->peer_port, (c)->status, s); } \
+        __make_header(c, s, m, l, __VA_ARGS__, NULL); \
+    } while (0)
 #define HDR_CLOSE         "Connection: close"
 #define HDR_KEEP_ALIVE    "Connection: keep-alive"
 static inline int __make_header(struct conn_t *c, uint16_t status, enum mime_t mime, unsigned int content_len, ...) {
@@ -245,7 +248,6 @@ static inline int __make_header(struct conn_t *c, uint16_t status, enum mime_t m
     }
     va_end(args);
     HEADER_WRITE("\r\n");
-    if(c->status) { log_error("socket=%d, %s:%d, status: %d -> %d", c->fd, c->peer_ip, c->peer_port, c->status, status); }
     c->status = status;
     return written;
 error:
