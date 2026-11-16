@@ -10,7 +10,7 @@ INCFILE     ?= make.inc
 # # define EXPORT_API __attribute__((visibility("default")))
 # # objdump -T libmyutils.so|grep 'DF .text' || gendef - HeaSecReadInfo.dll
 # # CFLAGS  +=-DCJSON_HIDE_SYMBOLS -DCURL_STATICLIB -DBUILDING_LIBRARY
-# CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -march=native -flto -march=native -funroll-loops
+# CFLAGS  +=-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -fvisibility=hidden -flto -march=native -funroll-loops
 # LIBFLAGS+=-l:test.so -lpthread#`pkg-config --libs libssl`
 # # not include libs for .so/.dll export
 # LDFLAGS +=-Wl,--exclude-libs,ALL
@@ -45,8 +45,10 @@ endif
 
 ifeq ($(DEBUG),1)
 	DEBUG_FLAG+=-O0 -g -DDEBUG -fvisibility=hidden
+	STRIP_CMD = @printf "\033[1;33m  DEBUG mode: skipping strip.\n\033[m"
 else
 	DEBUG_FLAG+=-O3 -fvisibility=hidden -fomit-frame-pointer -pipe
+	STRIP_CMD = $(Q)$(STRIP) $(EXE)
 endif
 
 ifeq ($(V),1)
@@ -78,12 +80,9 @@ OBJ += $(foreach file, $(SRCPP), $(file:%.cpp=%.o))
 	$(Q)$(CC) $(CC_STANDARD) $(CFLAGS) $(DEBUG_FLAG) $(INC_PATH) -o $@ -c $<
 
 .PHONY : all
-all: $(EXE) strip
+all: $(EXE)
+	$(STRIP_CMD)
 	@printf "\033[1;33m  BUILD $(EXE) SUCCESS\n\033[m"
-
-strip: $(EXE)
-	@printf "\033[1;33m  STRIP $(EXE) SUCCESS\n\033[m"
-	$(Q)$(STRIP) $(EXE)
 
 $(EXE): $(OBJ)
 	$(Q)$(CC) $(OBJ) $(DEBUG_FLAG) $(LIB_PATH) -o $@ $(LIBFLAGS) $(LDFLAGS)
