@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "main.h"
-#define CONN_STATE(c, st)    { log_debug("socket=%d, %s => %s", (c)->fd, STATE_STR((c)->state), STATE_STR((st))); (c)->state=(st); }
+#define CONN_STATE(c, st)    { log_debug("socket=%d, %s => %s", (c)->fd, CONN_STATE_STR((c)->state), CONN_STATE_STR((st))); (c)->state=(st); }
 void close_conn(struct conn_t *c) { CONN_STATE(c, ST_CLOSE); }
 #include <inttypes.h>
 static inline void log_access(struct conn_t *c) {
@@ -107,7 +107,7 @@ static void handle_body(struct conn_t *c) {
             c->content_len = atoi(val);
         }
     }
-    method_func_t func = method2func(http_method(c->req.method, c->req.method_size));
+    method_func_t func = METHOD_FUNC(METHOD_CODE(c->req.method, c->req.method_size));
     func(c);
 }
 void event_loop(int srv_sock, uint16_t idle_timeout) {

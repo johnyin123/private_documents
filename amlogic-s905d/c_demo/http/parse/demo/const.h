@@ -14,9 +14,9 @@ extern "C" {
     X(ST_PROP,   PROP)  \
     X(ST_BODY,   BODY)  \
     X(ST_CLOSE,  CLOSE)
-extern const char *conn_state[];
-extern const size_t conn_state_len;
-#define STATE_STR(c)  (const char *)code2ptr((c), (const void **)(const void **)conn_state, conn_state_len, "N/A")
+extern const char *conn_state_map[];
+extern const size_t conn_state_map_len;
+#define CONN_STATE_STR(c)  (const char *)code2ptr((c), (const void **)(const void **)conn_state_map, conn_state_map_len, "N/A")
 #define _ITEM(c, n)   c,
 enum conn_state_t { S_CONN_STATE(_ITEM) };
 #undef _ITEM
@@ -35,6 +35,7 @@ enum conn_state_t { S_CONN_STATE(_ITEM) };
 extern const size_t method_map_len;
 extern const char *method_map[];
 #define METHOD_STR(c) (const char *)code2ptr((c), (const void **)method_map, method_map_len, "NONE")
+#define METHOD_CODE(s, len)  str2code((s), (len), (const void **)method_map, method_map_len, METHOD_NONE)
 #define _ITEM(c, n)   c,
 enum method_t     { S_METHOD(_ITEM) };
 #undef _ITEM
@@ -53,9 +54,9 @@ enum method_t     { S_METHOD(_ITEM) };
     X(501,      Not Implemented) \
     X(503,      Service Unavailable) \
     X(505,      HTTP Version not supported)
-extern const char *http_status[];
-extern const size_t http_status_len;
-#define STATUS_STR(c) (const char *)code2ptr((c), (const void **)http_status, http_status_len, "No Defined")
+extern const char *http_code_map[];
+extern const size_t http_code_map_len;
+#define HTTP_CODE_STR(c) (const char *)code2ptr((c), (const void **)http_code_map, http_code_map_len, "No Defined")
 #define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
 #undef _ITEM
@@ -64,9 +65,9 @@ enum http_code_t  { S_HTTP_CODE(_ITEM) };
     X(MIME_BIN,       application/octet-stream) \
     X(MIME_JSON,      application/json) \
     X(MIME_TEXT,      text/plain; charset=utf-8)
-extern const char *mime_type[];
-extern const size_t mime_type_len;
-#define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_type, mime_type_len, "application/octet-stream")
+extern const char *mime_map[];
+extern const size_t mime_map_len;
+#define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_map, mime_map_len, "application/octet-stream")
 #define _ITEM(c, n)   c,
 enum mime_t       { S_MIME_TYPE(_ITEM) };
 #undef _ITEM
@@ -84,7 +85,6 @@ static inline uint16_t str2code(const char *m, size_t len, const void *tbl[], co
     }
     return nodef;
 }
-#define http_method(m, len)  str2code((m), (len), (const void **)method_map, method_map_len, METHOD_NONE)
 #ifdef __cplusplus
 }
 #endif

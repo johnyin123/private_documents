@@ -236,7 +236,7 @@ static inline int __make_header(struct conn_t *c, uint16_t status, enum mime_t m
         if((ret = buf_printf(&c->wbuf, __VA_ARGS__)) < 0) { goto error; } \
         written += ret; \
     } while (0)
-    HEADER_WRITE("HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, STATUS_STR(status), SRV_INFO, MIME_STR(mime));
+    HEADER_WRITE("HTTP/1.1 %d %s\r\n%s\r\nContent-Type: %s\r\n", status, HTTP_CODE_STR(status), SRV_INFO, MIME_STR(mime));
     if(content_len > 0) { HEADER_WRITE("Content-Length: %d\r\n", content_len); }
     va_list args;
     va_start(args, content_len);
@@ -269,7 +269,7 @@ void METHOD_FUNC_OPTIONS(struct conn_t *c);
 void METHOD_FUNC_PATCH(struct conn_t *c);
 void METHOD_FUNC_TRACE(struct conn_t *c);
 void METHOD_FUNC_CONNECT(struct conn_t *c);
-#define method2func(c)  (method_func_t)code2ptr((c), (const void **)method_funcs, method_funcs_len, METHOD_FUNC_NONE)
+#define METHOD_FUNC(c)  (method_func_t)code2ptr((c), (const void **)method_funcs, method_funcs_len, METHOD_FUNC_NONE)
 void event_loop(int srv_sock, uint16_t idel_timeout);
 #ifndef min
 #define min(a,b) ((a) < (b) ? (a) : (b))

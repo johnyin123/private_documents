@@ -4,9 +4,9 @@ void METHOD_FUNC_NONE(struct conn_t *c) {
 }
 void METHOD_FUNC_GET(struct conn_t *c) {
     const char *fmt = "M(%s) %d.%d %.*s (Content-Length=%d) parsed %zu";
-    int len = snprintf(NULL, 0, fmt, METHOD_STR(http_method(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, (int)c->req.target_size, c->req.target, (int)c->content_len, c->bytes_parsed);
+    int len = snprintf(NULL, 0, fmt, METHOD_STR(METHOD_CODE(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, (int)c->req.target_size, c->req.target, (int)c->content_len, c->bytes_parsed);
     make_header(c, HTTP_200, MIME_TEXT, min(len, (int)buf_avail(&c->wbuf)), HDR_CLOSE);
-    make_response(c, fmt, METHOD_STR(http_method(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, (int)c->req.target_size, c->req.target, (int)c->content_len, c->bytes_parsed);
+    make_response(c, fmt, METHOD_STR(METHOD_CODE(c->req.method, c->req.method_size)), c->req.httpver_major, c->req.httpver_minor, (int)c->req.target_size, c->req.target, (int)c->content_len, c->bytes_parsed);
     close_conn(c);
 }
 void METHOD_FUNC_POST(struct conn_t *c) {
