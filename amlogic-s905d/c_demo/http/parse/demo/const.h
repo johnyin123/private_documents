@@ -12,7 +12,7 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 static inline const void *code2ptr(const uint16_t code, const void *tbl[], const size_t tbl_len, const void *nodef) {
-    if(code < tbl_len) { return tbl[code]; }
+    if(code < tbl_len) { return tbl[code] ? tbl[code] : nodef; }
     return nodef;
 }
 static inline uint16_t str2code(const char *m, size_t len, const void *tbl[], const size_t tbl_len, uint16_t nodef) {
