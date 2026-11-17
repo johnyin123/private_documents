@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "main.h"
-#define CONN_STATE(c, st)    { log_debug("socket=%d, %s => %s", (c)->fd, CONN_STATE_STR((c)->state), CONN_STATE_STR((st))); (c)->state=(st); }
-void close_conn(struct conn_t *c) { CONN_STATE(c, ST_CLOSE); }
+#define SET_STATE(c, st)    { log_debug("socket=%d, %s => %s", (c)->fd, CONN_STATE_STR((c)->state), CONN_STATE_STR(st)); (c)->state=(st); }
+void close_conn(struct conn_t *c) { SET_STATE(c, ST_CLOSE); }
 #include <inttypes.h>
 static inline void log_access(struct conn_t *c) {
     char buf[64] = { 0, };
@@ -16,7 +16,7 @@ static void reset_conn(struct conn_t *c, int fd) {
     buf_reset(&c->wbuf, c->wchunk, sizeof(c->wchunk));
     c->fd=fd;
     c->last_active = now_sec();
-    CONN_STATE(c, ST_HEAD);
+    SET_STATE(c, ST_HEAD);
 }
 static void handle_accept(int srv_sock, struct conn_t *conns, const size_t len) {
     struct sockaddr_storage addr;
@@ -63,14 +63,14 @@ static void __handle_close(struct conn_t *c, const char *msg) {
         hexdump(stderr, buf_buf(&c->wbuf), buf_len(&c->wbuf));
     }
     log_access(c);
-    CONN_STATE(c, ST_NONE);
+    SET_STATE(c, ST_NONE);
     close_socket(c->fd);
     c->fd = -1;
 }
 static void handle_head(struct conn_t *c) {
     int ret = parse_request_line(&c->req_parser, &c->req, &c->bytes_parsed, buf_buf(&c->rbuf), buf_len(&c->rbuf));
     switch (ret) {
-        case PARSE_OK      : CONN_STATE(c, ST_PROP); return;
+        case PARSE_OK      : SET_STATE(c, ST_PROP); return;
         case PARSE_CONTINUE: return;
         case PARSE_BAD_REQ : make_header(c, HTTP_406, MIME_TEXT, 0, HDR_CLOSE); break;
         case PARSE_INVALID : make_header(c, HTTP_403, MIME_TEXT, 0, HDR_CLOSE); break;
@@ -88,7 +88,7 @@ static void handle_prop(struct conn_t *c) {
             size_t remain_len = buf_len(&c->rbuf) - c->bytes_parsed;
             buf_reset(&c->rbuf, c->rchunk, sizeof(c->rchunk));
             if(remain_len > 0) { buf_push(remain, remain_len, &c->rbuf); }
-            if(c->hdr_count > 0) { CONN_STATE(c, ST_BODY); return; }
+            if(c->hdr_count > 0) { SET_STATE(c, ST_BODY); return; }
             make_header(c, HTTP_400, MIME_TEXT, 0, HDR_CLOSE);
             break;
         case PARSE_CONTINUE: return;
