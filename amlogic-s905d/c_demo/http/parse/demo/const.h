@@ -55,6 +55,17 @@ extern const char *method_map[];
 enum method_t     { S_METHOD(_ITEM) };
 #undef _ITEM
 
+#define S_MIME_TYPE(X) \
+    X(MIME_BIN,       application/octet-stream) \
+    X(MIME_JSON,      application/json) \
+    X(MIME_TEXT,      text/plain; charset=utf-8)
+extern const char *mime_map[];
+extern const size_t mime_map_len;
+#define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_map, mime_map_len, "application/octet-stream")
+#define _ITEM(c, n)   c,
+enum mime_t       { S_MIME_TYPE(_ITEM) };
+#undef _ITEM
+
 #define S_HTTP_CODE(X) \
     X(100,      Continue) \
     X(200,      OK) \
@@ -74,17 +85,6 @@ extern const size_t http_code_map_len;
 #define HTTP_CODE_STR(c) (const char *)code2ptr((c), (const void **)http_code_map, http_code_map_len, "No Defined")
 #define _ITEM(c, n)   HTTP_##c = c,
 enum http_code_t  { S_HTTP_CODE(_ITEM) };
-#undef _ITEM
-
-#define S_MIME_TYPE(X) \
-    X(MIME_BIN,       application/octet-stream) \
-    X(MIME_JSON,      application/json) \
-    X(MIME_TEXT,      text/plain; charset=utf-8)
-extern const char *mime_map[];
-extern const size_t mime_map_len;
-#define MIME_STR(c)   (const char *)code2ptr((c), (const void **)mime_map, mime_map_len, "application/octet-stream")
-#define _ITEM(c, n)   c,
-enum mime_t       { S_MIME_TYPE(_ITEM) };
 #undef _ITEM
 
 #ifdef __cplusplus
