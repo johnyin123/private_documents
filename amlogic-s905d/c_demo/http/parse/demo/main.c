@@ -2,13 +2,20 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include "main.h"
-struct env g_env = {
+struct env {
+    int trace_level;
+    int server_sock;
+    char ip_str[46];
+    uint16_t port;
+    uint16_t idle_timeout;
+} g_env = {
     .trace_level = LOG_ERR,
     .server_sock = 0,
     .ip_str = "127.0.0.1",
     .port = 8080,
     .idle_timeout = 10,
 };
+const int *trace_level = &g_env.trace_level;
 const char *opt_short="hl:p:t:";
 struct option opt_long[] = {
     { "help",    no_argument, NULL, 'h' },
