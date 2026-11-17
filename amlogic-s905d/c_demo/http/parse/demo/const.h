@@ -11,15 +11,14 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-static inline const void *code2ptr(const uint16_t code, const void *tbl[], const size_t tbl_len, void *nodef) {
-    const void *s = nodef;
-    if(code<tbl_len) { s = tbl[code]; }
-    return s;
+static inline const void *code2ptr(const uint16_t code, const void *tbl[], const size_t tbl_len, const void *nodef) {
+    if(code < tbl_len) { return tbl[code]; }
+    return nodef;
 }
 static inline uint16_t str2code(const char *m, size_t len, const void *tbl[], const size_t tbl_len, uint16_t nodef) {
-    for (size_t i = 0; i < tbl_len; i++) {
+    for(size_t i = 0; i < tbl_len; i++) {
         const char *s = (const char *)tbl[i];
-        if(s && strlen(s)==len && memcmp(m, s, len)==0) return i;
+        if(s && strlen(s)==len && memcmp(m, s, len)==0) return (uint16_t)i;
     }
     return nodef;
 }
