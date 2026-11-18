@@ -345,20 +345,27 @@ class EtcdConfig:
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
 def conf_backup_tgz()->io.BytesIO:
     file_obj = io.BytesIO()
+    home_dir = os.path.expanduser("~")
+    target_dirs = [ os.path.join(home_dir, ".pki/libvirt"), os.path.join(home_dir, ".ssh"), config.DATA_DIR, ]
     with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
-        for fn in glob.glob(f'{config.DATA_DIR}/**', recursive=True):
-            if os.path.isfile(fn):
-                content = file_load(fn)
-                member = tarfile.TarInfo(os.path.relpath(fn, config.DATA_DIR))
-                if member.name.startswith(config.BAK_PREFIX):
-                    member.size = len(content)
-                    logger.debug(f'File backup {member.name}')
-                    tar.addfile(member, io.BytesIO(content))
+        for base_dir in target_dirs:
+            pattern = os.path.join(base_dir, "**")
+            for fn in glob.glob(pattern, recursive=True):
+                if os.path.isfile(fn):
+                    arcname = os.path.relpath(fn, base_dir)
+                    # member = tarfile.TarInfo(name=arcname)
+                    member = tar.gettarinfo(fn, arcname=arcname)
+                    if member.name.startswith(config.BAK_PREFIX + config.SSH_PREFIX + config.PKI_PREFIX):
+                        logger.debug(f'File backup {member.name}')
+                        content = file_load(fn)
+                        member.size = len(content)
+                        tar.addfile(member, io.BytesIO(content))
     file_obj.seek(0)
     return file_obj
 
 def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
     apply, total, skip = 0, 0, []
+    home_dir = os.path.expanduser("~")
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
@@ -369,6 +376,19 @@ def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
                         with tar.extractfile(member) as f:
                             logger.debug(f'File restore {member.name}')
                             conf_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                            apply += 1
+                    elif member.name.startswith(config.SSH_PREFIX):
+                        with tar.extractfile(member) as f:
+                            logger.debug(f'File restore .ssh/{member.name}')
+                            file_save(os.path.join(home_dir, '.ssh', member.name), f.read())
+                            if member.name == "id_rsa":
+                                os.chmod(os.path.join(home_dir, '.ssh', member.name), 0o600)
+                                # os.chmod(..., stat.S_IMODE(member.mode))
+                            apply += 1
+                    elif member.name.startswith(config.PKI_PREFIX):
+                        with tar.extractfile(member) as f:
+                            logger.debug(f'File restore .pki/libvirt/{member.name}')
+                            file_save(os.path.join(home_dir, '.pki/libvirt', member.name), f.read())
                             apply += 1
                     else:
                         skip.append(member.name)

@@ -39,6 +39,8 @@ FILE_GOLDS  = os.path.join(DATA_DIR, 'golds.json')
 FILE_ISO    = os.path.join(DATA_DIR, 'iso.json')
 FILE_VARS   = os.path.join(DATA_DIR, 'vars.json')
 BAK_PREFIX  = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
+SSH_PREFIX  = tuple([ 'config', 'id_rsa', 'id_rsa.pub' ])
+PKI_PREFIX  = tuple([ 'cacert.pem', 'clientkey.pem', 'clientcert.pem' ])
 # # # # # # # # # # # # # # # # # # # # # # #
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):

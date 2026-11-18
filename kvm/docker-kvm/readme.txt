@@ -1,3 +1,4 @@
+ETCD_PREFIX not set then use directory as store, else use etcd as store for cluster mode
 ffmpeg -f x11grab -draw_mouse 1 -video_size 1600x700 -grab_x 0 -grab_y 200 -i :0.0 -vcodec libtheora -q:v 5 demo.ogv
 #myvideo {
   position: fixed;
