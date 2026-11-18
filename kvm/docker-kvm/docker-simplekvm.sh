@@ -460,7 +460,7 @@ Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
 }
-chown ${username}:${username} /home/${username}/.ssh /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem /etc/nginx/ssl/pubkey.pem -R || true
+chown -R ${username}:${username} /home/${username} /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem /etc/nginx/ssl/pubkey.pem -R || true
 chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
@@ -600,13 +600,13 @@ docker create \
  -v ${TARGET_DIR}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \
  -v ${TARGET_DIR}/client.key:/etc/nginx/ssl/simplekvm.key \
  -v ${TARGET_DIR}/client.pem:/etc/nginx/ssl/simplekvm.pem \
- -v ${TARGET_DIR}/ca.pem:/etc/pki/CA/cacert.pem \
- -v ${TARGET_DIR}/client.key:/etc/pki/libvirt/private/clientkey.pem \
- -v ${TARGET_DIR}/client.pem:/etc/pki/libvirt/clientcert.pem \
+ -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
+ -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
+ -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
 
-# -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
-# -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
-# -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
+#  -v ${TARGET_DIR}/ca.pem:/etc/pki/CA/cacert.pem \
+#  -v ${TARGET_DIR}/client.key:/etc/pki/libvirt/private/clientkey.pem \
+#  -v ${TARGET_DIR}/client.pem:/etc/pki/libvirt/clientcert.pem \
 EOF
 
 cat <<'EOF'

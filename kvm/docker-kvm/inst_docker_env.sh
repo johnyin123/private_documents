@@ -101,12 +101,16 @@ docker create --name simplekvm --restart always \\
  -v ${target}/config:/home/simplekvm/.ssh/config \\
  -v ${target}/id_rsa:/home/simplekvm/.ssh/id_rsa \\
  -v ${target}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \\
- -v ${target}/ca.pem:/etc/pki/CA/cacert.pem \\
- -v ${target}/client.key:/etc/pki/libvirt/private/clientkey.pem \\
- -v ${target}/client.pem:/etc/pki/libvirt/clientcert.pem \\
- -v ${target}/client.key:/etc/nginx/ssl/simplekvm.key \\
- -v ${target}/client.pem:/etc/nginx/ssl/simplekvm.pem \\
+ -v ${target}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
+ -v ${target}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
+ -v ${target}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
  registry.local/simplekvm/simplekvm:trixie
+
+# -v ${target}/ca.pem:/etc/pki/CA/cacert.pem \\
+# -v ${target}/client.key:/etc/pki/libvirt/private/clientkey.pem \\
+# -v ${target}/client.pem:/etc/pki/libvirt/clientcert.pem \\
+# -v ${target}/client.key:/etc/nginx/ssl/simplekvm.key \\
+# -v ${target}/client.pem:/etc/nginx/ssl/simplekvm.pem \\
 EOF
 
 cat <<EO_DOC
