@@ -969,4 +969,14 @@ class ShmListStore:
     def list_all(self, **criteria) ->List:
         return self.search(self.cache, **criteria)
 ######################################################################
+import subprocess
+def genkey():
+    cmd = ("1openssl", "rsa", "-in", "/etc/nginx/ssl/vmm.registry.local.key", "-pubout", "-out", "a.pem")
+    try:
+    #     subprocess.check_call(cmd)
+        msg = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+        print(msg)
+    except Exception as e:
+        print(f"{str(e)}");
+genkey()
 ######################################################################
