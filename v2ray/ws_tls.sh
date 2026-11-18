@@ -147,7 +147,7 @@ $(gen_outbound ${CLI_WST_WG_PORT} ${V2RAY_WG_WSPATH})
   ],
   "dns":{
     "hosts":{"test.com":"127.0.0.1"},
-    "queryStrategy": "UseIPv4",
+    "queryStrategy": "UseIP",
     "servers":[
       {"address":"223.5.5.5","domains":["geosite:cn"]},
       {"address":"https://1.1.1.1/dns-query","domains":["geosite:geolocation-!cn"]},
