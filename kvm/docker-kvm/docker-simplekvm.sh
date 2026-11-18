@@ -13,6 +13,7 @@ username=simplekvm
 VENV=/home/${username}/venv
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
+[ "$(id -u)" -eq 0 ] || { log "need root user run"; exit 1; }
 for fn in make_docker_image.sh tpl_overlay.sh; do
     file_exists "${fn}" || { log "${fn} no found"; exit 1; }
 done
@@ -20,7 +21,7 @@ for fn in ui term novnc.tgz spice.tgz; do
     file_exists "${SOURCE_DIR}/${fn}" || { log "${SOURCE_DIR}/${fn} no found"; exit 1; }
 done
 for arch in ${ARCH[@]}; do
-    file_exists nginx-johnyin_${arch}.deb || { log "nginx-johnyin_${arch}.deb no found"; }
+    file_exists "$(ls nginx-johnyin*${arch}.deb)" || { log "nginx-johnyin ${arch}.deb no found"; }
 done
 
 export BUILD_NET=${BUILD_NET:-host}
@@ -488,7 +489,7 @@ EODOC
     docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
-    file_exists nginx-johnyin_${arch}.deb && dpkg -x nginx-johnyin_${arch}.deb ${type}-${arch}/docker
+    file_exists "$(ls nginx-johnyin*${arch}.deb)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
     sed -i "s/^\s*#\s*//g" ${type}-${arch}/docker/etc/nginx/modules.d/jwt.conf
     sed -i "s/^user .*;/user ${username} ${username};/g"  ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
@@ -532,7 +533,7 @@ EOF
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
     log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
-    for fn in tmp root build.run nginx-johnyin_${arch}.deb; do
+    for fn in tmp root build.run $(ls nginx-johnyin*${arch}.deb); do
         rm -fr ${type}-${arch}/docker/${fn}
     done
     rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs

@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("212d9838[2026-06-11T13:30:06+08:00]:mk_nginx.sh")
+VERSION+=("9d4b7d25[2026-11-05T07:26:18+08:00]:mk_nginx.sh")
 
 # dpkg --add-architecture arm64 && apt update && apt install libc6:arm64 libcrypt-dev:arm64
 
@@ -48,7 +48,12 @@ PROXY_CONNECT=${PROXY_CONNECT-""}
 LIMIT_SPEED=${LIMIT_SPEED:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 #dynamic module
+# jwt auth static build undefined symbol: json_object_iter_value
 AUTH_JWT=${AUTH_JWT-"1"}
+# ldap auth static build undefined symbol: SSL_state_string_long
+# so rm static lib and install
+# apt -y install libldap2-dev libjwt-dev libjansson-dev
+# apt -y install libjansson-dev:arm64 libjwt-dev:arm64 libldap2-dev:arm64
 AUTH_LDAP=${AUTH_LDAP-"1"}
 IMAGE_FILTER=${IMAGE_FILTER-"1"}
 PAGE_SPEED=${PAGE_SPEED:-""}
@@ -88,7 +93,7 @@ check_depends_lib() {
     for dir in $@ ; do
         PKG_CONFIG_PATH=${MYLIB_DEPS}/lib/pkgconfig/ pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libgeoip-dev libgd-dev libsqlite3-dev libbrotli-dev # libldap2-dev uuid-dev libxml2-dev libxslt1-dev libjwt-dev libjansson-dev"
+            log "apt -y install libgeoip-dev libgd-dev libsqlite3-dev libbrotli-dev # libldap2-dev uuid-dev libxml2-dev libxslt1-dev libjwt-dev libjansson-dev libldap2-dev"
             log "yum -y install GeoIP-devel gd-devel sqlite-devel brotli-devel libxml2-devel libxslt-devel openldap-devel uuid-devel"
             log "yum -y install rpm-build"
             exit 1
@@ -320,40 +325,6 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 # # nginx-sticky patch for mingw
 # sed "s/gmtime_r(\&t, \&e)/ngx_libc_gmtime(t, \&e)/g" nginx-sticky-module-ng/ngx_http_sticky_misc.c
 # # ngx_http_auth_jwt patch for mingw
-# diff --git a/src/ngx_http_auth_jwt_module.c b/src/ngx_http_auth_jwt_module.c
-# index 1c9e70c..55ed89e 100644
-# --- a/src/ngx_http_auth_jwt_module.c
-# +++ b/src/ngx_http_auth_jwt_module.c
-# @@ -656,7 +656,7 @@ static ngx_int_t extract_var_claims(ngx_http_request_t *r, auth_jwt_conf_t *jwtc
-#    {
-#      const ngx_str_t *claimsPtr = claims->elts;
-#  
-# -    for (uint i = 0; i < claims->nelts; ++i)
-# +    for (ngx_uint_t i = 0; i < claims->nelts; ++i)
-#      {
-#        const ngx_str_t claim = claimsPtr[i];
-#        const char *claimValue = jwt_get_grant(jwt, (char *)claim.data);
-# @@ -681,7 +681,7 @@ static void extract_claims(ngx_http_request_t *r, jwt_t *jwt, ngx_array_t *claim
-#    {
-#      const ngx_str_t *claimsPtr = claims->elts;
-#  
-# -    for (uint i = 0; i < claims->nelts; ++i)
-# +    for (ngx_uint_t i = 0; i < claims->nelts; ++i)
-#      {
-#        const ngx_str_t claim = claimsPtr[i];
-#        const char *value = jwt_get_grant(jwt, (char *)claim.data);
-# @@ -735,7 +735,7 @@ static ngx_int_t redirect(ngx_http_request_t *r, auth_jwt_conf_t *jwtcf)
-#        ngx_int_t port_variable_hash = ngx_hash_key(port_variable_name.data, port_variable_name.len);
-#        ngx_http_variable_value_t *port_var = ngx_http_get_variable(r, &port_variable_name, port_variable_hash);
-#        char *port_str = "";
-# -      uint port_str_len = 0;
-# +      ngx_uint_t port_str_len = 0;
-#        const ngx_str_t server = r->headers_in.server;
-#        ngx_str_t uri_variable_name = ngx_string("request_uri");
-#        ngx_int_t uri_variable_hash = ngx_hash_key(uri_variable_name.data, uri_variable_name.len);
-# # nginx-rtmp-module patch for mingw
-# diff --git a/ngx_rtmp.h b/ngx_rtmp.h
-# index cbe6a93..03160b4 100644
 # --- a/ngx_rtmp.h
 # +++ b/ngx_rtmp.h
 # @@ -18,7 +18,7 @@
@@ -503,7 +474,7 @@ log "https://mailfud.org/geoip-legacy/"
 cp ${DIRNAME}/GeoIPASNum.dat ${DIRNAME}/GeoIP.dat ${DIRNAME}/GeoIPCity.dat ${DIRNAME}/GeoIPOrg.dat ${OUTDIR}/etc/nginx/geoip/ &>/dev/null || true
 write_file "${OUTDIR}/etc/nginx/http-conf.d/geoip.conf" <<'EOF'
 # geoip_country /etc/nginx/geoip/GeoIP.dat;
-# geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
+# geoip_city    /etc/nginx/geoip/GeoIPCity.dat;
 # geoip_org     /etc/nginx/geoip/GeoIPASNum.dat;
 EOF
 
@@ -717,6 +688,9 @@ EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/geoip.conf" <<'EOF'
 # load_module modules/ngx_http_geoip_module.so;
 # load_module modules/ngx_stream_geoip_module.so;
+EOF
+opt_enable "${AUTH_LDAP}" && write_file "${OUTDIR}/etc/nginx/modules.d/ldap_auth.conf" <<'EOF'
+# load_module modules/ngx_http_auth_ldap_module.so;
 EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/rtmp.conf" <<'EOF'
 # load_module modules/ngx_rtmp_module.so;
