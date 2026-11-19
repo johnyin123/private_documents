@@ -10,7 +10,17 @@ ver=trixie
 nsname=simplekvm
 
 username=simplekvm
-VENV=/home/${username}/venv
+VENV=/venv
+# /home/${username}/.ssh/id_rsa
+# /home/${username}/.ssh/id_rsa.pub
+# /home/${username}/.pki/libvirt/cacert.pem
+ALL_PRIKEY=/home/${username}/.pki/libvirt/clientkey.pem
+ALL_PUBKEY=/home/${username}/.pki/libvirt/clientcert.pem
+
+# /home/${username}/.ssh/config auto generate if not exists
+# JWT_PUBKEY auto generate from ALL_PRIKEY
+JWT_PRIKEY=${ALL_PRIKEY}
+JWT_PUBKEY=/home/${username}/pubkey.pem
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
 [ "$(id -u)" -eq 0 ] || { log "need root user run"; exit 1; }
@@ -36,7 +46,7 @@ set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)"
+echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
 \${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
@@ -47,8 +57,8 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
 # apt -y install python3-dev / libpython3-dev
 # apt -y install libvirt-dev && python3 -m venv venv-full
 # pip install libvirt-python==11.3.0 gunicorn Flask pycdlib websockify etcd3 protobuf==3.20.3
-python3 -m venv --system-site-packages /home/${username}/venv
-. /home/${username}/venv/bin/activate
+python3 -m venv --system-site-packages ${VENV}
+. ${VENV}/bin/activate
 cat <<EO_PIP | grep -v '^\s*#.*$' > /home/${username}/requirements.txt
 gunicorn
 Flask
@@ -61,7 +71,6 @@ pyjwt[crypto]
 EO_PIP
 pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
 rm -f /home/${username}/requirements.txt
-chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
@@ -393,11 +402,24 @@ environment=PATH="${VENV:+${VENV}/bin:}%(ENV_PATH)s"
 logfile=/var/log/supervisor/supervisord.log
 pidfile=/var/run/supervisord.pid
 
+[unix_http_server]
+file=/var/run/supervisor.sock   ; path to your socket file
+chmod=0700
+chown=${username}:${username}
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+[supervisorctl]
+serverurl=unix:///var/run/supervisor.sock ; must match the [unix_http_server] file path
+
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
 autostart=true
 autorestart=true
-startretries=5
+startretries=10
+startsecs=5
+stopsignal=QUIT
+stopasgroup=true
+killasgroup=true
 user=root
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stderr
@@ -408,7 +430,8 @@ stderr_logfile_maxbytes=0
 command=websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
 autostart=true
 autorestart=true
-startretries=5
+startretries=10
+startsecs=10
 user=${username}
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stderr
@@ -417,7 +440,7 @@ stderr_logfile_maxbytes=0
 
 [program:api_auth]
 umask=0022
-environment=JWT_PUBKEY=/etc/nginx/ssl/pubkey.pem,JWT_PRIKEY=/etc/nginx/ssl/simplekvm.key
+environment=JWT_PUBKEY=${JWT_PUBKEY},JWT_PRIKEY=${JWT_PRIKEY}
 directory=/auth/
 command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
 autostart=true
@@ -436,7 +459,8 @@ directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
 autorestart=true
-startretries=5
+startretries=10
+startsecs=10
 user=${username}
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stdout
@@ -446,8 +470,10 @@ EODOC
     mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
-file_exists "/etc/nginx/ssl/simplekvm.key" || openssl req -x509 -newkey rsa:4096 -keyout /etc/nginx/ssl/simplekvm.key -out /etc/nginx/ssl/simplekvm.pem -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
-file_exists "/etc/nginx/ssl/pubkey.pem" || openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /etc/nginx/ssl/pubkey.pem
+mkdir -p $(dirname "${ALL_PRIKEY}")
+mkdir -p /home/${username}/.ssh
+file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:4096 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
+file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
 file_exists "/home/${username}/.ssh/id_rsa" || {
     mkdir --mode=700 -p "/home/${username}/.ssh"
     ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f /home/${username}/.ssh/id_rsa
@@ -461,11 +487,10 @@ Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
 }
-chown -R ${username}:${username} /home/${username} /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem /etc/nginx/ssl/pubkey.pem -R || true
+chown -R ${username}:${username} /home/${username} -R || true
 chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
-export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
 [ -z "\${CTRL_KEY:-}" ] || {
     sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
 }
@@ -495,7 +520,9 @@ EODOC
     sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "/proxy_pass_header\s*Server\s*;/d"            ${type}-${arch}/docker/etc/nginx/http-conf.d/proxy.conf
-
+    rm -f ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.pem
+    rm -f ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.key && ln -s ${ALL_PRIKEY} ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.key
+    rm -f ${type}-${arch}/docker/etc/nginx/ssl/pubkey.pem    && ln -s ${JWT_PUBKEY} ${type}-${arch}/docker/etc/nginx/ssl/pubkey.pem
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'

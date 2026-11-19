@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app, flask, io, os, json, logging, datetime, socket, binascii
+import flask_app, flask, io, os, json, logging, datetime, socket, binascii, time
 import vmmanager, config, template, utils
 from database import get_host, get_device, get_gold, get_iso, get_guest, get_vars, db_reload_all
 logger = logging.getLogger(__name__)
@@ -20,6 +20,8 @@ class MyApp(object):
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.warning(json.dumps(config.dumps(), indent=2, separators=('', ' = ')))
+        logger.info('Load all runtime data...')
+        time.sleep(3)
         db_reload_all()
         ret, not_exists = required_exists()
         if ret:

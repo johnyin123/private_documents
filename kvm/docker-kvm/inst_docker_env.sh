@@ -101,9 +101,9 @@ docker create --name simplekvm --restart always \\
  -v ${target}/config:/home/simplekvm/.ssh/config \\
  -v ${target}/id_rsa:/home/simplekvm/.ssh/id_rsa \\
  -v ${target}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \\
- -v ${target}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
- -v ${target}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
- -v ${target}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
+ -v ${target}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \\
+ -v ${target}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \\
+ -v ${target}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \\
  registry.local/simplekvm/simplekvm:trixie
 
 # -v ${target}/ca.pem:/etc/pki/CA/cacert.pem \\

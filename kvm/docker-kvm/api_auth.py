@@ -3,7 +3,7 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator,
 import os, flask_app, flask, datetime, jwt, logging, json, contextlib, ldap3, utils
 logger = logging.getLogger(__name__)
 
-def jwt_login(config: dict, username: str, password: str) -> bool:
+def ldap_login(config: dict, username: str, password: str) -> bool:
     @contextlib.contextmanager
     def ldap_connect(url:str, binddn:str, password:str)-> Generator:
         logger.debug(f'connect: {url}, {binddn}')
@@ -19,6 +19,18 @@ def jwt_login(config: dict, username: str, password: str) -> bool:
            entry = c.entries[0].entry_to_json()
            logger.info(entry)
        return True if c.bound else False
+
+jwt_login = ldap_login
+if not os.environ.get('LDAP_SRV_URL'):
+    logger.warn(f'LDAP_SRV_URL unset, json_login load. JUST FOR TEST!')
+    USER_LIST = json.loads('[ {"username":"admin", "password":"simplekvm"} ]')
+    def jwt_login(config: dict, username: str, password: str) -> bool:
+        def search(arr, **kwargs) -> List:
+            return [dict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
+
+        result = search(USER_LIST, username=username, password=password)
+        logger.debug(f'{username} Login {"OK" if len(result) > 0 else "ERROR"}')
+        return True if len(result) > 0 else False
 
 DEFAULT_CONF = {
     'LDAP_SRV_URL' : os.environ.get('LDAP_SRV_URL'),
@@ -58,7 +70,7 @@ class MyApp(object):
         self.auth = jwt_auth({})
         self.allows = allows
         self.blocks = blocks
-        logger.debug(f'allows {self.allows}')
+        logger.info(f'allows {self.allows}')
 
     def api_refresh(self):
         try:

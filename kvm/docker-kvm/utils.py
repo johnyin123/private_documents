@@ -383,13 +383,24 @@ def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
                             file_save(os.path.join(home_dir, '.ssh', member.name), f.read())
                             if member.name == "id_rsa":
                                 os.chmod(os.path.join(home_dir, '.ssh', member.name), 0o600)
-                                # os.chmod(..., stat.S_IMODE(member.mode))
+                            # os.chmod(file, member.mode & 0o777) # Mask out setuid/setgid/sticky bits
                             apply += 1
                     elif member.name.startswith(config.PKI_PREFIX):
                         with tar.extractfile(member) as f:
                             logger.debug(f'File restore .pki/libvirt/{member.name}')
                             file_save(os.path.join(home_dir, '.pki/libvirt', member.name), f.read())
                             apply += 1
+                            if member.name == "clientkey.pem":
+                                cmd = ("openssl", "rsa", "-in", os.path.join(home_dir, '.pki/libvirt', member.name), "-pubout", "-out", os.path.join(home_dir, 'pubkey.pem'))
+                                try:
+                                    msg = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+                                    logger.info(f'gen jwt pubkey.pem {msg}')
+                                    cmd = ("supervisorctl" "restart" "api_auth" "nginx")
+                                    msg = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+                                    logger.info(f'restart service {msg}')
+                                except Exception as e:
+                                    apply -= 1
+                                    logger.error(f"gen jwt pubkey.pem {str(e)}")
                     else:
                         skip.append(member.name)
     except tarfile.ReadError as e:
