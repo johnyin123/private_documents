@@ -92,6 +92,7 @@ ${target}/client.pem
 #  LDAP_SRV=10.170.33.107
 #  LDAP_PORT=1389
 # --env LDAP_UID_FMT='cn={uid}' \
+# JWT_BLOCKS=
 docker create --name simplekvm --restart always \\
  --network br-int --ip 192.168.169.123 \\
  --env LDAP_SRV_URL=ldap://${LDAP_SRV}:${LDAP_PORT} --env JWT_ALLOWS='["admin", "simplekvm"]' \\

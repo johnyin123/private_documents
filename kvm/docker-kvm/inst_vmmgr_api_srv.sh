@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cc6782cc[2025-10-30T12:16:08+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("bb33fec5[2026-11-19T14:55:35+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -109,6 +109,7 @@ systemd-run --user --unit websockify-graph \
 
 LDAP_SRV=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ldap)
 
+# JWT_BLOCKS=
 systemd-run --user --unit jwt-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
