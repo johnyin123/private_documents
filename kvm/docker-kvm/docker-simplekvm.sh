@@ -547,12 +547,8 @@ EOF
         done
         tar -C ${tmp_dir} -c ${INIT_TPL[@]} ${INIT_DBS[@]} | gzip > ${type}-${arch}/docker/app/init_env.tgz
         rm -rf ${tmp_dir}
-        #########
-        chown -R 10001:10001 ${type}-${arch}/docker/app
     }
-    mkdir -p ${type}-${arch}/docker/auth && {
-        chown -R 10001:10001 ${type}-${arch}/docker/auth
-    }
+    mkdir -p ${type}-${arch}/docker/auth
     log "Pre chroot exit"
     ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
     log "chroot ${type}-${arch}.rootfs,(copy app/auth) exit continue build"
