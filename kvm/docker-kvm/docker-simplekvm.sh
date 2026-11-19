@@ -10,7 +10,7 @@ ver=trixie
 nsname=simplekvm
 
 username=simplekvm
-VENV=/venv
+# VENV=/venv
 # /home/${username}/.ssh/id_rsa
 # /home/${username}/.ssh/id_rsa.pub
 # /home/${username}/.pki/libvirt/cacert.pem
@@ -49,28 +49,17 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
-\${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
-\${APT} install libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libsqlite3-0 libldap2 libjwt2
+\${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra supervisor python3  # python3-venv
+\${APT} install libbrotli1 libjansson4  libjwt2 #libgeoip1 libxml2 libxslt1.1 libsqlite3-0 libldap2
 # libjwt0 libldap-2.5-0
-\${APT} install python3-libvirt python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-requests python3-urllib3
+\${APT} install python3-libvirt python3-requests
+# python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-urllib3
 \${APT} install libpython3.13 # for console
+\${APT} install python3-etcd3gw
 # apt -y install python3-dev / libpython3-dev
 # apt -y install libvirt-dev && python3 -m venv venv-full
 # pip install libvirt-python==11.3.0 gunicorn Flask pycdlib websockify etcd3 protobuf==3.20.3
-python3 -m venv --system-site-packages ${VENV}
-. ${VENV}/bin/activate
-cat <<EO_PIP | grep -v '^\s*#.*$' > /home/${username}/requirements.txt
-gunicorn
-Flask
-pycdlib
-websockify
-etcd3
-ldap3
-pyjwt[crypto]
-# etcd3 use grpcio someversion bug when Docker, so use system python3-protobuf
-EO_PIP
-pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
-rm -f /home/${username}/requirements.txt
+\${APT} install gunicorn websockify python3-flask python3-pycdlib python3-ldap3 python3-jwt
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
@@ -416,10 +405,7 @@ command=/usr/sbin/nginx -g "daemon off;"
 autostart=true
 autorestart=true
 startretries=10
-startsecs=5
-stopsignal=QUIT
-stopasgroup=true
-killasgroup=true
+startsecs=1
 user=root
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stderr
@@ -431,7 +417,7 @@ command=websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.
 autostart=true
 autorestart=true
 startretries=10
-startsecs=10
+startsecs=1
 user=${username}
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stderr
@@ -460,7 +446,7 @@ command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --
 autostart=true
 autorestart=true
 startretries=10
-startsecs=10
+startsecs=1
 user=${username}
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stdout
