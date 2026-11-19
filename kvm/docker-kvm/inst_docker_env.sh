@@ -59,7 +59,8 @@ docker create --name ${ETCD_SRV} --restart always \\
  --network br-int \\
  --env ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379    \\
  --env ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 \\
- --env ETCD_LOG_LEVEL='warn'                          \\
+ --env ETCD_LOG_LEVEL='warn'   \\
+ --env ETCD_MAX_REQUEST_BYTES='33554432'  \\
  registry.local/simplekvm/etcd:trixie
 EOF
 

@@ -266,82 +266,106 @@ def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
     shash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     return base64.urlsafe_b64encode(f'{kvmhost}/{uuid}?k={shash}&e={epoch}'.encode('utf-8')).decode('utf-8').rstrip('=')
 
-import etcd3, config
+import etcd3gw, config
 class EtcdConfig:
-    grpc_opts = [ ('grpc.max_receive_message_length', 32*MiB), ('grpc.max_send_message_length', 10*MiB), ]
+    @classmethod
+    def _get_client(cls):
+        use_tls = bool(getattr(config, 'ETCD_CA', None) or getattr(config, 'ETCD_CERT', None) or getattr(config, 'ETCD_KEY', None))
+        # logger.warning("ETCD3GW Ensure your etcd server v3.5 or newer (or running with --enable-grpc-gateway enabled on v3.4)")
+        return etcd3gw.client(host=config.ETCD_SRV, port=config.ETCD_PORT,
+            protocol='https' if use_tls else 'http',
+            ca_cert=getattr(config, 'ETCD_CA', None),
+            cert_key=getattr(config, 'ETCD_KEY', None),
+            cert_cert=getattr(config, 'ETCD_CERT', None),
+            timeout=30,
+        )
 
     @classmethod
-    def key2fname(cls, key:str, stage:str)->str:
+    def key2fname(cls, key: str, stage: str) -> str:
         fn = os.path.join(config.DATA_DIR, os.path.relpath(key, config.ETCD_PREFIX))
         logger.debug(f'{stage} {key} -> {fn}')
         return fn
 
     @classmethod
-    def fname2key(cls, fname:str, stage:str)->str:
+    def fname2key(cls, fname: str, stage: str) -> str:
         key = os.path.join(config.ETCD_PREFIX, os.path.relpath(fname, config.DATA_DIR))
         logger.debug(f'{stage} {fname} -> {key}')
         return key
 
     @classmethod
-    def etcd_del(cls, fname:str) -> None:
+    def etcd_del(cls, fname: str) -> None:
         key = cls.fname2key(fname, 'ETCD DEL')
         try:
-            with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-                with etcd.lock(f'/locks/{key}', ttl=10) as lock:
-                    if lock.is_acquired():
-                        cnt = etcd.delete_prefix(key)        # etcd.delete(key)
-                        logger.info(f'ETCD DEL({cnt.deleted}) {fname} -> {key}')
-                    else:
-                        logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+            etcd = cls._get_client()
+            lock = etcd.lock(id=f'/locks/{key}', ttl=10)
+            if lock.acquire():
+                try:
+                    deleted = etcd.delete_prefix(key)
+                    logger.info(f'ETCD DEL({deleted}) {fname} -> {key}')
+                finally:
+                    lock.release()
+            else:
+                logger.info('Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except Exception as e:
-            raise APIException(f'ETCD DEL {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
+            raise APIException(f'ETCD DEL {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__}: {e}]')
 
     @classmethod
-    def etcd_save(cls, fname:str, val) -> None:
+    def etcd_save(cls, fname: str, val) -> None:
         key = cls.fname2key(fname, 'ETCD PUT')
         try:
-            with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-                with etcd.lock(f'/locks/{key}', ttl=10) as lock:
-                    if lock.is_acquired():
-                        logger.info(f'ETCD PUT {fname} -> {key}')
-                        etcd.put(key, val)
-                    else:
-                        raise APIException(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+            etcd = cls._get_client()
+            lock = etcd.lock(id=f'/locks/{key}', ttl=10)
+            if lock.acquire():
+                try:
+                    logger.info(f'ETCD PUT {fname} -> {key}')
+                    etcd.put(key, val)
+                finally:
+                    lock.release()
+            else:
+                raise APIException('Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except Exception as e:
-            raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
+            raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__}: {e}]')
 
     @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:
         while True:
-            logger.warning(f'ETCD WATCH PREFIX START')
+            logger.warning('ETCD WATCH PREFIX START')
+            cancel_watch = None
             try:
-                with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-                    _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
-                    for event in _iter:
-                        if isinstance(event, etcd3.events.PutEvent) and update_callback:
-                            logger.info(f'ETCD WATCH PREFIX UPDATE {event.key.decode("utf-8")}')
-                            update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX UPDATE'), event.value)
-                        elif isinstance(event, etcd3.events.DeleteEvent) and update_callback:
-                            logger.info(f'ETCD WATCH PREFIX DELETE {event.key.decode("utf-8")}')
-                            update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX DELETE'), None)
-                        else:
-                            logger.warning(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
+                etcd = cls._get_client()
+                _iter, cancel_watch = etcd.watch_prefix(config.ETCD_PREFIX)
+                for event in _iter:
+                    event_type = event.get('type', 'PUT')
+                    kv = event.get('kv', {})
+                    raw_key = kv.get('key', b'')
+                    key_str = raw_key.decode('utf-8') if isinstance(raw_key, bytes) else raw_key
+                    if event_type == 'PUT' and update_callback:
+                        logger.info(f'ETCD WATCH PREFIX UPDATE {key_str}')
+                        update_callback(cls.key2fname(key_str, 'ETCD WATCH PREFIX UPDATE'), kv.get('value', b''),)
+                    elif event_type == 'DELETE' and update_callback:
+                        logger.info(f'ETCD WATCH PREFIX DELETE {key_str}')
+                        update_callback(cls.key2fname(key_str, 'ETCD WATCH PREFIX DELETE'), None,)
+                    else:
+                        logger.warning(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except Exception as e:
-                logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__} {str(e)}]')
-            logger.warning(f'ETCD WATCH PREFIX QUIT, 60s RESTART')
-            time.sleep(60) # Wait before retrying
+                logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__}: {str(e)}]')
+            finally:
+                if cancel_watch:
+                    cancel_watch()
+            logger.warning('ETCD WATCH PREFIX QUIT, 60s RESTART')
+            time.sleep(60)
 
     @classmethod
     def cfg_initupdate(cls, update_callback) -> None:
-        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-            logger.warning(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
-            for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
-                fname = cls.key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
-                value, _ = etcd.get(meta.key)
-                file_save(fname, value)
-            logger.warning(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
+        etcd = cls._get_client()
+        logger.warning(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
+        for value, meta in etcd.get_prefix(config.ETCD_PREFIX):
+            raw_key = meta['key']
+            key_str = raw_key.decode('utf-8') if isinstance(raw_key, bytes) else raw_key
+            fname = cls.key2fname(key_str, 'ETCD INIT')
+            file_save(fname, value)
+        logger.warning(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
-
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
 def conf_backup_tgz()->io.BytesIO:
     file_obj = io.BytesIO()

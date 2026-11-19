@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4c884f10[2025-10-28T14:17:26+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("cc6782cc[2025-10-30T12:16:08+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -99,6 +99,7 @@ systemd-run --user --unit etcd.service \
     -E ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379    \
     -E ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 \
     -E ETCD_LOG_LEVEL='warn'                          \
+    -E ETCD_MAX_REQUEST_BYTES='33554432'  \
     ${DIRNAME}/etcd
     #--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
 
