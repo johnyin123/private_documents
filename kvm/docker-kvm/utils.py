@@ -419,9 +419,6 @@ def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
                                 try:
                                     msg = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
                                     logger.info(f'gen jwt pubkey.pem {msg}')
-                                    cmd = ("supervisorctl", "restart", "api_auth", "nginx")
-                                    msg = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
-                                    logger.info(f'restart service {msg}')
                                 except Exception as e:
                                     apply -= 1
                                     logger.error(f"gen jwt pubkey.pem {str(e)}")
