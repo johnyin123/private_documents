@@ -457,7 +457,7 @@ EODOC
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
 mkdir -p $(dirname "${ALL_PRIKEY}")
-file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:4096 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
+file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:2048 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
 file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
 file_exists "${USER_HOME}/.ssh/id_rsa" || {
     mkdir --mode=700 -p "${USER_HOME}/.ssh"
@@ -568,28 +568,6 @@ cat <<'EOF'
 ###################################################
 # test run
 ###################################################
-# # when: qemu+ssh://, actions add template disk
-    TARGET_DIR=/kvm/ssh
-    mkdir --mode=700 -p ${TARGET_DIR} && cat <<EO_CFG > ${TARGET_DIR}/config
-StrictHostKeyChecking=no
-UserKnownHostsFile=/dev/null
-ControlMaster auto
-ControlPath  ~/.ssh/%r@%h:%p
-ControlPersist 600
-Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-MACs hmac-sha1
-EO_CFG
-    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${TARGET_DIR}/id_rsa
-    chown -R 10001:10001 ${TARGET_DIR}
-    # id_rsa id_rsa.pub config
-# # when: qemu+tls://
-#     -v /kvm/pki:/etc/pki/
-#        CA/cacert.pem libvirt/clientcert.pem libvirt/private/clientkey.pem
-# #   -v /host/ssl:/etc/nginx/ssl
-#        simplekvm.key simplekvm.pem
-# # need http  get hosts define in golds.json when add disk with template (api srv)
-# # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
-
 LDAP_SRV_URL=ldap://ldap:10389
 META_SRV=vmm.registry.local
 GOLD_SRV=vmm.registry.local
@@ -604,50 +582,6 @@ docker create \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
- -v ${TARGET_DIR}/config:/home/simplekvm/.ssh/config \
- -v ${TARGET_DIR}/id_rsa:/home/simplekvm/.ssh/id_rsa \
- -v ${TARGET_DIR}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \
- -v ${TARGET_DIR}/client.key:/etc/nginx/ssl/simplekvm.key \
- -v ${TARGET_DIR}/client.pem:/etc/nginx/ssl/simplekvm.pem \
- -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
- -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
- -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
+ -v ${TARGET_DIR}:/home/simplekvm
 EOF
 
-cat <<'EOF'
-# # entrypoint.sh, read ENV version
-gen_file() {
-    local var="${1}"
-    local dst="${2}"
-    local uid="${3:-root}"
-    local gid="${4:-root}"
-    local mode="${5:-0600}"
-    [ -z "${var}" ] || echo "${var}" | base64 -d | install --backup=simple -v -C -m ${mode} --group=${gid} --owner=${uid} /dev/stdin "${dst}"
-    return 0
-}
-# install -v -d -m 0700 --group= --owner= dir
-gen_file "${CERT_KEY:-}" "/etc/nginx/ssl/simplekvm.key"            root root 0600
-gen_file "${CERT_PEM:-}" "/etc/nginx/ssl/simplekvm.pem"            root root 0644
-gen_file "${CERT_KEY:-}" "/etc/pki/libvirt/private/clientkey.pem"  root root 0600
-gen_file "${CERT_PEM:-}" "/etc/pki/libvirt/clientcert.pem"         root root 0644
-gen_file "${CERT_CA:-}"  "/etc/pki/CA/cacert.pem"                  root root 0644
-EOF
-    cat <<'EO_DOC'
-sudo cp \
-    config.so \
-    database.so \
-    flask_app.so \
-    main.so \
-    meta.so \
-    template.so \
-    utils.so \
-    vmmanager.so \
-    console \
-    docker/app/
-sudo cp \
-    api_auth.so \
-    utils.so \
-    config.so \
-    flask_app.so \
-    docker/auth
-EO_DOC

@@ -126,6 +126,8 @@ server {
     server_name simplekvm.registry.local;
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
+    # tanent access force to user.registry.local
+    location = /guest.html { return 301 https://user.registry.local/ui/userui.html$is_args$args; }
     location / {
         alias /var/www/;
         try_files $uri @proxy;
