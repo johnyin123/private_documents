@@ -21,7 +21,6 @@ class MyApp(object):
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.warning(json.dumps(config.dumps(), indent=2, separators=('', ' = ')))
         logger.info('Load all runtime data...')
-        time.sleep(3)
         db_reload_all()
         ret, not_exists = required_exists()
         if ret:

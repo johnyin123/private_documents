@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, uuid, datetime
-# # env: DATA_DIR, TOKEN_DIR, META_SRV, GOLD_SRV, CTRL_SRV, CTRL_KEY
+# # env: DATA_DIR, TOKEN_DIR, META_SRV, GOLD_SRV, CTRL_KEY
 # # use etcd as persistent
 ETCD_PREFIX = os.environ.get('ETCD_PREFIX', None)
 ETCD_SRV    = os.environ.get('ETCD_SRV', 'localhost')
@@ -16,11 +16,9 @@ TOKEN_DIR   = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
 # # META_SRV: Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
-META_SRV    = os.environ.get('META_SRV', 'vmm.registry.local')
+META_SRV    = os.environ.get('META_SRV', 'vmm.cloud.local')
 # # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 GOLD_SRV    = os.environ.get('GOLD_SRV', META_SRV)
-# # CTRL_SRV: https srv for user control panel, default https://META_SRV
-CTRL_SRV    = os.environ.get('CTRL_SRV', META_SRV)
 # # user control panel access mykey
 CTRL_KEY    = os.environ.get('CTRL_KEY', 'P@ssw@rd4Display')
 ##################################################################
@@ -29,7 +27,7 @@ TMOUT_MINS  = str('15') # secure_link/socat process timeout close minutes, defau
 URI_VNC     = f'/novnc/vnc_lite.html'
 URI_SPICE   = f'/spice/spice_auto.html'
 URI_CONSOLE = f'/term/xterm.html'
-URL_CTRL    = f'https://{CTRL_SRV}/guest.html'
+CTRL_URL    = f'/guest.html'
 DIR_CIDATA  = os.path.join(DATA_DIR, 'cidata')  # RWS  # share iso-meta/nocloud-meta data dir
 DIR_DEVICE  = os.path.join(DATA_DIR, 'devices') # ROL  # local device template dir
 DIR_DOMAIN  = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
@@ -39,7 +37,7 @@ FILE_DEVS   = os.path.join(DATA_DIR, 'devices.json')
 FILE_GOLDS  = os.path.join(DATA_DIR, 'golds.json')
 FILE_ISO    = os.path.join(DATA_DIR, 'iso.json')
 FILE_VARS   = os.path.join(DATA_DIR, 'vars.json')
-BAK_PREFIX  = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
+BAK_PREFIX  = tuple([ 'cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json' ])
 SSH_PREFIX  = tuple([ 'config', 'id_rsa', 'id_rsa.pub' ])
 PKI_PREFIX  = tuple([ 'cacert.pem', 'clientkey.pem', 'clientcert.pem' ])
 # # # # # # # # # # # # # # # # # # # # # # #
@@ -53,4 +51,4 @@ def VM_DEFAULT(arch:str, hostname:str):
 
 def dumps():
     ACT_PARMS={k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')}
-    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'CTRL_SRV': CTRL_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'edd1236b', **ACT_PARMS}
+    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'edd1236b', **ACT_PARMS}

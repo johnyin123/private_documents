@@ -253,6 +253,8 @@ server {
         auth_request @api_auth;
         alias /app/ui/tpl.html;
     }
+    # # guest ui
+    location = /guest.html { return 301 https://$host:1443/ui/userui.html$is_args$args; }
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://api_srv;
@@ -480,7 +482,7 @@ chmod 644 ${USER_HOME}/.ssh/config || true
 [ -z "\${DATA_DIR:-}" ] || {
     sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR}/cidata|g" /etc/nginx/http-enabled/simplekvm.conf
 }
-# 443 is simplekvm server, :1443 is CTRL_SRV, :80 is META_SRV
+# 443 is simplekvm admin server, :1443 is tanent server, :80 is META_SRV
 env || true
 exec "\$@"
 EODOC
