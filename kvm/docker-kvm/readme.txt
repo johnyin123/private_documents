@@ -70,6 +70,7 @@ EO_SETUP
 mkdir -p env && cp *.py env/ ....
 python setup.py build_ext --inplace
 EOF
+# # external nginx, for simplekvm docker.
 cat <<EOF
 map $http_upgrade $connection_upgrade {
     default upgrade;
