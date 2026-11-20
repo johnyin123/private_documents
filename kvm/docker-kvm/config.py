@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, uuid, datetime
 # # env: DATA_DIR, TOKEN_DIR, META_SRV, GOLD_SRV, CTRL_SRV, CTRL_KEY
-DATA_DIR    = os.environ.get('DATA_DIR', '/dev/shm/simplekvm/work')
-# # share with websockify process.(local not need persistent)
-TOKEN_DIR   = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
 # # use etcd as persistent
 ETCD_PREFIX = os.environ.get('ETCD_PREFIX', None)
 ETCD_SRV    = os.environ.get('ETCD_SRV', 'localhost')
@@ -11,6 +8,10 @@ ETCD_PORT   = int(os.environ.get('ETCD_PORT', 2379))
 ETCD_CA     = os.environ.get('ETCD_CA', None)
 ETCD_KEY    = os.environ.get('ETCD_KEY', None)
 ETCD_CERT   = os.environ.get('ETCD_CERT', None)
+DATA_DIR    = os.environ.get('DATA_DIR', '/dev/shm/simplekvm/work' if ETCD_PREFIX else os.path.join(os.path.expanduser("~"), "work"))
+# # share with websockify process.(local not need persistent)
+TOKEN_DIR   = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
+
 # # clout-init: net http://META_SRV/(uuid)/(meta-data|user-data) (domain.tpl)
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
