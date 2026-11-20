@@ -29,12 +29,6 @@ class MyApp(object):
             dir_cwd = os.getcwd()
             init_pkg = os.path.join(dir_cwd, 'init_env.tgz')
             if os.path.isfile(init_pkg):
-                fname=os.path.join(dir_cwd, f"pre_init_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.tgz")
-                logger.warning(f'pre init runtime backup: {fname}')
-                try:
-                    utils.file_save(fname, utils.conf_backup_tgz().getvalue())
-                except:
-                    logger.exception(f'save {fname}')
                 total, apply, skip = utils.conf_restore_tgz(io.BytesIO(utils.file_load(init_pkg)))
                 logger.info(f'init runtime env, total={total}, apply={apply}, skip={skip}')
             else:
@@ -232,7 +226,10 @@ class MyApp(object):
         return flask.send_from_directory(os.path.join(os.path.expanduser('~'), '.ssh'), 'id_rsa.pub')
 
     def conf_backup(self):
-        return flask.send_file(utils.conf_backup_tgz(), as_attachment=True, download_name=f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz')
+        buf, size = utils.conf_backup_tgz()
+        response = flask.make_response(flask.send_file(buf, mimetype='application/octet-stream', as_attachment=True, download_name=f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz'))
+        response.headers['Content-Length'] = size
+        return response
 
     def conf_restore(self):
         # restore on overwrite files exists in backup.tgz, others keep

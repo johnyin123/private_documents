@@ -384,8 +384,9 @@ def conf_backup_tgz()->io.BytesIO:
                         content = file_load(fn)
                         member.size = len(content)
                         tar.addfile(member, io.BytesIO(content))
+    size = file_obj.tell()  # Get total byte size before seeking
     file_obj.seek(0)
-    return file_obj
+    return file_obj, size
 
 def conf_restore_tgz(file_obj:io.BytesIO)->tuple[int, int, list]:
     apply, total, skip = 0, 0, []
