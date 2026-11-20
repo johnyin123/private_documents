@@ -49,17 +49,14 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
-\${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra supervisor python3  # python3-venv
-\${APT} install libbrotli1 libjansson4  libjwt2 #libgeoip1 libxml2 libxslt1.1 libsqlite3-0 libldap2
-# libjwt0 libldap-2.5-0
-\${APT} install python3-libvirt python3-requests
-# python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-urllib3
-\${APT} install libpython3.13 # for console
-\${APT} install python3-etcd3gw
-# apt -y install python3-dev / libpython3-dev
+\${APT} install supervisor python3
+\${APT} install libjansson4 libjwt2 libldap2 # for nginx
+\${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra openssl 
+\${APT} install gunicorn python3-flask python3-libvirt
+\${APT} install websockify libpython3.13 # for console
+\${APT} install python3-pycdlib python3-ldap3 python3-jwt python3-etcd3gw python3-requests
 # apt -y install libvirt-dev && python3 -m venv venv-full
 # pip install libvirt-python==11.3.0 gunicorn Flask pycdlib websockify etcd3 protobuf==3.20.3
-\${APT} install gunicorn websockify python3-flask python3-pycdlib python3-ldap3 python3-jwt
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
@@ -457,7 +454,6 @@ EODOC
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
 mkdir -p $(dirname "${ALL_PRIKEY}")
-mkdir -p /home/${username}/.ssh
 file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:4096 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
 file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
 file_exists "/home/${username}/.ssh/id_rsa" || {
