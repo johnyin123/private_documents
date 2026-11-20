@@ -356,9 +356,9 @@ log "delete host   " && CURL DELETE "/conf/host/?name=${host}"
 2. create ngx cert/key & simplekvm client cert/key
     ${ngx_ssl}/simplekvm.pem
     ${ngx_ssl}/simplekvm.key
-    ${cli_pki}/pki/CA/cacert.pem
-    ${cli_pki}/pki/libvirt/private/clientkey.pem
-    ${cli_pki}/pki/libvirt/clientcert.pem
+    ${cli_pki}/pki/CA/cacert.pem                 || ${HOME}/.pki/libvirt/cacert.pem
+    ${cli_pki}/pki/libvirt/private/clientkey.pem || ${HOME}/.pki/libvirt/clientkey.pem
+    ${cli_pki}/pki/libvirt/clientcert.pem        || ${HOME}/.pki/libvirt/clientcert.pem
     ${cli_ssh}/id_rsa      #600 10001:10001
     ${cli_ssh}/id_rsa.pub  #644 10001:10001
     ${cli_ssh}/config      #644 10001:10001

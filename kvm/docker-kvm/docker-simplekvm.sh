@@ -10,17 +10,18 @@ ver=trixie
 nsname=simplekvm
 
 username=simplekvm
+USER_HOME=/home/${username}
 # VENV=/venv
-# /home/${username}/.ssh/id_rsa
-# /home/${username}/.ssh/id_rsa.pub
-# /home/${username}/.pki/libvirt/cacert.pem
-ALL_PRIKEY=/home/${username}/.pki/libvirt/clientkey.pem
-ALL_PUBKEY=/home/${username}/.pki/libvirt/clientcert.pem
+# ${USER_HOME}/.ssh/id_rsa
+# ${USER_HOME}/.ssh/id_rsa.pub
+# ${USER_HOME}/.pki/libvirt/cacert.pem
+ALL_PRIKEY=${USER_HOME}/.pki/libvirt/clientkey.pem
+ALL_PUBKEY=${USER_HOME}/.pki/libvirt/clientcert.pem
 
-# /home/${username}/.ssh/config auto generate if not exists
+# ${USER_HOME}/.ssh/config auto generate if not exists
 # JWT_PUBKEY auto generate from ALL_PRIKEY
 JWT_PRIKEY=${ALL_PRIKEY}
-JWT_PUBKEY=/home/${username}/pubkey.pem
+JWT_PUBKEY=${USER_HOME}/pubkey.pem
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
 [ "$(id -u)" -eq 0 ] || { log "need root user run"; exit 1; }
@@ -45,7 +46,7 @@ for arch in ${ARCH[@]}; do
 set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
-useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
+useradd -u 10001 -m ${username} --home-dir ${USER_HOME}/ --shell /bin/bash
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
@@ -437,7 +438,7 @@ stderr_logfile_maxbytes=0
 
 [program:simplekvm]
 umask=0022
-environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}"
+environment=HOME="${USER_HOME}",TOKEN_DIR="${token_dir}"
 directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
@@ -456,10 +457,10 @@ file_exists() { [ -e "\$1" ]; }
 mkdir -p $(dirname "${ALL_PRIKEY}")
 file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:4096 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
 file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
-file_exists "/home/${username}/.ssh/id_rsa" || {
-    mkdir --mode=700 -p "/home/${username}/.ssh"
-    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f /home/${username}/.ssh/id_rsa
-    file_exists "/home/${username}/.ssh/config" || cat <<EO_CFG > "/home/${username}/.ssh/config"
+file_exists "${USER_HOME}/.ssh/id_rsa" || {
+    mkdir --mode=700 -p "${USER_HOME}/.ssh"
+    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${USER_HOME}/.ssh/id_rsa
+    file_exists "${USER_HOME}/.ssh/config" || cat <<EO_CFG > "${USER_HOME}/.ssh/config"
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 ControlMaster auto
@@ -469,10 +470,10 @@ Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
 }
-chown -R ${username}:${username} /home/${username} -R || true
-chmod 600 /home/${username}/.ssh/id_rsa || true
-chmod 644 /home/${username}/.ssh/id_rsa.pub || true
-chmod 644 /home/${username}/.ssh/config || true
+chown -R ${username}:${username} ${USER_HOME} -R || true
+chmod 600 ${USER_HOME}/.ssh/id_rsa || true
+chmod 644 ${USER_HOME}/.ssh/id_rsa.pub || true
+chmod 644 ${USER_HOME}/.ssh/config || true
 [ -z "\${CTRL_KEY:-}" ] || {
     sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
 }
@@ -609,10 +610,6 @@ docker create \
  -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
  -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
  -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
-
-#  -v ${TARGET_DIR}/ca.pem:/etc/pki/CA/cacert.pem \
-#  -v ${TARGET_DIR}/client.key:/etc/pki/libvirt/private/clientkey.pem \
-#  -v ${TARGET_DIR}/client.pem:/etc/pki/libvirt/clientcert.pem \
 EOF
 
 cat <<'EOF'
