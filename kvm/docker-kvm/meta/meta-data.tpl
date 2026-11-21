@@ -8,4 +8,6 @@ network-interfaces: |
 {%- if vm_gateway is defined and vm_gateway != '' %}
   gateway {{ vm_gateway }}
 {%- endif %}
+{%- else %}
+  iface {{ vm_interface | default('eth0', true) }} inet dhcp
 {%- endif %}
