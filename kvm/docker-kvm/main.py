@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app, flask, io, os, json, logging, datetime, socket, binascii, time
+import flask_app, flask, io, os, sys, json, logging, datetime, socket, binascii, time
 import vmmanager, config, template, utils
 from database import get_host, get_device, get_gold, get_iso, get_guest, get_vars, db_reload_all
 logger = logging.getLogger(__name__)
@@ -318,4 +318,6 @@ class MyApp(object):
             return utils.deal_except(cmd, e), 400
 
 def create_app()-> flask.Flask:
+    if os.geteuid() == 0:
+        sys.exit("run as root exit!")
     return MyApp.create()
