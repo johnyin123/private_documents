@@ -185,7 +185,7 @@ kernprof -lv test.py
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # {{ var | default("myval", true) }} # undefined, false, None, or an empty string return myval
 # python3 -m venv --system-site-packages my_venv
-# pip install websockify gunicorn Flask pycdlib # SQLAlchemy # etcd3
+# pip install libvirt-python websockify gunicorn Flask pycdlib ldap3 pyjwt[crypto] etcd3gw
 # # regen meta_iso
 # uuid=../cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
