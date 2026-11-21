@@ -268,6 +268,7 @@ server {
     server_name _;
     # location / { return 301 https://$host$request_uri; }
     location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
+    # location / { autoindex on; set $limit 0; if_modified_since before; alias /home/simplekvm/gold/; }
 }
 server {
     listen 1443 ssl;
