@@ -226,6 +226,8 @@ class MyApp(object):
 
     def conf_backup(self):
         buf, size = utils.conf_backup_tgz()
+        user = utils.login_name(flask.request.headers.get('Authorization', flask.request.cookies.get('token', '')))
+        logger.warning(f'{user} backup config.............')
         response = flask.make_response(flask.send_file(buf, mimetype='application/octet-stream', as_attachment=True, download_name=f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz'))
         response.headers['Content-Length'] = size
         return response
@@ -236,6 +238,8 @@ class MyApp(object):
             total, apply, skip = utils.conf_restore_tgz(io.BytesIO(flask.request.files['file'].read()))
             if not config.ETCD_PREFIX: # no etc need manual reload
                 db_reload_all()
+            user = utils.login_name(flask.request.headers.get('Authorization', flask.request.cookies.get('token', '')))
+            logger.warning(f'{user} restore config.............')
             return utils.return_ok(f'restore config ok', total=total, apply=apply, skip=skip)
         except Exception as e:
             return utils.deal_except(f'restore config', e), 400
