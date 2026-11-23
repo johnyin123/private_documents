@@ -116,7 +116,7 @@ class MyApp(object):
 def create_app()-> flask.Flask:
     return MyApp.create()
 
-# # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:create_app()'
+# # gunicorn --chdir /appdir -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:create_app()'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
 #     create_app().run(host='127.0.0.1', port=5009)
