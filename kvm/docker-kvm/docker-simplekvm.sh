@@ -613,11 +613,11 @@ docker create \
  --restart always \
  --network br-int --ip 192.168.169.123 \
  --env LEVELS='{"main":"INFO"}' \
+ --env JWT_ALLOWS='["admin", "simplekvm"]' \
  --env LDAP_SRV_URL=${LDAP_SRV_URL} \
  --env META_SRV=${META_SRV} \
+ --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
  -v ${TARGET_DIR}:/home/simplekvm
-
-# --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
 EOF
 
