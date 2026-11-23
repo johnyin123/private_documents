@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, uuid, datetime
-# # env: DATA_DIR, TOKEN_DIR, META_SRV, GOLD_SRV, CTRL_KEY
+# # env: DATA_DIR, TOKEN_DIR, META_SRV, CTRL_KEY
 # # use etcd as persistent
 ETCD_PREFIX = os.environ.get('ETCD_PREFIX', None)
 ETCD_SRV    = os.environ.get('ETCD_SRV', 'localhost')
@@ -16,13 +16,12 @@ TOKEN_DIR   = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
 # # META_SRV: Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
-META_SRV    = os.environ.get('META_SRV', 'vmm.cloud.local')
-# # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
-GOLD_SRV    = os.environ.get('GOLD_SRV', META_SRV)
+META_SRV    = os.environ.get('META_SRV', None)
 # # user control panel access mykey
 CTRL_KEY    = os.environ.get('CTRL_KEY', 'P@ssw@rd4Display')
 ##################################################################
 # # const define
+LOCAL_NGX   = f'127.0.0.1'
 TMOUT_MINS  = str('15') # secure_link/socat process timeout close minutes, default value
 URI_VNC     = f'/novnc/vnc_lite.html'
 URI_SPICE   = f'/spice/spice_auto.html'
@@ -51,4 +50,4 @@ def VM_DEFAULT(arch:str, hostname:str):
 
 def dumps():
     ACT_PARMS={k: v for k, v in os.environ.items() if k.upper().startswith('ACT_')}
-    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'GOLD_SRV': GOLD_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'edd1236b', **ACT_PARMS}
+    return {'DATA_DIR': DATA_DIR, 'TOKEN_DIR': TOKEN_DIR, 'ETCD_PREFIX': ETCD_PREFIX, 'ETCD_SRV': ETCD_SRV, 'ETCD_PORT': ETCD_PORT, 'ETCD_CA': ETCD_CA, 'ETCD_KEY': ETCD_KEY, 'ETCD_CERT': ETCD_CERT, 'META_SRV': META_SRV, 'MAIL':'johnyin.news@163.com','VERSION':'edd1236b', **ACT_PARMS}

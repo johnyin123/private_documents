@@ -1,6 +1,6 @@
 "use strict";
 const uri_pre = '';
-const config = { g_host: [], g_device:[], g_iso:[], g_gold:[], curr_host:'', curr_vm:'', curr_dev:'', g_iso_srv:'', g_gold_srv:'' };
+const config = { g_host: [], g_device:[], g_iso:[], g_gold:[], curr_host:'', curr_vm:'', curr_dev:'' };
 function get_iso() { return config.g_iso; }
 function get_gold() { return config.g_gold; }
 function curr_host() { return config.curr_host; }
@@ -725,7 +725,7 @@ function on_conf_delgold(name, arch, btn) {
   }
 }
 function disp_gold_server(btn) {
-  window.open(`http://${config.g_gold_srv}`, "_blank");
+  window.open(`http://${window.location.hostname}`, "_blank");
 }
 function on_conf_listgold(btn) {
   const div = document.getElementById('conf_gold_list');
@@ -733,7 +733,6 @@ function on_conf_listgold(btn) {
     const res = JSON.parse(resp);
     if(res.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
     config.g_gold = res.gold;
-    config.g_gold_srv = res.server;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th class="truncate">URI</th><th>ACT</th></tr>`;
     res.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
       var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editgold', gold.name, {'arch':gold.arch, 'form':'addgold_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delgold', gold.name, {'arch':gold.arch});
@@ -765,7 +764,7 @@ function on_conf_deliso(name, btn) {
   }
 }
 function disp_iso_server(btn) {
-  window.open(`http://${config.g_iso_srv}`, "_blank");
+  window.open(`http://${window.location.hostname}`, "_blank");
 }
 function on_conf_listiso(btn) {
   const div = document.getElementById('conf_iso_list');
@@ -773,7 +772,6 @@ function on_conf_listiso(btn) {
     const res = JSON.parse(resp);
     if(res.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
     config.g_iso = res.iso;
-    config.g_iso_srv = res.server;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th class="truncate">URI</th><th>ACT</th></tr>`;
     res.iso.forEach(iso => {
       var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editiso', iso.name, {'form':'addiso_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_deliso', iso.name);
@@ -935,8 +933,8 @@ function load_conf(bypass='') {
     gen_sidebar();
     getjson('GET', `${uri_pre}/tpl/device/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
   });
-  getjson('GET', `${uri_pre}/tpl/iso/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; config.g_iso_srv = result.server; });
-  getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; config.g_gold_srv = result.server; });
+  getjson('GET', `${uri_pre}/tpl/iso/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
+  getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
 }
 /* ------------------------- */
 function set_cookie(name, value, secs) {

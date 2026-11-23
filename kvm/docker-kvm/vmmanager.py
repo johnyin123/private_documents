@@ -263,7 +263,8 @@ class VMManager:
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 uri = get_gold().get_one(name=gold_name, arch=host.get("arch")).get("uri")
-                req_json['gold'] = f'http://{config.GOLD_SRV}{uri}'
+                req_json['gold'] = f'http://{config.LOCAL_NGX}{uri}'
+                # golds qcow2 cached in local http
             bus_type = tpl.bus_type(**req_json)
             if bus_type is not None:
                 with libvirt_connect(host.get('url')) as conn:

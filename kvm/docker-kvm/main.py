@@ -154,11 +154,11 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_gold', f'blank str!')
                 entry['size'] = int(entry['size'])*utils.GiB
-                exists, size = utils.http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                exists, size = utils.http_file_exists(f'http://{config.LOCAL_NGX}{entry["uri"]}')
                 if not exists:
-                    return utils.return_err(404, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
+                    return utils.return_err(404, 'add gold', f'{entry["uri"]} No Found')
                 if entry['size'] < size:
-                    return utils.return_err(403, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} filesize={size}')
+                    return utils.return_err(403, 'add gold', f'{entry["uri"]} filesize={size}')
                 logger.debug(f'add gold {entry}')
                 get_gold().delete(name=entry['name'], arch=entry['arch'])
                 get_gold().insert(**entry)
@@ -282,7 +282,7 @@ class MyApp(object):
     def tpl_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'tpl_gold ok', gold=get_gold().list_all(**args), server=config.GOLD_SRV)
+            return utils.return_ok(f'tpl_gold ok', gold=get_gold().list_all(**args))
         except Exception as e:
             return utils.deal_except(f'tpl_gold', e), 400
 
@@ -319,5 +319,9 @@ class MyApp(object):
 
 def create_app()-> flask.Flask:
     if os.geteuid() == 0:
-        sys.exit("run as root exit!")
+        logger.fatal("Can not run as root, exit!")
+        sys.exit("exit!")
+    if not config.META_SRV:
+        logger.fatal("META_SRV not define exit!")
+        sys.exit("exit!")
     return MyApp.create()

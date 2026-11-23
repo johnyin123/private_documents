@@ -4,7 +4,6 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 file_exists() { [ -e "$1" ]; }
 ARCH=(amd64 arm64)
-
 type=simplekvm
 ver=trixie
 nsname=simplekvm
@@ -12,16 +11,16 @@ nsname=simplekvm
 username=simplekvm
 USER_HOME=/home/${username}
 # VENV=/venv
-# ${USER_HOME}/.ssh/id_rsa
-# ${USER_HOME}/.ssh/id_rsa.pub
+SSH_PRI=${USER_HOME}/.ssh/id_rsa
+SSH_PUB=${USER_HOME}/.ssh/id_rsa.pub
+SSH_CFG=${USER_HOME}/.ssh/config
 # ${USER_HOME}/.pki/libvirt/cacert.pem
 ALL_PRIKEY=${USER_HOME}/.pki/libvirt/clientkey.pem
 ALL_PUBKEY=${USER_HOME}/.pki/libvirt/clientcert.pem
-
-# ${USER_HOME}/.ssh/config auto generate if not exists
 # JWT_PUBKEY auto generate from ALL_PRIKEY
 JWT_PRIKEY=${ALL_PRIKEY}
 JWT_PUBKEY=${USER_HOME}/pubkey.pem
+token_dir=/dev/shm/simplekvm/token
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
 [ "$(id -u)" -eq 0 ] || { log "need root user run"; exit 1; }
@@ -39,30 +38,30 @@ export BUILD_NET=${BUILD_NET:-host}
 export REGISTRY=registry.local
 export IMAGE=debian:trixie       # # BASE IMAGE
 export NAMESPACE=
-token_dir=/dev/shm/simplekvm/token
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
 set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
-useradd -u 10001 -m ${username} --home-dir ${USER_HOME}/ --shell /bin/bash
+useradd -u 10001 -m ${username} --home-dir ${USER_HOME}/ --shell /bin/bash || true
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
-\${APT} install supervisor python3
-\${APT} install libjansson4 libjwt2 libldap2 # for nginx
 \${APT} install wget jq openssh-client socat qemu-utils qemu-block-extra openssl 
+\${APT} install libjansson4 libjwt2 libldap2 # for nginx
+\${APT} install libpython3.13 # for console
+\${APT} install python3 supervisor websockify
 \${APT} install gunicorn python3-flask python3-libvirt
-\${APT} install websockify libpython3.13 # for console
 \${APT} install python3-pycdlib python3-ldap3 python3-jwt python3-etcd3gw python3-requests
 # apt -y install libvirt-dev && python3 -m venv venv-full
-# pip install libvirt-python==11.3.0 gunicorn Flask pycdlib websockify etcd3 protobuf==3.20.3
+# pip install libvirt-python==11.3.0 gunicorn Flask pycdlib websockify \
+#   ldap3 pyjwt[crypto] requests etcd3gw
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
-    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled/ && echo '{"status":200,"message":"Success"}' > ${type}-${arch}/docker/etc/nginx/http-enabled/check.json
-    mkdir -p ${type}-${arch}/docker/etc/nginx/http-conf.d/ && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-conf.d/cache.conf
+target=${type}-${arch}/docker/etc
+    mkdir -p ${target}/nginx/http-conf.d/ && cat <<'EODOC' > ${target}/nginx/http-conf.d/cache.conf
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=60m max_size=16m use_temp_path=off;
 map $request_uri $cache_bypass {
     "~(/administrator|/admin|/login)" 1;
@@ -87,18 +86,25 @@ proxy_hide_header    Set-Cookie;
 proxy_hide_header    Vary;
 add_header           Pragma "public";
 EODOC
-    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
-upstream api_srv {
-    server 127.0.0.1:5009 fail_timeout=0;
-    keepalive 16;
-}
-upstream websockify_srv {
-    server 127.0.0.1:6800;
-}
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
+    mkdir -p ${target}/nginx/http-enabled/ && echo '{"status":200,"message":"Success"}' > ${target}/nginx/http-enabled/check.json
+    mkdir -p ${target}/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/error_page.inc
+error_page 403 = @403;
+location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
+error_page 404 = @404;
+location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
+error_page 405 = @405;
+location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
+error_page 410 = @410;
+location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
+error_page 502 = @502;
+location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
+error_page 504 = @504;
+location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
+EODOC
+    mkdir -p ${target}/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/favicon.inc
+location ~* .(favicon.ico)$ { access_log off; log_not_found off; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
+EODOC
+    mkdir -p ${target}/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/api_auth.conf
 upstream real_api_auth {
     server 127.0.0.1:16000;
     keepalive 16;
@@ -119,6 +125,19 @@ server {
         try_files check.json =404;
     }
 }
+EODOC
+    mkdir -p ${target}/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/simplekvm.conf
+upstream api_srv {
+    server 127.0.0.1:5009 fail_timeout=0;
+    keepalive 16;
+}
+upstream websockify_srv {
+    server 127.0.0.1:6800;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
 upstream api_auth {
     server 127.0.0.1:61600;
     keepalive 16;
@@ -129,18 +148,7 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     default_type application/json;
-    error_page 403 = @403;
-    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
-    error_page 404 = @404;
-    location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
-    error_page 405 = @405;
-    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
-    error_page 410 = @410;
-    location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
-    error_page 502 = @502;
-    location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
-    error_page 504 = @504;
-    location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
+    include /etc/nginx/http-enabled/error_page.inc;
     error_page 401 =401 @error401;
     location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host/ui/tpl.html"/></head><body></body></html>'; }
     location = @api_auth {
@@ -161,7 +169,7 @@ server {
     location =/logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
     location =/api/login { proxy_cache off; proxy_pass http://api_auth; }
     location =/api/refresh { auth_request @api_auth; proxy_cache off; proxy_pass http://api_auth; }
-    location ~* .(favicon.ico)$ { access_log off; log_not_found off; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
+    include /etc/nginx/http-enabled/favicon.inc;
     location /conf/ {
         location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
             # # no cache!! mgr private access
@@ -264,31 +272,13 @@ server {
     location /novnc { alias /app/novnc/; }
 }
 server {
-    listen 80;
-    server_name _;
-    # location / { return 301 https://$host$request_uri; }
-    location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
-    location / { autoindex on; set $limit 0; if_modified_since before; alias /home/simplekvm/gold/; }
-}
-server {
     listen 1443 ssl;
     server_name _;
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     default_type application/json;
-    error_page 403 = @403;
-    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
-    error_page 404 = @404;
-    location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
-    error_page 405 = @405;
-    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
-    error_page 410 = @410;
-    location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
-    error_page 502 = @502;
-    location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
-    error_page 504 = @504;
-    location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
-    location ~* .(favicon.ico)$ { access_log off; log_not_found off; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
+    include /etc/nginx/http-enabled/error_page.inc;
+    include /etc/nginx/http-enabled/favicon.inc;
     # # tanent api
     location = @prestart_user {
         internal;
@@ -384,7 +374,41 @@ server {
     location /novnc { alias /app/novnc/; }
 }
 EODOC
-    mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
+    mkdir -p ${target}/nginx/http-enabled && cat <<EODOC| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/meta_golds.conf
+server {
+    listen 80;
+    server_name _;
+    location ~* (\/cidata\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set \$limit 0; if_modified_since before; root /dev/shm/simplekvm/work/cidata; }
+    include /etc/nginx/http-enabled/gold_iso.loc;
+}
+EODOC
+    mkdir -p ${target}/nginx/http-enabled && cat <<EODOC| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/gold_iso.loc
+location ~*\.(iso)$ {
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
+}
+location ~*\.(qcow2)$ {
+    access_log off; log_not_found on; set \$limit 0; if_modified_since before; root ${USER_HOME}/golds;
+    try_files \$request_uri @real_res;
+}
+location @real_res {
+    internal;
+    proxy_set_header Accept-Encoding '';
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
+    proxy_store on;
+    # force 206 to http200, 206 not support proxy store
+    proxy_set_header Range "";
+    proxy_set_header If-Range "";
+    proxy_store_access user:rw group:rw all:r;
+    root ${USER_HOME}/golds;
+}
+location / {
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
+}
+EODOC
+    mkdir -p ${target} && cat <<EODOC > ${target}/supervisord.conf
 [supervisord]
 nodaemon=true
 user=root
@@ -457,13 +481,13 @@ EODOC
     mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
-mkdir -p $(dirname "${ALL_PRIKEY}")
+mkdir -p $(dirname "${ALL_PRIKEY}") ${USER_HOME}/golds
 file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:2048 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
 file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
-file_exists "${USER_HOME}/.ssh/id_rsa" || {
+file_exists "${SSH_PRI}" || {
     mkdir --mode=700 -p "${USER_HOME}/.ssh"
-    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${USER_HOME}/.ssh/id_rsa
-    file_exists "${USER_HOME}/.ssh/config" || cat <<EO_CFG > "${USER_HOME}/.ssh/config"
+    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${SSH_PRI}
+    file_exists "${SSH_CFG}" || cat <<EO_CFG > "${SSH_CFG}"
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 ControlMaster auto
@@ -474,16 +498,26 @@ MACs hmac-sha1
 EO_CFG
 }
 chown -R ${username}:${username} ${USER_HOME} -R || true
-chmod 600 ${USER_HOME}/.ssh/id_rsa || true
-chmod 644 ${USER_HOME}/.ssh/id_rsa.pub || true
-chmod 644 ${USER_HOME}/.ssh/config || true
+chmod 600 ${SSH_PRI} || true
+chmod 644 ${SSH_PUB} || true
+chmod 644 ${SSH_CFG} || true
 [ -z "\${CTRL_KEY:-}" ] || {
-    sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf
+    sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf || true
 }
-[ -z "\${DATA_DIR:-}" ] || {
-    sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR}/cidata|g" /etc/nginx/http-enabled/simplekvm.conf
+[ -z "\${ETCD_PREFIX:-}" ] && {
+    sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR:-${USER_HOME}/work}/cidata|g" /etc/nginx/http-enabled/meta_golds.conf || true
 }
-# 443 is simplekvm admin server, :1443 is tanent server, :80 is META_SRV
+[ -z "\${GOLD_SRV:-}" ] && {
+    echo "location / { root ${USER_HOME}/golds; }" > /etc/nginx/http-enabled/gold_iso.loc
+} || {
+    # cache golds
+    sed -i \\
+        -e "s|proxy_set_header\s\s*Host.*$|proxy_set_header Host \${GOLD_SRV};|g" \\
+        -e "s|proxy_pass\s\s*http://.*$|proxy_pass http://\${GOLD_SRV};|g" \\
+        /etc/nginx/http-enabled/gold_iso.loc || true
+    # export GOLD_CACHE=1
+}
+# 443 is simplekvm admin server, :1443 is tanent server, :80 is META_SRV and GOLD_SRV
 env || true
 exec "\$@"
 EODOC
@@ -501,14 +535,14 @@ EODOC
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
     file_exists "$(ls nginx-johnyin*${arch}.deb)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
-    sed -i "s/^\s*#\s*//g" ${type}-${arch}/docker/etc/nginx/modules.d/jwt.conf
-    sed -i "s/^user .*;/user ${username} ${username};/g"  ${type}-${arch}/docker/etc/nginx/nginx.conf
-    sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
-    sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf
-    sed -i "/proxy_pass_header\s*Server\s*;/d"            ${type}-${arch}/docker/etc/nginx/http-conf.d/proxy.conf
-    rm -f ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.pem
-    rm -f ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.key && ln -s ${ALL_PRIKEY} ${type}-${arch}/docker/etc/nginx/ssl/simplekvm.key
-    rm -f ${type}-${arch}/docker/etc/nginx/ssl/pubkey.pem    && ln -s ${JWT_PUBKEY} ${type}-${arch}/docker/etc/nginx/ssl/pubkey.pem
+    sed -i "s/^\s*#\s*//g" ${target}/nginx/modules.d/jwt.conf
+    sed -i "s/^user .*;/user ${username} ${username};/g"  ${target}/nginx/nginx.conf
+    sed -i "s/worker_processes .*;/worker_processes 1;/g" ${target}/nginx/nginx.conf
+    sed -i "/worker_priority/d"                           ${target}/nginx/nginx.conf
+    sed -i "/proxy_pass_header\s*Server\s*;/d"            ${target}/nginx/http-conf.d/proxy.conf
+    rm -f ${target}/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} ${target}/nginx/ssl/simplekvm.pem
+    rm -f ${target}/nginx/ssl/simplekvm.key && ln -s ${ALL_PRIKEY} ${target}/nginx/ssl/simplekvm.key
+    rm -f ${target}/nginx/ssl/pubkey.pem    && ln -s ${JWT_PUBKEY} ${target}/nginx/ssl/pubkey.pem
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
@@ -581,8 +615,9 @@ docker create \
  --env LEVELS='{"main":"INFO"}' \
  --env LDAP_SRV_URL=${LDAP_SRV_URL} \
  --env META_SRV=${META_SRV} \
- --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
  -v ${TARGET_DIR}:/home/simplekvm
+
+# --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
 EOF
 

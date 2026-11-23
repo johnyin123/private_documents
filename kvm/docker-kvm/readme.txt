@@ -150,12 +150,11 @@ EOF
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
 # # META_SRV: Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
-# # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 
 USR -> ngx  -> API
 ADM -> <IP> -> API -> Via libvirt/ssh -> KVMHOST
                 |  -> Create meta(nocloud)
-                |  -> config.GOLD_SRV -> Read golds(golds.json)(support http redirect)
+                |  -> LOCAL_NGX(GOLD_SRV) -> Read golds(golds.json)(support http redirect)
 KVMHOST => config.META_SRV => Read meta/cidata.iso
 KVMHOST => config.META_SRV => Read iso(iso.json)(support http redirect)
 
