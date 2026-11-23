@@ -125,44 +125,73 @@ cd ${NGINX_DIR} && { make clean &>/dev/null||true; } && \
 ${WIN_MINGW:+${CC/gcc/}}${MYARM:+aarch64-linux-gnu-}strip ${OUTDIR}/nginx${WIN_MINGW:+.exe} ${OUTDIR}/modules/* &>/dev/null || true
 
 cat <<'EOF' > ${OUTDIR}/conf/nginx.conf
-worker_processes  1;
-# Relative path for PID file
+worker_processes 1;
+worker_rlimit_nofile 1024000;
+worker_shutdown_timeout 240s;
+worker_priority -20;
+pcre_jit on;
 pid logs/nginx.pid;
 events {
-    worker_connections  1024;
+    use epoll;
+    worker_connections 409600;
+    multi_accept on;
 }
 http {
+    sendfile on;
+    sendfile_max_chunk 2048k;
+
+    tcp_nopush on;
+    tcp_nodelay on;
+    types_hash_max_size 2048;
+    server_tokens off;
+
+    # # allow the server to close connection on non responding client, this will free up memory
+    reset_timedout_connection on;
+
+    # # number of requests client can make over keep-alive
+    keepalive_requests 86400;
+
     include       mime.types;
     default_type  application/octet-stream;
 
     # Relative paths for logs
     access_log  logs/access.log;
     error_log   logs/error.log;
-    upstream fcgi_srvs {
-            server 127.0.0.1:9999;
-            server unix:/tmp/fastcgi.socket;
-            keepalive 16;
-    }
-    limit_conn_zone $server_name zone=connperserver:10m;
-    server {
-        listen 127.0.0.1:29999;
-        server_name _;
-        error_page 403 = @403;
-        location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
-        error_page 405 = @405;
-        location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
-        location / {
-            limit_conn connperserver 1;
-            limit_conn_status 403;
-            allow 127.0.0.1;
-            deny all;
-            fastcgi_keep_conn on;
-            if ($request_method !~ ^(GET|POST)$) { return 405; }
-            include fastcgi_params;
-            fastcgi_param FN_HANDLER getProfile;
-            #try_files $fastcgi_script_name =404;
-            fastcgi_pass fcgi_srvs;
-        }
+    # # SSL
+    ssl_conf_command Options KTLS;
+    ssl_protocols TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE, drop TLSv1 TLSv1.1
+    ssl_prefer_server_ciphers on;
+    http2_chunk_size 128k;
+    # # vhost include
+    include http-conf.d/*.conf;
+    include http-enabled/*.conf;
+}
+EOF
+cat << EOF
+upstream fcgi_srvs {
+        server 127.0.0.1:9999;
+        server unix:/tmp/fastcgi.socket;
+        keepalive 16;
+}
+limit_conn_zone $server_name zone=connperserver:10m;
+server {
+    listen 127.0.0.1:29999;
+    server_name _;
+    error_page 403 = @403;
+    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
+    location / {
+        limit_conn connperserver 1;
+        limit_conn_status 403;
+        allow 127.0.0.1;
+        deny all;
+        fastcgi_keep_conn on;
+        if ($request_method !~ ^(GET|POST)$) { return 405; }
+        include fastcgi_params;
+        fastcgi_param FN_HANDLER getProfile;
+        #try_files $fastcgi_script_name =404;
+        fastcgi_pass fcgi_srvs;
     }
 }
 EOF
