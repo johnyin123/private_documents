@@ -148,6 +148,7 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     default_type application/json;
+    include /etc/nginx/http-enabled/favicon.inc;
     include /etc/nginx/http-enabled/error_page.inc;
     error_page 401 =401 @error401;
     location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host/ui/tpl.html"/></head><body></body></html>'; }
@@ -169,7 +170,6 @@ server {
     location =/logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
     location =/api/login { proxy_cache off; proxy_pass http://api_auth; }
     location =/api/refresh { auth_request @api_auth; proxy_cache off; proxy_pass http://api_auth; }
-    include /etc/nginx/http-enabled/favicon.inc;
     location /conf/ {
         location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
             # # no cache!! mgr private access
@@ -277,8 +277,8 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     default_type application/json;
-    include /etc/nginx/http-enabled/error_page.inc;
     include /etc/nginx/http-enabled/favicon.inc;
+    include /etc/nginx/http-enabled/error_page.inc;
     # # tanent api
     location = @prestart_user {
         internal;
