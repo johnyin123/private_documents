@@ -167,7 +167,7 @@ http {
     include http-enabled/*.conf;
 }
 EOF
-cat << EOF
+cat << 'EOF'
 upstream fcgi_srvs {
         server 127.0.0.1:9999;
         server unix:/tmp/fastcgi.socket;

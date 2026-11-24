@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("148cb729[2026-07-03T10:08:53+08:00]:ngx_demo.sh")
+VERSION+=("bf6bb769[2026-07-30T07:27:25+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2253,6 +2253,45 @@ server {
         proxy_pass $scheme://$host$request_uri;
         proxy_max_temp_file_size 0k;
     }
+}
+EOF
+cat <<'EOF' > mirror_cache.http
+location ~*\.(iso)$ {
+    proxy_cache off;
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
+}
+location ~*\.(qcow2)$ {
+    set $limit 0; if_modified_since before;
+    root /golds;
+    try_files $request_uri @real_res;
+}
+location @real_res {
+    proxy_cache off;
+    set $reqfile $uri;
+    mirror /mirror_store;
+    mirror_request_body off;
+    proxy_set_header Accept-Encoding "";
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
+}
+location = /mirror_store {
+    internal;
+    proxy_cache off;
+    # proxy_method GET; # Force GET so HEAD trigger a full file download
+    proxy_pass http://real_gold_srv$request_uri;
+    proxy_set_header Accept-Encoding "";
+    proxy_set_header Host real_gold_srv
+    proxy_set_header Range "";
+    proxy_set_header If-Range "";
+    proxy_store /golds$reqfile;
+    proxy_store_access user:rw group:rw all:r;
+    proxy_ignore_client_abort off;
+}
+location / {
+    proxy_cache off;
+    proxy_set_header Host real_gold_srv;
+    proxy_pass http://real_gold_srv;
 }
 EOF
 cat <<'EOF' > mirror.http
