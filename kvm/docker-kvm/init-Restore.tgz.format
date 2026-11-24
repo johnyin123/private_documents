@@ -1,3 +1,4 @@
+# tar -c * | gzip > ../restore.tgz
 cacert.pem
 clientkey.pem
 clientcert.pem
