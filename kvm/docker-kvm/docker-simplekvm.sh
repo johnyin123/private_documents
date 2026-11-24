@@ -384,6 +384,7 @@ server {
 EODOC
     mkdir -p ${target}/nginx/http-enabled && cat <<EODOC| grep -v '^\s*#.*$' > ${target}/nginx/http-enabled/gold_iso.loc
 location ~*\.(iso)$ {
+    proxy_cache off;
     proxy_set_header Host real_gold_srv;
     proxy_pass http://real_gold_srv;
 }
@@ -392,28 +393,40 @@ location ~*\.(qcow2)$ {
     try_files \$request_uri @real_res;
 }
 location @real_res {
-    internal;
-    proxy_set_header Accept-Encoding '';
+    proxy_cache off;
+    set \$reqfile \$uri;
+    mirror /mirror_store;
+    mirror_request_body off;
+    proxy_set_header Accept-Encoding "";
     proxy_set_header Host real_gold_srv;
     proxy_pass http://real_gold_srv;
-    proxy_store on;
-    # force 206 to http200, 206 not support proxy store
+}
+location = /mirror_store {
+    internal;
+    proxy_cache off;
+    # proxy_method GET; # Force GET so HEAD trigger a full file download
+    proxy_pass http://real_gold_srv\$request_uri;
+    proxy_set_header Accept-Encoding "";
+    proxy_set_header Host real_gold_srv
     proxy_set_header Range "";
     proxy_set_header If-Range "";
+    proxy_store ${USER_HOME}/golds\$reqfile;
     proxy_store_access user:rw group:rw all:r;
-    root ${USER_HOME}/golds;
+    proxy_ignore_client_abort off;
 }
 location / {
+    proxy_cache off;
     proxy_set_header Host real_gold_srv;
     proxy_pass http://real_gold_srv;
 }
 EODOC
-    mkdir -p ${target} && cat <<EODOC > ${target}/supervisord.conf
+    mkdir -p ${target} && cat <<EODOC |  grep -v '^\s*#.*$' > ${target}/supervisord.conf
 [supervisord]
 nodaemon=true
 user=root
 environment=PATH="${VENV:+${VENV}/bin:}%(ENV_PATH)s"
-logfile=/var/log/supervisor/supervisord.log
+logfile=/dev/stdout
+logfile_maxbytes=0
 pidfile=/var/run/supervisord.pid
 
 [unix_http_server]
@@ -452,8 +465,7 @@ stderr_logfile_maxbytes=0
 [program:api_auth]
 umask=0022
 environment=JWT_PUBKEY=${JWT_PUBKEY},JWT_PRIKEY=${JWT_PRIKEY}
-directory=/auth/
-command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
+command=gunicorn --chdir /auth -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:create_app()'
 autostart=true
 autorestart=true
 startretries=5
@@ -466,8 +478,7 @@ stderr_logfile_maxbytes=0
 [program:simplekvm]
 umask=0022
 environment=HOME="${USER_HOME}",TOKEN_DIR="${token_dir}"
-directory=/app/
-command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
+command=gunicorn --chdir /app -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
 autorestart=true
 startretries=10
@@ -482,12 +493,13 @@ EODOC
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
 mkdir -p $(dirname "${ALL_PRIKEY}") ${USER_HOME}/golds
-file_exists "${ALL_PRIKEY}" || openssl req -x509 -newkey rsa:2048 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
+file_exists "${ALL_PRIKEY}" || openssl req -quiet -x509 -newkey rsa:2048 -keyout ${ALL_PRIKEY} -out ${ALL_PUBKEY} -sha256 -days 3650 -nodes -subj "/C=CN/L=LN/O=mycompany/CN=SimpleKVM"
 file_exists "${JWT_PUBKEY}" || openssl rsa -in ${ALL_PRIKEY} -pubout -out ${JWT_PUBKEY} || true
 file_exists "${SSH_PRI}" || {
     mkdir --mode=700 -p "${USER_HOME}/.ssh"
-    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${SSH_PRI}
-    file_exists "${SSH_CFG}" || cat <<EO_CFG > "${SSH_CFG}"
+    ssh-keygen -q -b 4096 -t rsa -C simplekvm -N '' -f ${SSH_PRI}
+}
+file_exists "${SSH_CFG}" || cat <<EO_CFG > "${SSH_CFG}"
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 ControlMaster auto
@@ -496,7 +508,6 @@ ControlPersist 600
 Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
-}
 chown -R ${username}:${username} ${USER_HOME} -R || true
 chmod 600 ${SSH_PRI} || true
 chmod 644 ${SSH_PUB} || true
@@ -513,7 +524,7 @@ chmod 644 ${SSH_CFG} || true
     # cache golds
     sed -i \\
         -e "s|proxy_set_header\s\s*Host.*$|proxy_set_header Host \${GOLD_SRV};|g" \\
-        -e "s|proxy_pass\s\s*http://.*$|proxy_pass http://\${GOLD_SRV};|g" \\
+        -e "s|proxy_pass\s\s*http://[^;\$]*|proxy_pass http://\${GOLD_SRV}|g" \\
         /etc/nginx/http-enabled/gold_iso.loc || true
     # export GOLD_CACHE=1
 }
@@ -537,7 +548,7 @@ EODOC
     file_exists "$(ls nginx-johnyin*${arch}.deb)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
     sed -i "s/^\s*#\s*//g" ${target}/nginx/modules.d/jwt.conf
     sed -i "s/^user .*;/user ${username} ${username};/g"  ${target}/nginx/nginx.conf
-    sed -i "s/worker_processes .*;/worker_processes 1;/g" ${target}/nginx/nginx.conf
+    sed -i "s/worker_processes .*;/worker_processes 2;/g" ${target}/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${target}/nginx/nginx.conf
     sed -i "/proxy_pass_header\s*Server\s*;/d"            ${target}/nginx/http-conf.d/proxy.conf
     rm -f ${target}/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} ${target}/nginx/ssl/simplekvm.pem
@@ -546,11 +557,7 @@ EODOC
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
-        # tar -C ${type}-${arch}/docker/app --one-top-level=spice --strip-components 1 -xf ${SOURCE_DIR}/spice.tgz
         tar --exclude=test -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
-        # for fn in ${SOURCE_DIR}/*.py; do
-        #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
-        # done
         ######### gen init env tgz file
         INIT_TPL=(meta/meta-data.tpl meta/user-data.tpl devices/disk.file.tpl devices/disk.file.action devices/net.br-ext.tpl devices/cdrom.null.tpl domains/domain.tpl vars.json)
         INIT_DBS=(golds.json iso.json)
@@ -603,21 +610,21 @@ cat <<'EOF'
 ###################################################
 # test run
 ###################################################
-LDAP_SRV_URL=ldap://ldap:10389
 META_SRV=vmm.registry.local
-GOLD_SRV=vmm.registry.local
+GOLD_SRV=vmm.registry.local  # noset use docker local ip:80 as gold/iso srv
 gold_srv_ipaddr=192.168.167.1
+LDAP_SRV_URL=ldap://ldap:10389 # noset use test env admin/simplekvm
+ETCD_PREFIX=/simple-kvm/work  # noset use local store, not cluster mode
 
-docker create \
- --name simplekvm \
- --restart always \
+# --env LEVELS='{"main":"INFO"}' \
+docker create --name simplekvm --restart always \
  --network br-int --ip 192.168.169.123 \
- --env LEVELS='{"main":"INFO"}' \
  --env JWT_ALLOWS='["admin", "simplekvm"]' \
  --env LDAP_SRV_URL=${LDAP_SRV_URL} \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
- --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
- -v ${TARGET_DIR}:/home/simplekvm
+ --env ETCD_PREFIX=${ETCD_PREFIX} --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
+
+ # -v ${TARGET_DIR}:/home/simplekvm
 EOF
 
