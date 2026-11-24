@@ -1,3 +1,4 @@
+cd dir && tar c * | gzip > ../restore.tgz
 jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open),supervisorctl,openssl
 
 ETCD_PREFIX not set then use directory as store, else use etcd as store for cluster mode
