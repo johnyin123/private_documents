@@ -311,7 +311,7 @@ class MyApp(object):
                     args['req_json'] = req_json
                 func = getattr(vmmanager.VMManager, cmd)
                 logger.info(f'"{cmd}" call args={args}')
-                return flask.Response(func(**args), mimetype="text/event-stream")
+                return flask.Response(func(**args), mimetype="text/event-stream", headers={ "Cache-Control": "no-cache", "X-Accel-Buffering": "no", },)
             else:
                 return utils.return_err(404, cmd, f'Domain No Found CMD: {cmd}')
         except Exception as e:
