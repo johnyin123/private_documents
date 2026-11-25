@@ -551,9 +551,12 @@ EODOC
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
     file_exists "$(ls nginx-johnyin*${arch}.deb)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
     sed -i "s/^\s*#\s*//g" ${target}/nginx/modules.d/jwt.conf
-    sed -i "s/^user .*;/user ${username} ${username};/g"  ${target}/nginx/nginx.conf
-    sed -i "s/worker_processes .*;/worker_processes 2;/g" ${target}/nginx/nginx.conf
-    sed -i "/worker_priority/d"                           ${target}/nginx/nginx.conf
+    sed -i "/worker_priority/d" ${target}/nginx/nginx.conf
+    sed -i -e "s/worker_rlimit_nofile\s\s*[^;]*;/worker_rlimit_nofile 10240;/g" \
+           -e "s/worker_connections\s\s*[^;]*;/worker_connections 4096;/g" \
+           -e "s/worker_processes\s\s*[^;]*;/worker_processes 2;/g" \
+           -e "s/^user\s\s*[^;]*;/user ${username} ${username};/g" \
+           ${target}/nginx/nginx.conf
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
