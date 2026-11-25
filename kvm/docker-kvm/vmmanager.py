@@ -184,7 +184,7 @@ class VMManager:
     @staticmethod
     def websockify(method:str, host:utils.AttrDict, uuid:str, disp:str='', expire:str=config.TMOUT_MINS, token:str='')->str:
         XMLDesc_Secure = None
-        socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m' ]
+        cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m' ]
         server = f'unix_socket:/tmp/.display.{uuid}'
         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -192,20 +192,20 @@ class VMManager:
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         if disp == 'console':
-            socat_cmd += [f'{os.path.abspath(os.path.dirname(__file__))}/console', host.get('url'), uuid,]
+            cmd += [f'{os.path.abspath(os.path.dirname(__file__))}/console', host.get('url'), uuid,]
         else:
             for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
                 listen = item.getAttribute('listen')
                 port = item.getAttribute('port')
                 if listen == '127.0.0.1' or listen == 'localhost':
                     # socat UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork EXEC:"ssh user@host socat STDIO TCP:127.0.0.1:9999"
-                    socat_cmd += ['ssh', f'-p {host.get("sshport")}', '-N', '-o', 'StreamLocalBindUnlink=yes', '-L', f'/tmp/.display.{uuid}:{listen}:{port}', f'{host.get("sshuser")}@{host.get("ipaddr")}']
+                    cmd += ['ssh', '-p', host.get("sshport"), '-N', '-o', 'StreamLocalBindUnlink=yes', '-L', f'/tmp/.display.{uuid}:{listen}:{port}', f'{host.get("sshuser")}@{host.get("ipaddr")}']
                 elif listen == '0.0.0.0':
                     server = f'{host.get("ipaddr")}:{port}'
                 else:
                     raise utils.APIException(f'vm {uuid} graphic listen "{listen}" unknown')
-        logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
-        utils.ProcList().Run(uuid, socat_cmd, int(expire)*60)
+        logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={cmd}')
+        utils.ProcList().Run(uuid, cmd, int(expire)*60)
         utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
         return utils.return_ok('websockify', uuid=uuid)
 
