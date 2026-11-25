@@ -100,3 +100,9 @@ systemd-run --unit simple-kvm \
   --property=BindPaths=${DIRNAME}:${USER_HOME} \
   ${DIRNAME}/entrypoint.sh supervisord -n -c ${USER_HOME}/supervisord.conf
 EOF
+
+cat <<EOF
+with subprocess.Popen(..., start_new_session=True) as proc:
+  #isolates process group so child processes also die
+  os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+EOF
