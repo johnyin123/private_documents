@@ -12,10 +12,10 @@ for fn in ${combined[@]}; do
     strip ${fn}.so
     chmod 644 ${fn}.so
 done
-# # gcc console.c -lvirt -o console
-# # apt -y install libpython3.13 # runtime embed
-cython -X language_level=3 --embed console.py -o console.c
-gcc $(python3-config --includes) console.c $(python3-config --embed --libs) -o console
+gcc console.c -lvirt -o console
+# apt -y install libpython3.13 # runtime embed
+# cython -X language_level=3 --embed console.py -o console.c
+# gcc $(python3-config --includes) console.c $(python3-config --embed --libs) -o console
 strip console
 chmod 755 console
 echo "copy file to /home/johnyin/disk/myvm/cloud-tpl/newkvm/simplekvm-amd64/docker/app/"
