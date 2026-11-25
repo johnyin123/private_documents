@@ -25,8 +25,7 @@ class MyApp(object):
         ret, not_exists = required_exists()
         if ret:
             logger.error(f'{not_exists} runtime not exists')
-            dir_cwd = os.getcwd()
-            init_pkg = os.path.join(dir_cwd, 'init_env.tgz')
+            init_pkg = os.path.join(os.path.dirname(__file__), 'init_env.tgz')
             if os.path.isfile(init_pkg):
                 total, apply, skip = utils.conf_restore_tgz(io.BytesIO(utils.file_load(init_pkg)))
                 logger.info(f'init runtime env, total={total}, apply={apply}, skip={skip}')
@@ -68,7 +67,7 @@ class MyApp(object):
             return utils.return_err(404, 'add_authorized_keys', 'Password No Found')
         host = get_host().get_one(name=hostname)
         task_uuid=f'00000000-0000-0000-0000-{ipv4_to_8bit_string(host.ipaddr)}'
-        askpass = os.path.join(os.getcwd(), f'{task_uuid}.sh')
+        askpass = os.path.join(os.path.expanduser("~"), f'{task_uuid}.sh')
         result = {'copy sshkey':False, 'bridge br-ext exist':False, '/strage store pool exist':False}
         try:
             utils.file_save(askpass, f'#!/bin/bash\necho "{passwd}"'.encode('utf-8'))

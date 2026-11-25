@@ -135,7 +135,7 @@ class ProcList:
     def wait_proc(self, uuid:str, cmd:List, tmout:int=0, redirect:bool=True, sinput:str=None, **kwargs)-> Generator:
         try:
             for p in self.pids.list_all(uuid=uuid):
-                logger.info(f'PROC: {uuid} {p} found, kill all!!')
+                logger.warning(f'PROC: {uuid} {p} found, kill all!!')
                 os.kill(p.pid, signal.SIGTERM)
                 self.pids.delete(uuid=uuid, pid=p.pid)
         except Exception as e:
@@ -155,7 +155,7 @@ class ProcList:
                     logger.info(f'PROC: {uuid} PID={proc.pid} {cmd} exit ok!!!')
                 else:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    logger.info(f'PROC: {uuid} PID={proc.pid} {cmd} exit error!!!')
+                    logger.warning(f'PROC: {uuid} PID={proc.pid} {cmd} exit error!!!')
                     raise APIException(f'PROC: {uuid} PID={proc.pid} {cmd[:2]} exit error={proc.returncode if proc.returncode > 0 else signal.Signals(-proc.returncode).name} {msg}')
             finally:
                 proc.terminate() # Ensure termination if still running
@@ -270,14 +270,10 @@ import etcd3gw, config
 class EtcdConfig:
     @classmethod
     def _get_client(cls):
-        use_tls = bool(getattr(config, 'ETCD_CA', None) or getattr(config, 'ETCD_CERT', None) or getattr(config, 'ETCD_KEY', None))
+        use_tls = bool(config.ETCD_CA or config.ETCD_CERT or config.ETCD_KEY)
         # logger.warning("ETCD3GW Ensure your etcd server v3.5 or newer (or running with --enable-grpc-gateway enabled on v3.4)")
-        return etcd3gw.client(host=config.ETCD_SRV, port=config.ETCD_PORT,
-            protocol='https' if use_tls else 'http',
-            ca_cert=getattr(config, 'ETCD_CA', None),
-            cert_key=getattr(config, 'ETCD_KEY', None),
-            cert_cert=getattr(config, 'ETCD_CERT', None),
-            timeout=30,
+        return etcd3gw.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT,
+            protocol='https' if use_tls else 'http', timeout=30,
         )
 
     @classmethod
@@ -305,7 +301,7 @@ class EtcdConfig:
                 finally:
                     lock.release()
             else:
-                logger.info('Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+                logger.warning('Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except Exception as e:
             raise APIException(f'ETCD DEL {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__}: {e}]')
 
@@ -366,7 +362,9 @@ class EtcdConfig:
             file_save(fname, value)
         logger.warning(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
+
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
+
 def conf_backup_tgz()->io.BytesIO:
     file_obj = io.BytesIO()
     home_dir = os.path.expanduser("~")
@@ -377,7 +375,6 @@ def conf_backup_tgz()->io.BytesIO:
             for fn in glob.glob(pattern, recursive=True):
                 if os.path.isfile(fn):
                     arcname = os.path.relpath(fn, base_dir)
-                    # member = tarfile.TarInfo(name=arcname)
                     member = tar.gettarinfo(fn, arcname=arcname)
                     if member.name.startswith(config.BAK_PREFIX + config.SSH_PREFIX + config.PKI_PREFIX):
                         logger.debug(f'File backup {member.name}')
