@@ -11,16 +11,16 @@ nsname=simplekvm
 username=simplekvm
 USER_HOME=/home/${username}
 # VENV=/venv
-SSH_PRI=${USER_HOME}/.ssh/id_rsa
-SSH_PUB=${USER_HOME}/.ssh/id_rsa.pub
-SSH_CFG=${USER_HOME}/.ssh/config
+readonly SSH_PRI=${USER_HOME}/.ssh/id_rsa
+readonly SSH_PUB=${USER_HOME}/.ssh/id_rsa.pub
+readonly SSH_CFG=${USER_HOME}/.ssh/config
 # ${USER_HOME}/.pki/libvirt/cacert.pem
-ALL_PRIKEY=${USER_HOME}/.pki/libvirt/clientkey.pem
-ALL_PUBKEY=${USER_HOME}/.pki/libvirt/clientcert.pem
+readonly ALL_PRIKEY=${USER_HOME}/.pki/libvirt/clientkey.pem
+readonly ALL_PUBKEY=${USER_HOME}/.pki/libvirt/clientcert.pem
 # JWT_PUBKEY auto generate from ALL_PRIKEY
-JWT_PRIKEY=${ALL_PRIKEY}
-JWT_PUBKEY=${USER_HOME}/pubkey.pem
-token_dir=/dev/shm/simplekvm/token
+readonly JWT_PRIKEY=${ALL_PRIKEY}
+readonly JWT_PUBKEY=${USER_HOME}/pubkey.pem
+readonly TOKEN_DIR=/dev/shm/simplekvm/token
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
 [ "$(id -u)" -eq 0 ] || { log "need root user run"; exit 1; }
@@ -451,7 +451,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 
 [program:websockify]
-command=websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
+command=websockify --token-plugin TokenFile --token-source ${TOKEN_DIR} 127.0.0.1:6800
 autostart=true
 autorestart=true
 startretries=10
@@ -477,7 +477,7 @@ stderr_logfile_maxbytes=0
 
 [program:simplekvm]
 umask=0022
-environment=HOME="${USER_HOME}",TOKEN_DIR="${token_dir}"
+environment=HOME="${USER_HOME}",TOKEN_DIR="${TOKEN_DIR}"
 command=gunicorn --chdir /app -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:create_app()'
 autostart=true
 autorestart=true
@@ -489,6 +489,7 @@ stderr_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
+
     mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
 #!/bin/bash
 file_exists() { [ -e "\$1" ]; }
@@ -499,6 +500,9 @@ file_exists "${SSH_PRI}" || {
     mkdir --mode=700 -p "${USER_HOME}/.ssh"
     ssh-keygen -q -b 4096 -t rsa -C simplekvm -N '' -f ${SSH_PRI}
 }
+rm -f /etc/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} /etc/nginx/ssl/simplekvm.pem
+rm -f /etc/nginx/ssl/simplekvm.key && ln -s ${ALL_PRIKEY} /etc/nginx/ssl/simplekvm.key
+rm -f /etc/nginx/ssl/pubkey.pem    && ln -s ${JWT_PUBKEY} /etc/nginx/ssl/pubkey.pem
 file_exists "${SSH_CFG}" || cat <<EO_CFG > "${SSH_CFG}"
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
@@ -550,10 +554,6 @@ EODOC
     sed -i "s/^user .*;/user ${username} ${username};/g"  ${target}/nginx/nginx.conf
     sed -i "s/worker_processes .*;/worker_processes 2;/g" ${target}/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${target}/nginx/nginx.conf
-    sed -i "/proxy_pass_header\s*Server\s*;/d"            ${target}/nginx/http-conf.d/proxy.conf
-    rm -f ${target}/nginx/ssl/simplekvm.pem && ln -s ${ALL_PUBKEY} ${target}/nginx/ssl/simplekvm.pem
-    rm -f ${target}/nginx/ssl/simplekvm.key && ln -s ${ALL_PRIKEY} ${target}/nginx/ssl/simplekvm.key
-    rm -f ${target}/nginx/ssl/pubkey.pem    && ln -s ${JWT_PUBKEY} ${target}/nginx/ssl/pubkey.pem
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
