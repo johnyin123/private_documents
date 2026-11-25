@@ -513,7 +513,7 @@ chmod 600 ${SSH_PRI} || true
 chmod 644 ${SSH_PUB} || true
 chmod 644 ${SSH_CFG} || true
 [ -z "\${CTRL_KEY:-}" ] || {
-    sed -i "s|P@ssw@rd4Display|\${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf || true
+    sed -i "s|set\s\s*\\\$userkey\s\s*[^;]*;|set \\\$userkey \${CTRL_KEY}|g" /etc/nginx/http-enabled/simplekvm.conf || true
 }
 [ -z "\${ETCD_PREFIX:-}" ] && {
     sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR:-${USER_HOME}/work}/cidata|g" /etc/nginx/http-enabled/meta_golds.conf || true
