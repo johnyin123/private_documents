@@ -128,6 +128,14 @@ class ShmListStore:
     def reload(self, arr: List[Dict]) -> None:
         self._atomic_op(self._dump_data, arr)
 ######################################################################
+class NamedPopen(subprocess.Popen):
+    def __init__(self, args, *pargs, name=None, **kwargs):
+        self.name = name
+        if name and isinstance(args, (list, tuple)) and len(args) > 0:
+            kwargs.setdefault("executable", args[0])
+            args = [name] + list(args[1:])
+        super().__init__(args, *pargs, **kwargs)
+
 class ProcList:
     def __init__(self):
         self.pids = ShmListStore(name='pids', size=10*KiB)
@@ -141,7 +149,7 @@ class ProcList:
         except Exception as e:
             logger.error(f'PROC: {uuid} KILL {type(e).__name__} {str(e)}')
         output = subprocess.STDOUT if redirect else subprocess.PIPE
-        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
+        with NamedPopen(cmd, name=f'worker-{uuid}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
             try:
                 self.pids.insert(uuid=uuid, pid=proc.pid, cmd=cmd)
                 logger.info(f'PROC: {uuid} timeout={tmout} PID={proc.pid} {cmd} start!!!')
