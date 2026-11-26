@@ -627,6 +627,7 @@ docker create --name simplekvm --restart always \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=${ETCD_PREFIX} --env ETCD_SRV=etcd --env ETCD_PORT=2379 \
+ registry.local/simplekvm/simplekvm:trixie
 
  # -v ${TARGET_DIR}:/home/simplekvm
 EOF
