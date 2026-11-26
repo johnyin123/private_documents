@@ -3,7 +3,7 @@ set -o nounset -o pipefail -o errexit
 source venv-full/bin/activate
 # # apt -y install cython3
 
-auth_app=(api_auth config utils flask_app)
+auth_app=(api_auth flask_app)
 simplekvm_app=(config database flask_app main meta template utils vmmanager)
 combined=($(for ip in "${simplekvm_app[@]}" "${auth_app[@]}"; do echo "${ip}"; done | sort -u))
 for fn in ${combined[@]}; do

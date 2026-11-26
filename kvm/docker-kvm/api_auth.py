@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
-import os, flask_app, flask, datetime, jwt, logging, json, contextlib, ldap3, utils
+import os, flask_app, flask, datetime, jwt, logging, json, contextlib, ldap3
 logger = logging.getLogger(__name__)
 
 def ldap_login(config: dict, username: str, password: str) -> bool:
@@ -40,11 +40,28 @@ DEFAULT_CONF = {
     'JWT_PRIKEY' : os.environ.get('JWT_PRIKEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
     'EXPIRE_SEC'   : int(os.environ.get('EXPIRE_SEC', '3600')),
 }
+def file_load(fname:str)-> bytes:
+    with open(fname, 'rb') as file:
+        return file.read()
+
+class APIException(Exception):
+    pass
+
+def return_ok(desc:str, **kwargs)->str:
+    return json.dumps({'result':'OK','desc':desc, **kwargs}, default=str, ensure_ascii=False)
+
+def return_err(code:int, name:str, desc:str)->str:
+    return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc}, default=str, ensure_ascii=False)
+
+def deal_except(who:str, e:Exception) -> str:
+    logger.exception(f'998 {who}')
+    return return_err(998, who, f'{type(e).__name__} {str(e)}')
+
 class jwt_auth:
     def __init__(self, config: dict={}):
         self.config = {**DEFAULT_CONF, **config}
-        self.jwt_cert_pem = utils.file_load(self.config.get('JWT_PUBKEY'))
-        self.jwt_cert_key = utils.file_load(self.config.get('JWT_PRIKEY'))
+        self.jwt_cert_pem = file_load(self.config.get('JWT_PUBKEY'))
+        self.jwt_cert_key = file_load(self.config.get('JWT_PRIKEY'))
         self.expire_secs = self.config.get('EXPIRE_SEC')
         logger.debug(f'{self.config}')
 
@@ -58,12 +75,12 @@ class jwt_auth:
                 'trans': trans if trans is not None else {},
             }
             return self.sign_payload(payload)
-        raise utils.APIException('Bad username or password.')
+        raise APIException('Bad username or password.')
 
     def decode_payload(self, token:str) -> Dict:
         # unverified_header = jwt.get_unverified_header(token)
         # algorithm = unverified_header['alg']
-        algorithms=['RS256']
+        algorithm=['RS256']
         return jwt.decode(token, self.jwt_cert_pem, algorithms=algorithm)
 
 class MyApp(object):
@@ -83,9 +100,9 @@ class MyApp(object):
             except (ValueError, TypeError):
                 pass
             payload.update({'iat':datetime.datetime.utcnow(),'exp':datetime.datetime.utcnow()+datetime.timedelta(seconds=self.auth.expire_secs),'count':count+1})
-            return utils.return_ok(f'refresh ok', **self.auth.sign_payload(payload))
+            return return_ok(f'refresh ok', **self.auth.sign_payload(payload))
         except Exception as e:
-            return utils.deal_except(f'refresh', e), 401
+            return deal_except(f'refresh', e), 401
 
     def api_login(self):
         try:
@@ -93,17 +110,17 @@ class MyApp(object):
             username = req_json.get('username', None)
             password = req_json.get('password', None)
             if not username or not password:
-                raise utils.APIException('username/password No Found')
+                raise APIException('username/password No Found')
             logger.debug('{username} ,pass[{password}]')
             req_json.pop('username')
             req_json.pop('password')
             if self.blocks and username in self.blocks:
-                raise utils.APIException('username Blocked')
+                raise APIException('username Blocked')
             if self.allows and username not in self.allows:
-                raise utils.APIException('username No Allow')
-            return utils.return_ok(f'login ok', **self.auth.login(username, password, req_json))
+                raise APIException('username No Allow')
+            return return_ok(f'login ok', **self.auth.login(username, password, req_json))
         except Exception as e:
-            return utils.deal_except(f'login', e), 401
+            return deal_except(f'login', e), 401
 
     @staticmethod
     def create():
