@@ -47,12 +47,12 @@ class ShmListStore:
         self._name = name
         self._size = size
         try:
-            self._shm = shared_memory.SharedMemory(name=name, create=True, size=size)
+            self._shm = shared_memory.SharedMemory(name=name, create=True, size=size, track=False)
             logger.debug(f'{self._shm} INIT')
             self._atomic_op(self._dump_data, [])
             atexit.register(self.cleanup_creator)
         except FileExistsError:
-            self._shm = shared_memory.SharedMemory(name=name)
+            self._shm = shared_memory.SharedMemory(name=name, create=False, track=False)
             logger.debug(f'{self._shm} exists')
             atexit.register(self.cleanup_worker)
 
