@@ -1,7 +1,7 @@
 Certificate Based SSH User Authentication
 
 Generate CA key (myca) for signing user ssh keys:
-    ssh-keygen -q -N "" -f myca
+    ssh-keygen -q -N "" -f myca # ssh-keygen -q -t rsa -b 2048 -N "" -f myca
     ssh-keygen -q -N "" -t rsa -f user1
     ssh-keygen -s myca -I user1 -n user1 -V +52w user1.pub
     mv -f user1-cert.pub user1.pub
@@ -11,6 +11,14 @@ Server Machine:
         -e '/^\s*(TrustedUserCAKeys)\s.*/!p' \
         -e '$aTrustedUserCAKeys /etc/ssh/myca.pub' \
         /etc/ssh/sshd_config
+
+function pkikey2ssh() {
+    local key=${1}
+    chmod 600 ${key} && ssh-keygen -p -N "" -f ${key}
+    ssh-keygen -f ${key} -y > ${key}.pub
+}
+# cat clientkey.pem > id_rsa
+# pkikey2ssh id_rsa
 
 # # openssl pubkey to ssh pubkey
 openssl x509 -in ca.pem -noout -pubkey | ssh-keygen -i -m PKCS8 -f /dev/stdin
