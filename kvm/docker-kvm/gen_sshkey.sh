@@ -2,15 +2,15 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-function pkikey2ssh() {
+function pkikey2sshpri() {
     local key=${1}
     chmod 600 ${key} && ssh-keygen -p -N "" -f ${key}
     ssh-keygen -f ${key} -y > ${key}.pub
 }
 cat ca.key > cacert
-pkikey2ssh cacert
+pkikey2sshpri cacert
 cat clientkey.pem > id_rsa
-pkikey2ssh id_rsa
+pkikey2sshpri id_rsa
 ssh-keygen -s cacert -I id_rsa -n simplekvm -V +520w id_rsa.pub
 cat id_rsa-cert.pub > id_rsa.pub
 cat <<'EOF'
