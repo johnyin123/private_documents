@@ -299,6 +299,8 @@ class VMManager:
 
     @staticmethod
     def cdrom(method:str, host:utils.AttrDict, uuid:str, dev:str, req_json)->str:
+        if not config.META_SRV or not config.META_SRV.strip():
+            return utils.return_err(404, 'cdrom', 'META_SRV not set')
         iso = get_iso().get_one(name=req_json.get('isoname', ''))
         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)

@@ -2,6 +2,7 @@
 set -o nounset -o pipefail -o errexit
 source venv-full/bin/activate
 # # apt -y install cython3
+# apt -y install libpython3-dev:arm64 libvirt-dev:arm64
 
 auth_app=(api_auth flask_app)
 simplekvm_app=(config database flask_app main meta template utils vmmanager)
@@ -13,8 +14,9 @@ for fn in ${combined[@]}; do
     chmod 644 ${fn}.so
 done
 gcc console.c -lvirt -o console
-# apt -y install libpython3.13 # runtime embed
 # cython -X language_level=3 --embed console.py -o console.c
+# apt -y install libpython3.13 # runtime embed
+# apt -y install libpython3.13-dev:amd64
 # gcc $(python3-config --includes) console.c $(python3-config --embed --libs) -o console
 strip console
 chmod 755 console
@@ -28,14 +30,20 @@ for fn in ${auth_app[@]}; do
     sudo cp $fn.so ${target}/docker/auth/
 done
 
-sudo cp *.c arm64.rootfs/
-sudo chroot arm64.rootfs /build.sh
+for fn in ${combined[@]}; do
+    aarch64-linux-gnu-gcc -fPIC -shared `aarch64-linux-gnu-python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
+    aarch64-linux-gnu-strip ${fn}.so
+    chmod 644 ${fn}.so
+done
+aarch64-linux-gnu-gcc console.c -lvirt -o console
+aarch64-linux-gnu-strip console
+chmod 755 console
 echo "copy file to /home/johnyin/disk/myvm/cloud-tpl/newkvm/simplekvm-arm64/docker/app/"
 target=/home/johnyin/disk/myvm/cloud-tpl/docker-images/simplekvm-arm64
-sudo cp arm64.rootfs/console ${target}/docker/app/
+sudo cp console ${target}/docker/app/
 for fn in ${simplekvm_app[@]}; do
-    sudo cp arm64.rootfs/$fn.so ${target}/docker/app/
+    sudo cp $fn.so ${target}/docker/app/
 done
 for fn in ${auth_app[@]}; do
-    sudo cp arm64.rootfs/$fn.so ${target}/docker/auth/
+    sudo cp $fn.so ${target}/docker/auth/
 done

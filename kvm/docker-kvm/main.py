@@ -118,6 +118,8 @@ class MyApp(object):
                 get_iso().get_one(name=name)
                 get_iso().delete(name=name)
             if flask.request.method == "POST":
+                if not config.META_SRV or not config.META_SRV.strip():
+                    return utils.return_err(404, 'add_iso', 'META_SRV not set')
                 req_json = flask.request.get_json(silent=True, force=True)
                 keys_to_extract = ['name','uri','desc']
                 entry = {key: req_json[key] for key in keys_to_extract}
@@ -274,7 +276,7 @@ class MyApp(object):
 
     def tpl_iso(self):
         try:
-            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all(), server=config.META_SRV)
+            return utils.return_ok(f'tpl_iso ok', iso=get_iso().list_all())
         except Exception as e:
             return utils.deal_except(f'tpl_iso', e), 400
 
@@ -317,10 +319,10 @@ class MyApp(object):
             return utils.deal_except(cmd, e), 400
 
 def create_app()-> flask.Flask:
-    if os.geteuid() == 0:
-        logger.fatal("Can not run as root, exit!")
+    try:
+        if os.geteuid() == 0:
+            logger.fatal("Can not run as root, exit!")
+        return MyApp.create()
+    except Exception as e:
+        logger.fatal(f'EXIT, {type(e).__name__} {str(e)}')
         sys.exit("exit!")
-    if not config.META_SRV:
-        logger.fatal("META_SRV not define exit!")
-        sys.exit("exit!")
-    return MyApp.create()

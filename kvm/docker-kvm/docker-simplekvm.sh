@@ -31,7 +31,7 @@ for fn in ui term novnc.tgz spice.tgz; do
     file_exists "${SOURCE_DIR}/${fn}" || { log "${SOURCE_DIR}/${fn} no found"; exit 1; }
 done
 for arch in ${ARCH[@]}; do
-    file_exists "$(ls nginx-johnyin*${arch}.deb)" || { log "nginx-johnyin ${arch}.deb no found"; }
+    file_exists "$(ls nginx-johnyin*${arch}.deb 2>/dev/null)" || { log "nginx-johnyin ${arch}.deb no found"; }
 done
 
 export BUILD_NET=${BUILD_NET:-host}
@@ -420,15 +420,7 @@ location / {
     proxy_pass http://real_gold_srv;
 }
 EODOC
-    mkdir -p ${target} && cat <<EODOC |  grep -v '^\s*#.*$' > ${target}/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
-environment=PATH="${VENV:+${VENV}/bin:}%(ENV_PATH)s"
-logfile=/dev/stdout
-logfile_maxbytes=0
-pidfile=/var/run/supervisord.pid
-
+: <<EOF
 [unix_http_server]
 file=/var/run/supervisor.sock   ; path to your socket file
 chmod=0700
@@ -437,6 +429,15 @@ chown=${username}:${username}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 [supervisorctl]
 serverurl=unix:///var/run/supervisor.sock ; must match the [unix_http_server] file path
+EOF
+    mkdir -p ${target} && cat <<EODOC |  grep -v '^\s*#.*$' > ${target}/supervisord.conf
+[supervisord]
+nodaemon=true
+user=root
+environment=PATH="${VENV:+${VENV}/bin:}%(ENV_PATH)s"
+logfile=/dev/stdout
+logfile_maxbytes=0
+pidfile=/var/run/supervisord.pid
 
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
@@ -523,14 +524,13 @@ chmod 644 ${SSH_CFG} || true
     sed -i "s|/dev/shm/simplekvm/work/cidata|\${DATA_DIR:-${USER_HOME}/work}/cidata|g" /etc/nginx/http-enabled/meta_golds.conf || true
 }
 [ -z "\${GOLD_SRV:-}" ] && {
-    echo "location / { root ${USER_HOME}/golds; }" > /etc/nginx/http-enabled/gold_iso.loc
+    echo "location / { autoindex on; root ${USER_HOME}/golds; }" > /etc/nginx/http-enabled/gold_iso.loc
 } || {
     # cache golds
     sed -i \\
         -e "s|proxy_set_header\s\s*Host.*$|proxy_set_header Host \${GOLD_SRV};|g" \\
         -e "s|proxy_pass\s\s*http://[^;\$]*|proxy_pass http://\${GOLD_SRV}|g" \\
         /etc/nginx/http-enabled/gold_iso.loc || true
-    # export GOLD_CACHE=1
 }
 # 443 is simplekvm admin server, :1443 is tanent server, :80 is META_SRV and GOLD_SRV
 env || true
@@ -549,7 +549,7 @@ EODOC
     docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
-    file_exists "$(ls nginx-johnyin*${arch}.deb)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
+    file_exists "$(ls nginx-johnyin*${arch}.deb 2>/dev/null)" && dpkg -x "$(ls nginx-johnyin*${arch}.deb)" ${type}-${arch}/docker
     sed -i "s/^\s*#\s*//g" ${target}/nginx/modules.d/jwt.conf
     sed -i "/worker_priority/d" ${target}/nginx/nginx.conf
     sed -i -e "s/worker_rlimit_nofile\s\s*[^;]*;/worker_rlimit_nofile 10240;/g" \
@@ -586,7 +586,7 @@ EOF
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
     log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
-    for fn in tmp root build.run $(ls nginx-johnyin*${arch}.deb); do
+    for fn in tmp root build.run $(ls nginx-johnyin*${arch}.deb 2>/dev/null); do
         rm -fr ${type}-${arch}/docker/${fn}
     done
     rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs

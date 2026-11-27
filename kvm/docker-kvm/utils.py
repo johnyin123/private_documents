@@ -62,6 +62,8 @@ class ShmListStore:
                 self._shm.close()
                 self._shm.unlink() # Unlink only once
                 logger.warning(f'Creator cleanup {self._shm}')
+            except FileNotFoundError:
+                pass
             except Exception as e:
                 logger.error(f'Creator cleanup: {type(e).__name__} {str(e)}')
 
@@ -276,6 +278,7 @@ def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
 
 import etcd3gw, config
 class EtcdConfig:
+    update_proc = None;
     @classmethod
     def _get_client(cls):
         use_tls = bool(config.ETCD_CA or config.ETCD_CERT or config.ETCD_KEY)
@@ -333,7 +336,7 @@ class EtcdConfig:
     @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:
         while True:
-            logger.warning('ETCD WATCH PREFIX START')
+            logger.warning('ETCD WATCH PREFIX PROCESS START')
             cancel_watch = None
             try:
                 etcd = cls._get_client()
@@ -356,20 +359,27 @@ class EtcdConfig:
             finally:
                 if cancel_watch:
                     cancel_watch()
-            logger.warning('ETCD WATCH PREFIX QUIT, 60s RESTART')
+            logger.warning('ETCD WATCH PREFIX PROCESS QUIT, 60s RESTART')
             time.sleep(60)
 
     @classmethod
     def cfg_initupdate(cls, update_callback) -> None:
         etcd = cls._get_client()
         logger.warning(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
-        for value, meta in etcd.get_prefix(config.ETCD_PREFIX):
-            raw_key = meta['key']
-            key_str = raw_key.decode('utf-8') if isinstance(raw_key, bytes) else raw_key
-            fname = cls.key2fname(key_str, 'ETCD INIT')
-            file_save(fname, value)
+        try:
+            for value, meta in etcd.get_prefix(config.ETCD_PREFIX):
+                raw_key = meta['key']
+                key_str = raw_key.decode('utf-8') if isinstance(raw_key, bytes) else raw_key
+                fname = cls.key2fname(key_str, 'ETCD INIT')
+                file_save(fname, value)
+        except Exception as e:
+            raise APIException(f'ETCD INIT SYNC {type(e).__name__} {str(e)}')
         logger.warning(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
-        multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
+        if cls.update_proc is not None and cls.update_proc.is_alive():
+            logger.warning('ETCD WATCH PREFIX PROCESS EXISTS')
+            return
+        cls.update_proc = multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,))
+        cls.update_proc.start()
 
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
 

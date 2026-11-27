@@ -18,10 +18,10 @@
     <system>
       <entry name='manufacturer'>JohnYin</entry>
       <entry name='version'>0.9</entry>
-{%- if vm_meta_enum == 'NOCLOUD' %}
+{%- if vm_meta_enum == 'NOCLOUD' and (META_SRV | default('', true) | trim) != '' %}
       <entry name='serial'>ds=nocloud-net;s=http://{{ META_SRV }}/{{ vm_uuid }}/</entry>
-      <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
+      <entry name='uuid'>{{ vm_uuid }}</entry>
     </system>
   </sysinfo>
   <title>{{ vm_name | default('vmsrv', true) | e }}</title>
@@ -38,7 +38,7 @@
   <iothreads>1</iothreads>
   <os>
     <type arch='{{ vm_arch }}' machine='{{ getmachine() }}'>hvm</type>
-{%- if vm_uefi is defined and vm_uefi != '' %}
+{%- if (vm_uefi | default('', true) | trim) != '' %}
     <loader readonly='yes' secure='{{ vm_uefi_secure | default("no", true) }}' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
     <boot dev='hd'/>
@@ -53,7 +53,8 @@
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
   <devices>
-{%- if vm_meta_enum != 'NOCLOUD' %}
+{%- if vm_meta_enum != 'NOCLOUD' and (META_SRV | default('', true) | trim) != '' %}
+    and (my_var | default('', true) | trim) != '' %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="http" name="/{{ vm_uuid }}/cidata.iso">
