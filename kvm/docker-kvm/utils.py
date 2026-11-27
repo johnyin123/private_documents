@@ -380,6 +380,7 @@ class EtcdConfig:
             return
         cls.update_proc = multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,))
         cls.update_proc.start()
+        logger.warning(f'ETCD WATCH PREFIX PROCESS pid={cls.update_proc.pid}')
 
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
 
