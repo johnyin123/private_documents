@@ -199,7 +199,7 @@ class VMManager:
                 port = item.getAttribute('port')
                 if listen == '127.0.0.1' or listen == 'localhost':
                     # socat UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork EXEC:"ssh user@host socat STDIO TCP:127.0.0.1:9999"
-                    cmd += ['ssh', '-p', host.get("sshport"), '-N', '-o', 'StreamLocalBindUnlink=yes', '-L', f'/tmp/.display.{uuid}:{listen}:{port}', f'{host.get("sshuser")}@{host.get("ipaddr")}']
+                    cmd += ['ssh', '-p', str(host.get("sshport")), '-N', '-o', 'StreamLocalBindUnlink=yes', '-L', f'/tmp/.display.{uuid}:{listen}:{port}', f'{host.get("sshuser")}@{host.get("ipaddr")}']
                 elif listen == '0.0.0.0':
                     server = f'{host.get("ipaddr")}:{port}'
                 else:
